@@ -1,0 +1,6 @@
+# -*- mode: sh; mode: sh-bash -*-
+
+# See the complete template at: https://github.com/akinomyoga/ble.sh/blob/master/blerc.template
+# Learn more about ble.sh at: https://github.com/akinomyoga/ble.sh
+# This file adds or replaces configurations from /etc/bigblerc
+

@@ -1,0 +1,122 @@
+[user]
+	email = 
+	username = 
+	name = 
+	signingkey =  
+
+[commit]
+	gpgsign = true
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	
+[apply]
+	whitespace = fix
+
+[log]
+    date = relative
+    decorate = short
+
+[fetch]
+    prune = true
+    pruneTags = true
+
+[rerere]
+    enabled = true
+
+[worktree]
+    prefix = ~/worktrees/
+
+[blame]
+    date = short
+
+
+[submodule]
+    recurse = true
+
+[core]
+	excludesfile = ~/.gitignore_global
+	attributesfile = ~/.gitattributes
+	whitespace = space-before-tab,-indent-with-non-tab,trailing-space
+	trustctime = false
+	editor = vim
+
+[color]
+	ui = auto
+
+[color "branch"]
+	current = yellow reverse
+	local = yellow
+	remote = green
+
+[color "diff"]
+	meta = yellow bold
+	frag = magenta bold
+	old = red
+	new = green
+
+[color "status"]
+	added = yellow
+	changed = green
+	untracked = cyan
+
+[diff]
+	renames = copies
+	algorithm = histogram
+    mnemonicPrefix = true
+    renames = true
+    tool = vimdiff
+
+[help]
+	autocorrect = 10
+
+[credential]
+    helper = cache --timeout=3600
+
+[merge]
+	log = true
+	tool = vimdiff
+    conflictstyle = diff3
+    ff = only
+
+[push]
+	default = simple
+	autoSetupRemote = true
+	followTags = true
+    default = current
+
+[pull]
+	rebase = true
+	ff = only
+
+[rebase]
+    autoStash = true
+    autoSquash = true
+
+[github]
+	user = alsgy2001
+
+[init]
+	defaultBranch = main
+
+[branch]
+    autosetuprebase = always
+
+
+[tag]
+    forceSignAnnotated = true
+
+[alias]
+    co = checkout
+    br = branch
+    ci = commit
+    st = status
+    last = log -1 HEAD
+    lg = log --oneline --decorate --graph --all
+    unstage = reset HEAD --
+    undo = checkout --
+    amend = commit --amend
+    wip = commit -am "WIP"
