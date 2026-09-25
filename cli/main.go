@@ -1,4 +1,4 @@
-// Comando dotfiles: menu interativo para os scripts deste repositório.
+// Comando dotfiles: menu interativo para configurar esta máquina.
 package main
 
 import (
@@ -21,21 +21,25 @@ type screen int
 const (
 	screenMain screen = iota
 	screenSSH
+	screenFirewall
 	screenScripts
 	screenInfo
+	screenJob
 )
 
 var screenTitles = map[screen]string{
-	screenMain:    "Menu principal",
-	screenSSH:     "Configurar SSH",
-	screenScripts: "Scripts",
-	screenInfo:    "Info do sistema",
+	screenMain:     "Menu principal",
+	screenSSH:      "SSH",
+	screenFirewall: "Firewall",
+	screenScripts:  "Scripts",
+	screenInfo:     "Info do sistema",
 }
 
 type item struct {
 	title, desc string
-	goTo        screen   // tela destino, quando run/quit estão vazios
-	run         []string // script + argumentos
+	goTo        screen     // tela destino, quando run/job/quit estão vazios
+	run         []string   // script + argumentos
+	job         func() job // ação nativa executada em passos
 	quit        bool
 }
 
@@ -57,6 +61,10 @@ type model struct {
 	stack    []screen
 	cursor   map[screen]int
 	info     []infoRow
+	ssh      sshStatus
+	fw       fwStatus
+	scripts  []script
+	job      *jobRun
 	status   string
 	statusOK bool
 }
@@ -82,27 +90,22 @@ func newModel(dotfiles string) model {
 }
 
 func (m model) items() []item {
-	ssh := filepath.Join(m.dotfiles, "scripts", "setup-ssh.sh")
 	switch m.screen {
 	case screenMain:
 		return []item{
-			{title: "Configurar SSH", desc: "OpenSSH + UFW: permanente, socket, temporário, hardening", goTo: screenSSH},
+			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
+			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSSH:
-		return []item{
-			{title: "Permanente", desc: "sshd habilitado no boot + UFW liberando 22/tcp", run: []string{ssh}},
-			{title: "Socket activation", desc: "sshd.socket: sobe o daemon só quando há conexão", run: []string{ssh, "--socket"}},
-			{title: "Temporário", desc: "SSH só para esta sessão (não persiste no reboot)", run: []string{ssh, "--temp"}},
-			{title: "Somente LAN", desc: "Permanente, liberando a porta 22 só para 192.168.1.0/24", run: []string{ssh, "--lan-only"}},
-			{title: "Permanente + hardening", desc: "Desativa login por senha e root (exige authorized_keys)", run: []string{ssh, "--harden"}},
-			{title: "Parar SSH", desc: "Encerra o sshd e fecha a porta 22 no firewall", run: []string{ssh, "--stop"}},
-		}
+		return m.sshItems()
+	case screenFirewall:
+		return m.fwItems()
 	case screenScripts:
 		var its []item
-		for _, s := range listScripts(m.dotfiles) {
+		for _, s := range m.scripts {
 			its = append(its, item{title: s.name, desc: s.desc, run: []string{s.path}})
 		}
 		return its
@@ -132,10 +135,60 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status, m.statusOK = fmt.Sprintf("✔ %s concluído", msg.title), true
 		}
 
+	case stepDoneMsg:
+		if m.job != nil {
+			return m, m.job.handle(msg)
+		}
+
+	case jobResultMsg:
+		if m.job != nil {
+			m.job.output = string(msg)
+		}
+
 	case tea.KeyMsg:
+		if m.screen == screenJob {
+			return m.handleJobKey(msg)
+		}
 		return m.handleKey(msg)
 	}
 	return m, nil
+}
+
+// Durante um job só ctrl+c funciona; ao terminar, qualquer tecla de voltar.
+func (m model) handleJobKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch k.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+	case "enter", "esc", "left", "h", "backspace", " ", "q":
+		if m.job.done {
+			m.job = nil
+			return m.back(), nil
+		}
+	}
+	return m, nil
+}
+
+func (m model) back() model {
+	if len(m.stack) > 0 {
+		m.screen = m.stack[len(m.stack)-1]
+		m.stack = m.stack[:len(m.stack)-1]
+		m.refresh()
+	}
+	return m
+}
+
+// refresh relê o estado usado pela tela atual.
+func (m *model) refresh() {
+	switch m.screen {
+	case screenSSH:
+		m.ssh = loadSSHStatus()
+	case screenFirewall:
+		m.fw = loadFWStatus(loadSSHStatus().port())
+	case screenScripts:
+		m.scripts = listScripts(m.dotfiles)
+	case screenInfo:
+		m.info = systemInfo(m.dotfiles)
+	}
 }
 
 func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -154,10 +207,7 @@ func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor[m.screen] = (cur + 1) % len(items)
 		}
 	case "esc", "left", "h", "backspace":
-		if len(m.stack) > 0 {
-			m.screen = m.stack[len(m.stack)-1]
-			m.stack = m.stack[:len(m.stack)-1]
-		}
+		return m.back(), nil
 	case "enter", "right", "l", " ":
 		if cur < len(items) {
 			return m.selectItem(items[cur])
@@ -178,12 +228,16 @@ func (m model) selectItem(it item) (tea.Model, tea.Cmd) {
 	case len(it.run) > 0:
 		m.status = ""
 		return m, runScript(it.title, it.run)
+	case it.job != nil:
+		m.status = ""
+		m.stack = append(m.stack, m.screen)
+		m.screen = screenJob
+		m.job = newJobRun(it.job())
+		return m, m.job.startStep()
 	default:
 		m.stack = append(m.stack, m.screen)
 		m.screen = it.goTo
-		if it.goTo == screenInfo {
-			m.info = systemInfo(m.dotfiles)
-		}
+		m.refresh()
 	}
 	return m, nil
 }
@@ -207,16 +261,29 @@ func (m model) View() string {
 	elapsed := m.now.Sub(m.start)
 	boxW := min(max(m.width-4, 30), 66)
 
+	inner := boxW - 4
+	divider := lipgloss.NewStyle().Foreground(colDimmer).Render(strings.Repeat("─", inner))
 	var body string
-	if m.screen == screenInfo {
-		body = m.viewInfo(boxW - 6)
-	} else {
-		body = m.viewMenu(boxW-6, elapsed)
+	switch m.screen {
+	case screenInfo:
+		body = m.viewInfo(inner)
+	case screenJob:
+		body = m.job.view(inner, elapsed)
+	case screenSSH:
+		body = m.ssh.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	case screenFirewall:
+		body = m.fw.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	default:
+		body = m.viewMenu(inner, elapsed)
 	}
 
 	crumbs := []string{}
 	for _, s := range append(m.stack, m.screen) {
-		crumbs = append(crumbs, screenTitles[s])
+		if s == screenJob {
+			crumbs = append(crumbs, m.job.title)
+		} else {
+			crumbs = append(crumbs, screenTitles[s])
+		}
 	}
 	header := lipgloss.NewStyle().Foreground(colDim).Render(strings.Join(crumbs, " › "))
 
@@ -305,6 +372,12 @@ func (m model) viewHelp(compact bool) string {
 	key := lipgloss.NewStyle().Foreground(colTitle).Bold(true)
 	txt := lipgloss.NewStyle().Foreground(colDim)
 	var pairs [][2]string
+	if m.screen == screenJob {
+		if !m.job.done {
+			return txt.Render("executando… ") + key.Render("ctrl+c") + txt.Render(" aborta")
+		}
+		return key.Render("enter") + " " + txt.Render("voltar")
+	}
 	if m.screen != screenInfo {
 		pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
 	}
