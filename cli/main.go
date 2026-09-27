@@ -22,6 +22,7 @@ const (
 	screenMain screen = iota
 	screenSSH
 	screenFirewall
+	screenGit
 	screenScripts
 	screenInfo
 	screenJob
@@ -31,6 +32,7 @@ var screenTitles = map[screen]string{
 	screenMain:     "Menu principal",
 	screenSSH:      "SSH",
 	screenFirewall: "Firewall",
+	screenGit:      "Git",
 	screenScripts:  "Scripts",
 	screenInfo:     "Info do sistema",
 }
@@ -63,6 +65,7 @@ type model struct {
 	info     []infoRow
 	ssh      sshStatus
 	fw       fwStatus
+	git      gitStatus
 	scripts  []script
 	job      *jobRun
 	status   string
@@ -95,6 +98,7 @@ func (m model) items() []item {
 		return []item{
 			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
+			{title: "Git", desc: "Instalar git e configurar os symlinks (.gitattributes, .gitignore, config)", goTo: screenGit},
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
@@ -103,6 +107,8 @@ func (m model) items() []item {
 		return m.sshItems()
 	case screenFirewall:
 		return m.fwItems()
+	case screenGit:
+		return m.gitItems()
 	case screenScripts:
 		var its []item
 		for _, s := range m.scripts {
@@ -184,6 +190,8 @@ func (m *model) refresh() {
 		m.ssh = loadSSHStatus()
 	case screenFirewall:
 		m.fw = loadFWStatus(loadSSHStatus().port())
+	case screenGit:
+		m.git = loadGitStatus(m.dotfiles)
 	case screenScripts:
 		m.scripts = listScripts(m.dotfiles)
 	case screenInfo:
@@ -273,6 +281,8 @@ func (m model) View() string {
 		body = m.ssh.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenFirewall:
 		body = m.fw.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	case screenGit:
+		body = m.git.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	default:
 		body = m.viewMenu(inner, elapsed)
 	}
