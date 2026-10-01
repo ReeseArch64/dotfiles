@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 type screen int
 
@@ -23,6 +23,7 @@ const (
 	screenSSH
 	screenFirewall
 	screenGit
+	screenGPG
 	screenScripts
 	screenInfo
 	screenJob
@@ -33,6 +34,7 @@ var screenTitles = map[screen]string{
 	screenSSH:      "SSH",
 	screenFirewall: "Firewall",
 	screenGit:      "Git",
+	screenGPG:      "GPG",
 	screenScripts:  "Scripts",
 	screenInfo:     "Info do sistema",
 }
@@ -66,6 +68,7 @@ type model struct {
 	ssh      sshStatus
 	fw       fwStatus
 	git      gitStatus
+	gpg      gpgStatus
 	scripts  []script
 	job      *jobRun
 	status   string
@@ -99,6 +102,7 @@ func (m model) items() []item {
 			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
 			{title: "Git", desc: "Instalar git, gitflow-next-bin e lazygit, além de configurar os symlinks", goTo: screenGit},
+			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
@@ -110,6 +114,8 @@ func (m model) items() []item {
 		return m.fwItems()
 	case screenGit:
 		return m.gitItems()
+	case screenGPG:
+		return m.gpgItems()
 	case screenScripts:
 		var its []item
 		for _, s := range m.scripts {
@@ -193,6 +199,8 @@ func (m *model) refresh() {
 		m.fw = loadFWStatus(loadSSHStatus().port())
 	case screenGit:
 		m.git = loadGitStatus(m.dotfiles)
+	case screenGPG:
+		m.gpg = loadGPGStatus(m.dotfiles)
 	case screenScripts:
 		m.scripts = listScripts(m.dotfiles)
 	case screenInfo:
@@ -284,6 +292,8 @@ func (m model) View() string {
 		body = m.fw.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenGit:
 		body = m.git.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	case screenGPG:
+		body = m.gpg.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	default:
 		body = m.viewMenu(inner, elapsed)
 	}

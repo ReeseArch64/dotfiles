@@ -7,6 +7,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Instala e configura Git, gitflow-next e Lazygit.
 - Gera a identidade do Git a partir de um `.env` local.
 - Cria links simbólicos para configurações globais do Git.
+- Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
 - Gerencia `sshd.service` e `sshd.socket`.
@@ -29,6 +30,7 @@ A instalação e as ações também usam:
 
 - `bash`
 - `git`
+- `gpg`, instalado pelo pacote `gnupg` quando necessário
 - `make`
 - Go compatível com a versão declarada em `cli/go.mod`
 - `sudo`
@@ -59,6 +61,8 @@ Edite `.env` com a sua identidade:
 GIT_USER_EMAIL=seu-email@example.com
 GIT_USERNAME=seu-usuario
 GIT_USER_NAME=Seu Nome
+GPG_PUBLIC_IMPORT=/run/media/seu-usuario/pendrive/chave_publica.asc
+GPG_PRIVATE_IMPORT=/run/media/seu-usuario/pendrive/chave_privada.asc
 ```
 
 O `.env` está no `.gitignore` e não deve ser versionado.
@@ -129,6 +133,21 @@ git config --global user.signingkey ID_DA_CHAVE
 ```
 
 A execução posterior de `Git > Configurar Git` volta a deixar esse campo vazio.
+
+## Importação de chaves GPG
+
+Configure o Git antes de abrir `GPG > Importar chaves`. A ação valida os quatro links do Git, a identidade e os pacotes instalados pelo fluxo de Git.
+
+Defina `GPG_PUBLIC_IMPORT` e `GPG_PRIVATE_IMPORT` no `.env`. Cada variável deve apontar para um arquivo regular com extensão `.asc`. Caminhos absolutos permitem importar diretamente de pendrives montados em `/run/media`, discos externos ou qualquer outro diretório acessível.
+
+A ação executa as seguintes etapas:
+
+1. Valida que o Git está configurado e que os dois arquivos existem.
+2. Instala o pacote `gnupg` com `pacman` quando necessário.
+3. Importa a chave pública com `gpg --import`.
+4. Importa a chave privada com `gpg --import`.
+
+Os arquivos podem ficar fora do repositório e não são copiados pela CLI. O padrão `*.asc` está no `.gitignore` para impedir o versionamento acidental de chaves exportadas.
 
 ### Comportamentos globais do Git
 
@@ -252,6 +271,7 @@ Sem essa variável, a CLI procura o repositório a partir do caminho real do exe
 - Libere a porta correta antes de ativar o firewall em uma máquina remota.
 - Faça backup dos quatro destinos Git e de `~/.face` antes de criar os links.
 - Nunca versione `.env`, chaves privadas ou credenciais.
+- Desmonte o pendrive após importar as chaves quando ele não estiver em uso.
 
 Para remover somente o comando instalado:
 

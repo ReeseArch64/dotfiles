@@ -3,7 +3,6 @@ package main
 // Tela de Git: status dos symlinks e job de configuração.
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -40,6 +39,18 @@ func loadGitStatus(dotfiles string) gitStatus {
 	}
 	_, envErr := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
 	return gitStatus{missing: missingPkgs("git", "gitflow-next-bin", "lazygit"), links: links, envOK: envErr == nil}
+}
+
+func (g gitStatus) readyForGPG() bool {
+	if !g.envOK || len(g.missing) > 0 {
+		return false
+	}
+	for _, link := range g.links {
+		if !link.ok {
+			return false
+		}
+	}
+	return true
 }
 
 func (g gitStatus) card(width int) string {
@@ -94,33 +105,10 @@ type gitIdentity struct {
 }
 
 func gitIdentityFromEnv(path string) (gitIdentity, error) {
-	f, err := os.Open(path)
+	values, err := envValues(path)
 	if err != nil {
-		return gitIdentity{}, fmt.Errorf("ler %s: %w", path, err)
+		return gitIdentity{}, err
 	}
-	defer f.Close()
-
-	values := map[string]string{}
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			return gitIdentity{}, fmt.Errorf("linha inválida em %s", path)
-		}
-		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
-		if len(value) >= 2 && ((value[0] == '\'' && value[len(value)-1] == '\'') || (value[0] == '"' && value[len(value)-1] == '"')) {
-			value = value[1 : len(value)-1]
-		}
-		values[key] = value
-	}
-	if err := scanner.Err(); err != nil {
-		return gitIdentity{}, fmt.Errorf("ler %s: %w", path, err)
-	}
-
 	identity := gitIdentity{
 		email:    values["GIT_USER_EMAIL"],
 		username: values["GIT_USERNAME"],
