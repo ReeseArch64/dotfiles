@@ -1,6 +1,6 @@
 # ReeseArch64 Dotfiles
 
-Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto inclui uma CLI interativa para Git, SSH, UFW, foto de perfil, scripts e diagnóstico do sistema.
+Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto inclui uma CLI interativa para Git, SSH, UFW, wallpapers, foto de perfil, scripts e diagnóstico do sistema.
 
 ## Recursos
 
@@ -12,6 +12,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Copia a configuração do Niri para `~/.config/niri`.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
 - Configura o Pi Agent com tema, settings e pacotes.
+- Copia os wallpapers do repositório para `~/.wallpapers`.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
 - Gerencia `sshd.service` e `sshd.socket`.
@@ -131,7 +132,7 @@ O menu principal contém seis opções e organiza as ações nestes submenus:
 | --- | --- |
 | `Sistema` | SSH, Firewall e Docker |
 | `Desenvolvimento` | Git e GPG |
-| `Desktop` | Niri, Noctalia e Foto de perfil |
+| `Desktop` | Niri, Noctalia, Wallpapers e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |
 
@@ -295,6 +296,14 @@ Após a validação, a CLI copia `noctalia/settings.toml` e `noctalia/state.toml
 
 Arquivos existentes são preservados com o sufixo `.backup-AAAAMMDD-HHMMSS` antes da ativação.
 
+## Wallpapers
+
+A opção `Desktop > Wallpapers` copia `wallpapers/` para `~/.wallpapers`. O destino é um diretório regular, sem links simbólicos.
+
+A pasta inclui imagens para desktop, Android e iPhone. A CLI preserva um destino diferente como `~/.wallpapers.backup-AAAAMMDD-HHMMSS`.
+
+Uma cópia idêntica não cria outro backup. Execute a ação novamente para aplicar alterações feitas nas imagens do repositório.
+
 ## Foto de perfil
 
 A opção `Foto de perfil` cria `~/.face` como link simbólico para `.face` no repositório. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
@@ -375,6 +384,7 @@ A tela `Info do sistema` apresenta:
 ├── niri/                # Origem copiada para ~/.config/niri
 ├── noctalia/            # Origem copiada para o estado do Noctalia
 ├── pi/                   # Settings e tema do Pi Agent
+├── wallpapers/           # Imagens copiadas para ~/.wallpapers
 └── scripts/
     └── setup-ssh.sh     # Setup alternativo de SSH e UFW
 ```
@@ -402,7 +412,7 @@ Sem essa variável, a CLI procura o repositório a partir do caminho real do exe
 - Revise ações de `sudo` antes de confirmar instalações ou mudanças de serviço.
 - Adicione uma chave autorizada antes de habilitar o hardening SSH.
 - Libere a porta correta antes de ativar o firewall em uma máquina remota.
-- Faça backup dos quatro destinos Git e de `~/.face` antes de configurá-los.
+- Faça backup dos quatro destinos Git, de `~/.wallpapers` e de `~/.face` antes de configurá-los.
 - Nunca versione `.env`, chaves privadas ou credenciais.
 - Desmonte o pendrive após importar as chaves quando ele não estiver em uso.
 

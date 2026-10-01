@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func regularFileMatches(source, destination string) bool {
@@ -104,6 +105,59 @@ func directoriesEqual(source, destination string) bool {
 		return false
 	}
 	return count == destinationCount
+}
+
+func copyDirectoryWithBackup(source, destination string, now time.Time) error {
+	source, err := filepath.Abs(source)
+	if err != nil {
+		return fmt.Errorf("resolver %s: %w", source, err)
+	}
+	info, err := os.Stat(source)
+	if err != nil {
+		return fmt.Errorf("ler %s: %w", source, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s não é um diretório", source)
+	}
+	parent := filepath.Dir(destination)
+	if err := os.MkdirAll(parent, 0755); err != nil {
+		return fmt.Errorf("criar %s: %w", parent, err)
+	}
+	if directoriesEqual(source, destination) {
+		return nil
+	}
+	staging, err := os.MkdirTemp(parent, ".directory-copy-*")
+	if err != nil {
+		return fmt.Errorf("criar diretório temporário: %w", err)
+	}
+	defer os.RemoveAll(staging)
+	if err := os.Chmod(staging, info.Mode().Perm()); err != nil {
+		return fmt.Errorf("ajustar permissões temporárias: %w", err)
+	}
+	if err := copyDirectory(source, staging); err != nil {
+		return fmt.Errorf("copiar %s: %w", source, err)
+	}
+	var backup string
+	if _, err := os.Lstat(destination); err == nil {
+		backup = destination + ".backup-" + now.Format("20060102-150405")
+		if _, err := os.Lstat(backup); err == nil {
+			return fmt.Errorf("backup já existe: %s", backup)
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("verificar %s: %w", backup, err)
+		}
+		if err := os.Rename(destination, backup); err != nil {
+			return fmt.Errorf("preservar configuração atual em %s: %w", backup, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("verificar %s: %w", destination, err)
+	}
+	if err := os.Rename(staging, destination); err != nil {
+		if backup != "" {
+			_ = os.Rename(backup, destination)
+		}
+		return fmt.Errorf("ativar configuração em %s: %w", destination, err)
+	}
+	return nil
 }
 
 func copyDirectory(source, destination string) error {
