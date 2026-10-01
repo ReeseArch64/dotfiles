@@ -3,7 +3,7 @@ config_version = 14
 [bar.default]
 background_opacity = 0.32999999262392521
 center = [ "clock", "weather", "spacer_3", "media", "privacy", "special-workspaces" ]
-end = [ "tray", "group:g1", "notifications", "clipboard", "network", "volume", "battery", "control-center", "session" ]
+end = [ "group:g1", "notifications", "clipboard", "network", "volume", "battery", "control-center", "session" ]
 start = [ "workspaces", "spacer_2", "ram" ]
 thickness = 35
 
@@ -13,7 +13,7 @@ thickness = 35
     enabled = true
     fill = "surface_variant"
     id = "g1"
-    members = [ "bar_2", "warp", "github", "file-search", "widget", "mini-docker", "bar", "wallpaper", "bluetooth" ]
+    members = [ "tray", "bar_2", "warp", "github", "file-search", "widget", "mini-docker", "bar", "wallpaper", "bluetooth" ]
     opacity = 1.0
     padding = 6.0
 
@@ -239,13 +239,13 @@ fill_mode = "stretch"
 transition_on_startup = true
 
     [wallpaper.default]
-    path = "/home/alsgy/.wallpapers/1/himmel-frieren-anime-4k-wallpaper-uhdpaper.com-267@5@k.jpg"
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
 
     [wallpaper.last]
-    path = "/home/alsgy/.wallpapers/1/himmel-frieren-anime-4k-wallpaper-uhdpaper.com-267@5@k.jpg"
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
 
     [wallpaper.monitors.DP-1]
-    path = "/home/alsgy/.wallpapers/1/himmel-frieren-anime-4k-wallpaper-uhdpaper.com-267@5@k.jpg"
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
 
 [widget.bar]
 type = "felipeartur/ai-usagebar:bar"
