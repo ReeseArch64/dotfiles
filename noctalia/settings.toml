@@ -2,9 +2,9 @@ config_version = 14
 
 [bar.default]
 background_opacity = 0.32999999262392521
-center = [ "clock", "weather", "spacer_3", "media", "privacy" ]
+center = [ "clock", "weather", "spacer_3", "media", "privacy", "special-workspaces" ]
 end = [ "tray", "group:g1", "notifications", "clipboard", "network", "volume", "battery", "control-center", "session" ]
-start = [ "workspaces", "spacer_2", "cat", "ram" ]
+start = [ "workspaces", "spacer_2", "ram" ]
 thickness = 35
 
     [[bar.default.capsule_group]]
@@ -13,7 +13,7 @@ thickness = 35
     enabled = true
     fill = "surface_variant"
     id = "g1"
-    members = [ "wallpaper", "github", "file-search", "widget", "mini-docker", "bar", "bluetooth" ]
+    members = [ "bar_2", "warp", "github", "file-search", "widget", "mini-docker", "bar", "wallpaper", "bluetooth" ]
     opacity = 1.0
     padding = 6.0
 
@@ -177,15 +177,17 @@ kanban_open_near_click = false
 
 [plugins]
 enabled = [
-    "dotnetrob/cat",
     "8bury/mini-docker",
     "nightwatch75/file-search",
     "thepunkoff/pomodoro",
-    "nilsonlinux/speedtest-meter",
     "cleboost/zed-provider",
     "shangshui0302/github-kanban",
-    "noctalia/mpvpaper",
-    "felipeartur/ai-usagebar"
+    "felipeartur/ai-usagebar",
+    "levi/warp",
+    "marccvictoria/llamanager",
+    "riversyx/noctaproton-vpn",
+    "andrewdems/vpn-manager",
+    "cleboost/ssh-launcher"
 ]
 
 [shell]
@@ -248,13 +250,11 @@ transition_on_startup = true
 [widget.bar]
 type = "felipeartur/ai-usagebar:bar"
 
+[widget.bar_2]
+type = "riversyx/noctaproton-vpn:bar"
+
 [widget.brightness]
 enabled = false
-
-[widget.cat]
-cat_color = "primary"
-cat_color_mode = "custom"
-type = "dotnetrob/cat:cat"
 
 [widget.clock]
 timezone = "America/Sao_Paulo"
@@ -278,6 +278,9 @@ show_count = false
 status_mode = "hidden"
 type = "8bury/mini-docker:mini-docker"
 
+[widget.privacy]
+enabled = false
+
 [widget.ram]
 interactive = false
 visualization = "none"
@@ -288,9 +291,15 @@ type = "spacer"
 [widget.spacer_3]
 type = "spacer"
 
+[widget.special-workspaces]
+type = "jamesfeeder/special-workspaces:special-workspaces"
+
 [widget.sysmon]
 stat = "gpu_vram"
 visualization = "none"
+
+[widget.warp]
+type = "levi/warp:warp"
 
 [widget.widget]
 type = "thepunkoff/pomodoro:widget"
