@@ -186,7 +186,6 @@ enabled = [
     "levi/warp",
     "marccvictoria/llamanager",
     "riversyx/noctaproton-vpn",
-    "andrewdems/vpn-manager",
     "cleboost/ssh-launcher"
 ]
 

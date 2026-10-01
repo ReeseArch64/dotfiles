@@ -37,6 +37,14 @@ func installNoctaliaTestPlugins(t *testing.T, pluginDir string) {
 	}
 }
 
+func TestRequiredNoctaliaPluginsExcludeVPNManager(t *testing.T) {
+	for _, name := range requiredNoctaliaPlugins {
+		if name == "vpn-manager" {
+			t.Fatal("vpn-manager não deve ser obrigatório")
+		}
+	}
+}
+
 func TestInstallNoctaliaRequiresPlugins(t *testing.T) {
 	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
 	if err := os.Mkdir(filepath.Join(pluginDir, requiredNoctaliaPlugins[0]), 0755); err != nil {

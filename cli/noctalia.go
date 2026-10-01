@@ -18,7 +18,6 @@ var requiredNoctaliaPlugins = []string{
 	"noctaproton-vpn",
 	"pomodoro",
 	"ssh-launcher",
-	"vpn-manager",
 	"warp",
 	"zed-provider",
 }

@@ -274,7 +274,6 @@ A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam se
 - `noctaproton-vpn`
 - `pomodoro`
 - `ssh-launcher`
-- `vpn-manager`
 - `warp`
 - `zed-provider`
 
