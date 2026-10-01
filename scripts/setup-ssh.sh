@@ -41,7 +41,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ $EUID -eq 0 ]] && die "rode como usuário normal; o script usa sudo quando necessário."
-command -v pacman >/dev/null || die "pacman não encontrado (script feito para Arch-based)."
+command -v pacman >/dev/null || die "pacman não encontrado (script feito para CachyOS)."
 
 allow_ssh() {
     if [[ $LAN_ONLY -eq 1 ]]; then

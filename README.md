@@ -1,12 +1,14 @@
 # ReeseArch64 Dotfiles
 
-Dotfiles e utilitários para preparar máquinas Arch Linux, CachyOS e Omarchy. O projeto inclui uma CLI interativa para Git, SSH, UFW, scripts e diagnóstico do sistema.
+Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto inclui uma CLI interativa para Git, SSH, UFW, foto de perfil, scripts e diagnóstico do sistema.
 
 ## Recursos
 
 - Instala e configura Git, gitflow-next e Lazygit.
 - Gera a identidade do Git a partir de um `.env` local.
 - Cria links simbólicos para configurações globais do Git.
+- Instala a foto de perfil do repositório como `~/.face`.
+- Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
 - Gerencia `sshd.service` e `sshd.socket`.
 - Aplica ou remove hardening de acesso SSH.
 - Instala e gerencia regras do firewall UFW.
@@ -15,7 +17,15 @@ Dotfiles e utilitários para preparar máquinas Arch Linux, CachyOS e Omarchy. O
 
 ## Requisitos
 
-O projeto foi criado para distribuições Arch-based com:
+Este projeto suporta somente esta combinação:
+
+1. CachyOS
+2. Niri
+3. Noctalia Shell
+
+Antes de abrir a interface, a CLI exige `ID=cachyos` em `/etc/os-release`. Ela também exige os executáveis `niri` e `noctalia` no `PATH`. A execução termina com uma mensagem de erro quando qualquer requisito está ausente.
+
+A instalação e as ações também usam:
 
 - `bash`
 - `git`
@@ -72,6 +82,8 @@ Também é possível compilar e executar diretamente:
 ```bash
 make run
 ```
+
+A CLI não oferece opção para ignorar a validação de plataforma.
 
 ## Navegação da CLI
 
@@ -133,6 +145,12 @@ A execução posterior de `Git > Configurar Git` volta a deixar esse campo vazio
 - cache de credenciais por uma hora;
 - Git LFS quando o executável estiver instalado;
 - aliases `ci`, `co`, `cm`, `cb`, `st`, `sf` e `lg`.
+
+## Foto de perfil
+
+A opção `Foto de perfil` cria `~/.face` como link simbólico para `.face` no repositório. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
+
+A ação substitui um arquivo ou link existente em `~/.face`. Faça backup da foto atual antes de executar a opção.
 
 ## SSH
 
@@ -197,6 +215,7 @@ A tela `Info do sistema` apresenta:
 ```text
 .
 ├── .env.example         # Modelo da identidade Git
+├── .face                # Foto de perfil instalada em ~/.face
 ├── Makefile             # Build, instalação, execução e limpeza
 ├── cli/                 # Aplicação Go com Bubble Tea
 ├── git/
@@ -231,7 +250,7 @@ Sem essa variável, a CLI procura o repositório a partir do caminho real do exe
 - Revise ações de `sudo` antes de confirmar instalações ou mudanças de serviço.
 - Adicione uma chave autorizada antes de habilitar o hardening SSH.
 - Libere a porta correta antes de ativar o firewall em uma máquina remota.
-- Faça backup dos quatro destinos Git antes de criar os links.
+- Faça backup dos quatro destinos Git e de `~/.face` antes de criar os links.
 - Nunca versione `.env`, chaves privadas ou credenciais.
 
 Para remover somente o comando instalado:
@@ -241,4 +260,4 @@ rm -f ~/.local/bin/dotfiles
 make clean
 ```
 
-A remoção do comando não desfaz serviços, regras de firewall ou links simbólicos criados anteriormente.
+A remoção do comando não desfaz serviços, regras de firewall ou links simbólicos criados anteriormente. Remova `~/.face` manualmente quando quiser desfazer a foto de perfil.

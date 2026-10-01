@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 type screen int
 
@@ -99,6 +99,7 @@ func (m model) items() []item {
 			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
 			{title: "Git", desc: "Instalar git, gitflow-next-bin e lazygit, além de configurar os symlinks", goTo: screenGit},
+			{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
@@ -305,7 +306,7 @@ func (m model) View() string {
 		Width(boxW).
 		Render(header + "\n\n" + body)
 
-	subtitle := lipgloss.NewStyle().Foreground(colDim).Render("Arch-based · CachyOS / Omarchy · v" + version)
+	subtitle := lipgloss.NewStyle().Foreground(colDim).Render("CachyOS · Niri · Noctalia Shell · v" + version)
 
 	var statusLine string
 	if m.status != "" {
@@ -430,6 +431,10 @@ func findDotfiles() string {
 }
 
 func main() {
+	if err := checkPlatform("/etc/os-release", exec.LookPath); err != nil {
+		fmt.Fprintln(os.Stderr, "erro:", err)
+		os.Exit(1)
+	}
 	p := tea.NewProgram(newModel(findDotfiles()), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
