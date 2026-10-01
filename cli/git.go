@@ -3,9 +3,13 @@ package main
 // Tela de Git: status dos symlinks e job de configuração.
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -13,6 +17,7 @@ import (
 type gitStatus struct {
 	missing []string
 	links   []gitLink
+	envOK   bool
 }
 
 type gitLink struct {
@@ -33,7 +38,8 @@ func loadGitStatus(dotfiles string) gitStatus {
 			ok:    err == nil && target == d.src,
 		})
 	}
-	return gitStatus{missing: missingPkgs("git", "gitflow-next-bin", "lazygit"), links: links}
+	_, envErr := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
+	return gitStatus{missing: missingPkgs("git", "gitflow-next-bin", "lazygit"), links: links, envOK: envErr == nil}
 }
 
 func (g gitStatus) card(width int) string {
@@ -49,6 +55,11 @@ func (g gitStatus) card(width int) string {
 		}
 		rows = append(rows, cardRow{color, "Pacote", value})
 	}
+	envColor, envValue := colOK, ".env pronto"
+	if !g.envOK {
+		envColor, envValue = colErr, ".env ausente ou incompleto"
+	}
+	rows = append(rows, cardRow{envColor, "Identidade", envValue})
 	for _, l := range g.links {
 		color, val := colOK, l.label+" ✔"
 		if !l.ok {
@@ -63,7 +74,7 @@ func (m model) gitItems() []item {
 	return []item{
 		{
 			title: "Configurar Git",
-			desc:  "Instala git, gitflow-next-bin e lazygit, depois cria 4 symlinks",
+			desc:  "Usa o .env, instala as ferramentas e cria 4 symlinks",
 			job:   func() job { return gitJob(m.dotfiles) },
 		},
 	}
@@ -78,11 +89,94 @@ func gitLinkDefs(dotfiles, home string) []struct{ label, src, dst string } {
 	}
 }
 
+type gitIdentity struct {
+	email, username, name string
+}
+
+func gitIdentityFromEnv(path string) (gitIdentity, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return gitIdentity{}, fmt.Errorf("ler %s: %w", path, err)
+	}
+	defer f.Close()
+
+	values := map[string]string{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			return gitIdentity{}, fmt.Errorf("linha inválida em %s", path)
+		}
+		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
+		if len(value) >= 2 && ((value[0] == '\'' && value[len(value)-1] == '\'') || (value[0] == '"' && value[len(value)-1] == '"')) {
+			value = value[1 : len(value)-1]
+		}
+		values[key] = value
+	}
+	if err := scanner.Err(); err != nil {
+		return gitIdentity{}, fmt.Errorf("ler %s: %w", path, err)
+	}
+
+	identity := gitIdentity{
+		email:    values["GIT_USER_EMAIL"],
+		username: values["GIT_USERNAME"],
+		name:     values["GIT_USER_NAME"],
+	}
+	var missing []string
+	if identity.email == "" {
+		missing = append(missing, "GIT_USER_EMAIL")
+	}
+	if identity.username == "" {
+		missing = append(missing, "GIT_USERNAME")
+	}
+	if identity.name == "" {
+		missing = append(missing, "GIT_USER_NAME")
+	}
+	if len(missing) > 0 {
+		return gitIdentity{}, errors.New("variáveis ausentes no .env: " + strings.Join(missing, ", "))
+	}
+	return identity, nil
+}
+
+func writeGitConfig(dotfiles string) error {
+	identity, err := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
+	if err != nil {
+		return err
+	}
+	content := fmt.Sprintf("[user]\n    signingkey =\n    email = %s\n    username = %s\n    name = %s\n",
+		strconv.Quote(identity.email), strconv.Quote(identity.username), strconv.Quote(identity.name))
+	path := filepath.Join(dotfiles, "git", ".gitconfig")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".gitconfig-*")
+	if err != nil {
+		return fmt.Errorf("criar arquivo temporário: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if _, err = tmp.WriteString(content); err == nil {
+		err = tmp.Chmod(0644)
+	}
+	if closeErr := tmp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return fmt.Errorf("gravar %s: %w", path, err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("substituir %s: %w", path, err)
+	}
+	return nil
+}
+
 func gitJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	defs := gitLinkDefs(dotfiles, home)
 
-	steps := ensurePkgs("git")
+	steps := []step{nativeStep("Gerar git/.gitconfig com .env", func() error { return writeGitConfig(dotfiles) })}
+	steps = append(steps, ensurePkgs("git")...)
 	steps = append(steps, ensureShellyPkgs("aur", "gitflow-next-bin")...)
 	steps = append(steps, ensureShellyPkgs("standard", "lazygit")...)
 	steps = append(steps, nativeStep("Criar ~/.config/git/", func() error {
