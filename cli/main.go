@@ -98,7 +98,7 @@ func (m model) items() []item {
 		return []item{
 			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
-			{title: "Git", desc: "Instalar git e configurar os symlinks (.gitattributes, .gitignore, config)", goTo: screenGit},
+			{title: "Git", desc: "Instalar git e configurar os symlinks (.gitconfig, .gitattributes, .gitignore, config)", goTo: screenGit},
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
 			{title: "Sair", desc: "Até a próxima!", quit: true},

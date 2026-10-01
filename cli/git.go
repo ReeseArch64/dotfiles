@@ -57,15 +57,15 @@ func (m model) gitItems() []item {
 	return []item{
 		{
 			title: "Configurar Git",
-			desc:  "Instala git (se necessário) e cria 3 symlinks no home (.gitconfig é manual)",
+			desc:  "Instala git (se necessário) e cria 4 symlinks no home",
 			job:   func() job { return gitJob(m.dotfiles) },
 		},
 	}
 }
 
-// gitLinkDefs lista os 4 pares (src no dotfiles → dst no home).
 func gitLinkDefs(dotfiles, home string) []struct{ label, src, dst string } {
 	return []struct{ label, src, dst string }{
+		{"~/.gitconfig", filepath.Join(dotfiles, "git", ".gitconfig"), filepath.Join(home, ".gitconfig")},
 		{"~/.gitattributes", filepath.Join(dotfiles, "git", ".gitattributes"), filepath.Join(home, ".gitattributes")},
 		{"~/.gitignore", filepath.Join(dotfiles, "git", ".gitignore"), filepath.Join(home, ".gitignore")},
 		{"~/.config/git/config", filepath.Join(dotfiles, "git", "config"), filepath.Join(home, ".config", "git", "config")},
