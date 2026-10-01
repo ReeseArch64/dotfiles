@@ -8,6 +8,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Gera a identidade do Git a partir de um `.env` local.
 - Cria links simbólicos para configurações globais do Git.
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
+- Configura o Niri em `~/.config/niri` com um link para o repositório.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
 - Gerencia `sshd.service` e `sshd.socket`.
@@ -165,6 +166,12 @@ Os arquivos podem ficar fora do repositório e não são copiados pela CLI. O pa
 - Git LFS quando o executável estiver instalado;
 - aliases `ci`, `co`, `cm`, `cb`, `st`, `sf` e `lg`.
 
+## Niri
+
+A opção `Niri` cria `~/.config/niri` como link simbólico para `niri/` no repositório. Quando o destino já existe, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS` antes de criar o link.
+
+A ação mantém o link existente quando ele já aponta para a configuração deste repositório.
+
 ## Foto de perfil
 
 A opção `Foto de perfil` cria `~/.face` como link simbólico para `.face` no repositório. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
@@ -242,6 +249,7 @@ A tela `Info do sistema` apresenta:
 │   ├── .gitconfig       # Identidade gerada pelo .env
 │   ├── .gitignore       # Exclusões globais
 │   └── config           # Preferências globais do Git
+├── niri/                # Configuração vinculada em ~/.config/niri
 └── scripts/
     └── setup-ssh.sh     # Setup alternativo de SSH e UFW
 ```

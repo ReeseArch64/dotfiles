@@ -1,0 +1,41 @@
+// Notebook 60hz
+output "eDP-1" {
+    mode "1366x768@59.996" // trocar para "2560x1440@280"
+    scale 1
+}
+
+// Monitor Gaming GIGABYTE MO27Q2A (27'' - Quad HD - 280 Hz - 0,03 ms)
+output "DP-1" {
+    mode "1920x1080@179.999" // trocar para "2560x1440@280"
+    scale 1
+    position x=0 y=0
+}
+
+// Monitor Gaming GIGABYTE MO27Q2A (27'' - Quad HD - 280 Hz - 0,03 ms)
+output "DP-2" {
+    mode "2560x1440@280"
+    scale 1
+    position x=2560 y=0
+}
+
+// Monitor Gaming ACER Nitro KG240YW3bmiipx (23,8'' - Full HD - 0,5 ms - 240 Hz)
+output "DP-3" {
+    mode "1920x1080@240"
+    scale 1
+    transform "270"
+    position x=5120 y=0
+}
+
+// Monitor Curvo QIAN Ultra Wide 30 1080P 200Hz
+output "HDMI-1" {
+    mode "2560x1080@200"
+    scale 1
+    position x=1280 y=-1080
+}
+
+// Portátil USB-C (18,5" FHD 120Hz com Touchscreen)
+output "DP-4" {
+    mode "1920x1080@120.000"
+    scale 1
+    position x=2560 y=1440
+}
