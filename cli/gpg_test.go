@@ -90,8 +90,10 @@ func TestGPGImportStepsInstallPackageBeforeImports(t *testing.T) {
 	}
 }
 
-func TestMainMenuPlacesGPGAfterGit(t *testing.T) {
-	items := newModel("/dotfiles").items()
+func TestDevelopmentMenuPlacesGPGAfterGit(t *testing.T) {
+	model := newModel("/dotfiles")
+	model.screen = screenDevelopment
+	items := model.items()
 	for i := range items {
 		if items[i].title == "Git" {
 			if i+1 >= len(items) || items[i+1].title != "GPG" {
@@ -100,7 +102,7 @@ func TestMainMenuPlacesGPGAfterGit(t *testing.T) {
 			return
 		}
 	}
-	t.Fatal("Git ausente no menu principal")
+	t.Fatal("Git ausente no menu Desenvolvimento")
 }
 
 func TestGitStatusReadyForGPG(t *testing.T) {

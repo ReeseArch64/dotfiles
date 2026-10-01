@@ -14,12 +14,16 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.6.0"
+const version = "0.7.0"
 
 type screen int
 
 const (
 	screenMain screen = iota
+	screenSystem
+	screenDevelopment
+	screenDesktop
+	screenUtilities
 	screenSSH
 	screenFirewall
 	screenDocker
@@ -32,15 +36,19 @@ const (
 )
 
 var screenTitles = map[screen]string{
-	screenMain:     "Menu principal",
-	screenSSH:      "SSH",
-	screenFirewall: "Firewall",
-	screenDocker:   "Docker",
-	screenGit:      "Git",
-	screenGPG:      "GPG",
-	screenNoctalia: "Noctalia",
-	screenScripts:  "Scripts",
-	screenInfo:     "Info do sistema",
+	screenMain:        "Menu principal",
+	screenSystem:      "Sistema",
+	screenDevelopment: "Desenvolvimento",
+	screenDesktop:     "Desktop",
+	screenUtilities:   "Utilitários",
+	screenSSH:         "SSH",
+	screenFirewall:    "Firewall",
+	screenDocker:      "Docker",
+	screenGit:         "Git",
+	screenGPG:         "GPG",
+	screenNoctalia:    "Noctalia",
+	screenScripts:     "Scripts",
+	screenInfo:        "Info do sistema",
 }
 
 type item struct {
@@ -105,17 +113,33 @@ func (m model) items() []item {
 	switch m.screen {
 	case screenMain:
 		return []item{
+			{title: "Sistema", desc: "SSH, firewall e Docker", goTo: screenSystem},
+			{title: "Desenvolvimento", desc: "Git e chaves GPG", goTo: screenDevelopment},
+			{title: "Desktop", desc: "Niri, Noctalia e foto de perfil", goTo: screenDesktop},
+			{title: "Utilitários", desc: "Scripts e informações do sistema", goTo: screenUtilities},
+			{title: "Sair", desc: "Até a próxima!", quit: true},
+		}
+	case screenSystem:
+		return []item{
 			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
 			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
+		}
+	case screenDevelopment:
+		return []item{
 			{title: "Git", desc: "Instalar git, gitflow-next-bin e lazygit, além de configurar os symlinks", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
+		}
+	case screenDesktop:
+		return []item{
 			{title: "Niri", desc: "Criar ~/.config/niri usando a configuração deste repositório", job: func() job { return niriJob(m.dotfiles) }},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 			{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
+		}
+	case screenUtilities:
+		return []item{
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
-			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSSH:
 		return m.sshItems()

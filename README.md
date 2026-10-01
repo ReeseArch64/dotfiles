@@ -105,6 +105,15 @@ A CLI não oferece opção para ignorar a validação de plataforma.
 
 Durante um job, aguarde a conclusão dos passos. A CLI entrega o terminal aos comandos que exigem senha ou confirmação.
 
+O menu principal contém cinco opções e organiza as ações nestes submenus:
+
+| Submenu | Opções |
+| --- | --- |
+| `Sistema` | SSH, Firewall e Docker |
+| `Desenvolvimento` | Git e GPG |
+| `Desktop` | Niri, Noctalia e Foto de perfil |
+| `Utilitários` | Scripts e Info do sistema |
+
 ## Docker
 
 Abra `Docker > Configurar Docker` na CLI. Essa ação:
