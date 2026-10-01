@@ -9,6 +9,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Cria links simbólicos para configurações globais do Git.
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
 - Configura o Niri em `~/.config/niri` com um link para o repositório.
+- Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
 - Gerencia `sshd.service` e `sshd.socket`.
@@ -172,6 +173,26 @@ A opção `Niri` cria `~/.config/niri` como link simbólico para `niri/` no repo
 
 A ação mantém o link existente quando ele já aponta para a configuração deste repositório.
 
+## Noctalia
+
+A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam ser baixados pela interface do Noctalia:
+
+- `github-kanban`
+- `llamanager`
+- `mini-docker`
+- `noctaproton-vpn`
+- `pomodoro`
+- `ssh-launcher`
+- `vpn-manager`
+- `warp`
+- `zed-provider`
+
+A opção `Configurar Noctalia` exige todos esses diretórios em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
+
+Após a validação, a CLI cria links para `noctalia/settings.toml` e `noctalia/state.toml`. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
+
+Arquivos existentes são preservados com o sufixo `.backup-AAAAMMDD-HHMMSS` antes da ativação.
+
 ## Foto de perfil
 
 A opção `Foto de perfil` cria `~/.face` como link simbólico para `.face` no repositório. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
@@ -250,6 +271,7 @@ A tela `Info do sistema` apresenta:
 │   ├── .gitignore       # Exclusões globais
 │   └── config           # Preferências globais do Git
 ├── niri/                # Configuração vinculada em ~/.config/niri
+├── noctalia/            # Arquivos vinculados no estado do Noctalia
 └── scripts/
     └── setup-ssh.sh     # Setup alternativo de SSH e UFW
 ```

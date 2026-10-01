@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.4.0"
+const version = "0.5.0"
 
 type screen int
 
@@ -24,6 +24,7 @@ const (
 	screenFirewall
 	screenGit
 	screenGPG
+	screenNoctalia
 	screenScripts
 	screenInfo
 	screenJob
@@ -35,6 +36,7 @@ var screenTitles = map[screen]string{
 	screenFirewall: "Firewall",
 	screenGit:      "Git",
 	screenGPG:      "GPG",
+	screenNoctalia: "Noctalia",
 	screenScripts:  "Scripts",
 	screenInfo:     "Info do sistema",
 }
@@ -69,6 +71,7 @@ type model struct {
 	fw       fwStatus
 	git      gitStatus
 	gpg      gpgStatus
+	noctalia noctaliaStatus
 	scripts  []script
 	job      *jobRun
 	status   string
@@ -104,6 +107,7 @@ func (m model) items() []item {
 			{title: "Git", desc: "Instalar git, gitflow-next-bin e lazygit, além de configurar os symlinks", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Niri", desc: "Criar ~/.config/niri usando a configuração deste repositório", job: func() job { return niriJob(m.dotfiles) }},
+			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 			{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
@@ -117,6 +121,8 @@ func (m model) items() []item {
 		return m.gitItems()
 	case screenGPG:
 		return m.gpgItems()
+	case screenNoctalia:
+		return m.noctaliaItems()
 	case screenScripts:
 		var its []item
 		for _, s := range m.scripts {
@@ -202,6 +208,8 @@ func (m *model) refresh() {
 		m.git = loadGitStatus(m.dotfiles)
 	case screenGPG:
 		m.gpg = loadGPGStatus(m.dotfiles)
+	case screenNoctalia:
+		m.noctalia = loadNoctaliaStatus(m.dotfiles)
 	case screenScripts:
 		m.scripts = listScripts(m.dotfiles)
 	case screenInfo:
@@ -295,6 +303,8 @@ func (m model) View() string {
 		body = m.git.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenGPG:
 		body = m.gpg.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	case screenNoctalia:
+		body = m.noctalia.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	default:
 		body = m.viewMenu(inner, elapsed)
 	}
