@@ -190,13 +190,22 @@ func withSudo(steps ...step) []step {
 }
 
 // ensurePkgs instala via pacman (interativo, para confirmar conflitos) só o que falta.
+func pacmanInstallStep(pkgs ...string) step {
+	return terminalStep("Instalar "+strings.Join(pkgs, ", "),
+		append([]string{"sudo", "pacman", "-S", "--needed"}, pkgs...)...)
+}
+
 func ensurePkgs(pkgs ...string) []step {
 	missing := missingPkgs(pkgs...)
 	if len(missing) == 0 {
 		return nil
 	}
-	return []step{terminalStep("Instalar "+strings.Join(missing, ", "),
-		append([]string{"sudo", "pacman", "-S", "--needed"}, missing...)...)}
+	return []step{pacmanInstallStep(missing...)}
+}
+
+func shellyInstallStep(source string, pkgs ...string) step {
+	return terminalStep("Instalar "+strings.Join(pkgs, ", ")+" via Shelly",
+		append([]string{"shelly", "install", source}, pkgs...)...)
 }
 
 func ensureShellyPkgs(source string, pkgs ...string) []step {
@@ -204,6 +213,5 @@ func ensureShellyPkgs(source string, pkgs ...string) []step {
 	if len(missing) == 0 {
 		return nil
 	}
-	return []step{terminalStep("Instalar "+strings.Join(missing, ", ")+" via Shelly",
-		append([]string{"shelly", "install", source, "--needed"}, missing...)...)}
+	return []step{shellyInstallStep(source, missing...)}
 }
