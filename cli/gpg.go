@@ -157,12 +157,24 @@ func signingKeyFromPrivateFile(path string) (string, error) {
 	return parseGPGSecretFingerprint(string(output))
 }
 
+func applyGitSigningKey(dotfiles, home, fingerprint string) error {
+	source := filepath.Join(dotfiles, "git", ".gitconfig")
+	if err := writeGitSigningKey(source, fingerprint); err != nil {
+		return err
+	}
+	return copyFileAtomic(source, filepath.Join(home, ".gitconfig"))
+}
+
 func configureGitSigningKey(dotfiles, privateKeyPath string) error {
 	fingerprint, err := signingKeyFromPrivateFile(privateKeyPath)
 	if err != nil {
 		return err
 	}
-	return writeGitSigningKey(filepath.Join(dotfiles, "git", ".gitconfig"), fingerprint)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("identificar diretório pessoal: %w", err)
+	}
+	return applyGitSigningKey(dotfiles, home, fingerprint)
 }
 
 func gpgImportSteps(dotfiles string, paths gpgImportPaths, pathErr error, packageSteps []step) []step {

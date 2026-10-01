@@ -6,10 +6,10 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 - Instala e configura Git, gitflow-next e Lazygit.
 - Gera a identidade do Git a partir de um `.env` local.
-- Cria links simbólicos para configurações globais do Git.
+- Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
-- Configura o Niri em `~/.config/niri` com um link para o repositório.
+- Copia a configuração do Niri para `~/.config/niri`.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
@@ -136,7 +136,7 @@ Abra `Git > Configurar Git` na CLI. Essa ação executa as seguintes etapas:
 3. Preserva `user.signingkey` quando ele já está configurado.
 4. Instala `git`, `gitflow-next-bin` e `lazygit` quando necessário.
 5. Cria o diretório `~/.config/git`.
-6. Cria os quatro links simbólicos globais.
+6. Copia `~/.gitconfig` e cria links para os outros três arquivos globais.
 
 Os destinos são:
 
@@ -147,7 +147,7 @@ Os destinos são:
 | `~/.gitignore` | `git/.gitignore` | Exclusões globais |
 | `~/.config/git/config` | `git/config` | Comportamento global do Git |
 
-A configuração substitui qualquer arquivo ou link existente nesses destinos. Faça backup de configurações locais antes de executar essa ação.
+`~/.gitconfig` é um arquivo regular e independente. Os outros três destinos são links simbólicos. A configuração substitui arquivos ou links existentes nesses destinos.
 
 ### Assinatura de commits
 
@@ -157,7 +157,7 @@ A execução posterior de `Git > Configurar Git` preserva a chave configurada.
 
 ## Importação de chaves GPG
 
-Configure o Git antes de abrir `GPG > Importar chaves`. A ação valida os quatro links do Git, a identidade e os pacotes instalados pelo fluxo de Git.
+Configure o Git antes de abrir `GPG > Importar chaves`. A ação valida os quatro destinos do Git, a identidade e os pacotes instalados pelo fluxo de Git.
 
 Defina `GPG_PUBLIC_IMPORT` e `GPG_PRIVATE_IMPORT` no `.env`. Cada variável deve apontar para um arquivo regular com extensão `.asc`. Caminhos absolutos permitem importar diretamente de pendrives montados em `/run/media`, discos externos ou qualquer outro diretório acessível.
 
@@ -168,7 +168,7 @@ A ação executa as seguintes etapas:
 3. Importa a chave pública com `gpg --import`.
 4. Importa a chave privada com `gpg --import`.
 5. Identifica o fingerprint da chave privada.
-6. Grava o fingerprint em `user.signingkey` no arquivo `git/.gitconfig`.
+6. Grava o fingerprint em `user.signingkey` no repositório e em `~/.gitconfig`.
 
 Os arquivos podem ficar fora do repositório e não são copiados pela CLI. O padrão `*.asc` está no `.gitignore` para impedir o versionamento acidental de chaves exportadas.
 
@@ -190,9 +190,9 @@ Os arquivos podem ficar fora do repositório e não são copiados pela CLI. O pa
 
 ## Niri
 
-A opção `Niri` cria `~/.config/niri` como link simbólico para `niri/` no repositório. Quando o destino já existe, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS` antes de criar o link.
+A opção `Niri` copia o diretório `niri/` do repositório para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
 
-A ação mantém o link existente quando ele já aponta para a configuração deste repositório.
+Quando o destino possui conteúdo diferente, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS`. Cópias idênticas não criam backups.
 
 ## Noctalia
 
@@ -210,7 +210,7 @@ A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam se
 
 A opção `Configurar Noctalia` exige todos esses diretórios em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
 
-Após a validação, a CLI cria links para `noctalia/settings.toml` e `noctalia/state.toml`. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
+Após a validação, a CLI copia `noctalia/settings.toml` e `noctalia/state.toml` como arquivos regulares. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
 
 Arquivos existentes são preservados com o sufixo `.backup-AAAAMMDD-HHMMSS` antes da ativação.
 
@@ -291,8 +291,8 @@ A tela `Info do sistema` apresenta:
 │   ├── .gitconfig       # Identidade gerada pelo .env
 │   ├── .gitignore       # Exclusões globais
 │   └── config           # Preferências globais do Git
-├── niri/                # Configuração vinculada em ~/.config/niri
-├── noctalia/            # Arquivos vinculados no estado do Noctalia
+├── niri/                # Origem copiada para ~/.config/niri
+├── noctalia/            # Origem copiada para o estado do Noctalia
 └── scripts/
     └── setup-ssh.sh     # Setup alternativo de SSH e UFW
 ```
@@ -320,7 +320,7 @@ Sem essa variável, a CLI procura o repositório a partir do caminho real do exe
 - Revise ações de `sudo` antes de confirmar instalações ou mudanças de serviço.
 - Adicione uma chave autorizada antes de habilitar o hardening SSH.
 - Libere a porta correta antes de ativar o firewall em uma máquina remota.
-- Faça backup dos quatro destinos Git e de `~/.face` antes de criar os links.
+- Faça backup dos quatro destinos Git e de `~/.face` antes de configurá-los.
 - Nunca versione `.env`, chaves privadas ou credenciais.
 - Desmonte o pendrive após importar as chaves quando ele não estiver em uso.
 
@@ -331,4 +331,4 @@ rm -f ~/.local/bin/dotfiles
 make clean
 ```
 
-A remoção do comando não desfaz serviços, regras de firewall ou links simbólicos criados anteriormente. Remova `~/.face` manualmente quando quiser desfazer a foto de perfil.
+A remoção do comando não desfaz serviços, regras de firewall ou configurações instaladas. Remova `~/.face` manualmente quando quiser desfazer a foto de perfil.

@@ -25,7 +25,7 @@ var requiredNoctaliaPlugins = []string{
 
 type noctaliaStatus struct {
 	plugins []noctaliaPlugin
-	links   []noctaliaLink
+	files   []noctaliaFile
 }
 
 type noctaliaPlugin struct {
@@ -33,18 +33,18 @@ type noctaliaPlugin struct {
 	installed bool
 }
 
-type noctaliaLink struct {
+type noctaliaFile struct {
 	name, source, destination string
 	ok                        bool
 }
 
-func noctaliaLinkDefs(dotfiles, home string) []noctaliaLink {
+func noctaliaFileDefs(dotfiles, home string) []noctaliaFile {
 	sourceDir := filepath.Join(dotfiles, "noctalia")
 	if absolute, err := filepath.Abs(sourceDir); err == nil {
 		sourceDir = absolute
 	}
 	stateDir := filepath.Join(home, ".local", "state", "noctalia")
-	return []noctaliaLink{
+	return []noctaliaFile{
 		{name: "settings.toml", source: filepath.Join(sourceDir, "settings.toml"), destination: filepath.Join(stateDir, "settings.toml")},
 		{name: "state.toml", source: filepath.Join(sourceDir, "state.toml"), destination: filepath.Join(stateDir, "state.toml")},
 	}
@@ -66,7 +66,7 @@ func (s noctaliaStatus) missingPlugins() []string {
 }
 
 func (s noctaliaStatus) card(width int) string {
-	rows := make([]cardRow, 0, len(s.plugins)+len(s.links))
+	rows := make([]cardRow, 0, len(s.plugins)+len(s.files))
 	for _, plugin := range s.plugins {
 		color, value := colOK, plugin.name+" instalado"
 		if !plugin.installed {
@@ -74,10 +74,10 @@ func (s noctaliaStatus) card(width int) string {
 		}
 		rows = append(rows, cardRow{color, "Plugin", value})
 	}
-	for _, link := range s.links {
-		color, value := colOK, link.name+" configurado"
-		if !link.ok {
-			color, value = colWarn, link.name+" não configurado"
+	for _, file := range s.files {
+		color, value := colOK, file.name+" configurado"
+		if !file.ok {
+			color, value = colWarn, file.name+" não configurado"
 		}
 		rows = append(rows, cardRow{color, "Arquivo", value})
 	}
@@ -87,7 +87,7 @@ func (s noctaliaStatus) card(width int) string {
 func (m model) noctaliaItems() []item {
 	return []item{{
 		title: "Configurar Noctalia",
-		desc:  "Ativar settings.toml e state.toml após baixar todos os plugins",
+		desc:  "Copiar settings.toml e state.toml após baixar todos os plugins",
 		job:   func() job { return noctaliaJob(m.dotfiles) },
 	}}
 }
@@ -98,41 +98,41 @@ func installNoctalia(dotfiles, home string, now time.Time) error {
 		return errors.New("baixe os plugins ausentes no Noctalia: " + strings.Join(missing, ", "))
 	}
 
-	links := noctaliaLinkDefs(dotfiles, home)
-	for _, link := range links {
-		info, err := os.Stat(link.source)
+	files := noctaliaFileDefs(dotfiles, home)
+	for _, file := range files {
+		info, err := os.Stat(file.source)
 		if err != nil {
-			return fmt.Errorf("ler %s: %w", link.source, err)
+			return fmt.Errorf("ler %s: %w", file.source, err)
 		}
 		if !info.Mode().IsRegular() {
-			return fmt.Errorf("%s não é um arquivo regular", link.source)
+			return fmt.Errorf("%s não é um arquivo regular", file.source)
 		}
 	}
-	stateDir := filepath.Dir(links[0].destination)
+	stateDir := filepath.Dir(files[0].destination)
 	if err := os.MkdirAll(stateDir, 0755); err != nil {
 		return fmt.Errorf("criar %s: %w", stateDir, err)
 	}
 
 	timestamp := now.Format("20060102-150405")
 	type change struct {
-		link   noctaliaLink
+		file   noctaliaFile
 		backup string
 	}
 	var changes []change
-	for _, link := range links {
-		if target, err := os.Readlink(link.destination); err == nil && target == link.source {
+	for _, file := range files {
+		if regularFileMatches(file.source, file.destination) {
 			continue
 		}
-		change := change{link: link}
-		if _, err := os.Lstat(link.destination); err == nil {
-			change.backup = link.destination + ".backup-" + timestamp
+		change := change{file: file}
+		if _, err := os.Lstat(file.destination); err == nil {
+			change.backup = file.destination + ".backup-" + timestamp
 			if _, err := os.Lstat(change.backup); err == nil {
 				return fmt.Errorf("backup já existe: %s", change.backup)
 			} else if !os.IsNotExist(err) {
 				return fmt.Errorf("verificar %s: %w", change.backup, err)
 			}
 		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("verificar %s: %w", link.destination, err)
+			return fmt.Errorf("verificar %s: %w", file.destination, err)
 		}
 		changes = append(changes, change)
 	}
@@ -141,23 +141,23 @@ func installNoctalia(dotfiles, home string, now time.Time) error {
 	rollback := func() {
 		for i := len(applied) - 1; i >= 0; i-- {
 			change := applied[i]
-			_ = os.Remove(change.link.destination)
+			_ = os.Remove(change.file.destination)
 			if change.backup != "" {
-				_ = os.Rename(change.backup, change.link.destination)
+				_ = os.Rename(change.backup, change.file.destination)
 			}
 		}
 	}
 	for _, change := range changes {
 		if change.backup != "" {
-			if err := os.Rename(change.link.destination, change.backup); err != nil {
+			if err := os.Rename(change.file.destination, change.backup); err != nil {
 				rollback()
-				return fmt.Errorf("preservar %s: %w", change.link.name, err)
+				return fmt.Errorf("preservar %s: %w", change.file.name, err)
 			}
 		}
 		applied = append(applied, change)
-		if err := os.Symlink(change.link.source, change.link.destination); err != nil {
+		if err := copyFileAtomic(change.file.source, change.file.destination); err != nil {
 			rollback()
-			return fmt.Errorf("configurar %s: %w", change.link.name, err)
+			return fmt.Errorf("configurar %s: %w", change.file.name, err)
 		}
 	}
 	return nil
@@ -170,10 +170,9 @@ func loadNoctaliaStatusForHome(dotfiles, home string) noctaliaStatus {
 		info, err := os.Stat(filepath.Join(pluginDir, name))
 		status.plugins = append(status.plugins, noctaliaPlugin{name: name, installed: err == nil && info.IsDir()})
 	}
-	for _, link := range noctaliaLinkDefs(dotfiles, home) {
-		target, err := os.Readlink(link.destination)
-		link.ok = err == nil && target == link.source
-		status.links = append(status.links, link)
+	for _, file := range noctaliaFileDefs(dotfiles, home) {
+		file.ok = regularFileMatches(file.source, file.destination)
+		status.files = append(status.files, file)
 	}
 	return status
 }
@@ -182,7 +181,7 @@ func noctaliaJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	return job{
 		title: "Configurar Noctalia",
-		steps: []step{nativeStep("Verificar plugins e ativar configuração", func() error {
+		steps: []step{nativeStep("Verificar plugins e copiar configuração", func() error {
 			return installNoctalia(dotfiles, home, time.Now())
 		})},
 		result: func() string {

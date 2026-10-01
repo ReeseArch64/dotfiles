@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.7.0"
+const version = "0.8.0"
 
 type screen int
 
@@ -127,12 +127,12 @@ func (m model) items() []item {
 		}
 	case screenDevelopment:
 		return []item{
-			{title: "Git", desc: "Instalar git, gitflow-next-bin e lazygit, além de configurar os symlinks", goTo: screenGit},
+			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 		}
 	case screenDesktop:
 		return []item{
-			{title: "Niri", desc: "Criar ~/.config/niri usando a configuração deste repositório", job: func() job { return niriJob(m.dotfiles) }},
+			{title: "Niri", desc: "Copiar a configuração para ~/.config/niri", job: func() job { return niriJob(m.dotfiles) }},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 			{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 		}

@@ -90,6 +90,90 @@ func TestWriteGitSigningKeyPreservesIdentity(t *testing.T) {
 	}
 }
 
+func TestGitJobCopiesGitconfigAsRegularFile(t *testing.T) {
+	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
+	home := filepath.Join(t.TempDir(), "home")
+	gitDir := filepath.Join(dotfiles, "git")
+	if err := os.MkdirAll(gitDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(home, 0755); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(gitDir, ".gitconfig")
+	if err := os.WriteFile(source, []byte("[user]\n    signingkey =\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	destination := filepath.Join(home, ".gitconfig")
+	if err := os.Symlink(source, destination); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+
+	configured := false
+	for _, current := range gitJob(dotfiles).steps {
+		if current.label == "Copiar ~/.gitconfig" {
+			if output, err := current.run(); err != nil {
+				t.Fatalf("copiar .gitconfig: %s: %v", output, err)
+			}
+			configured = true
+			break
+		}
+	}
+	if !configured {
+		t.Fatal("passo de cópia de ~/.gitconfig ausente")
+	}
+	info, err := os.Lstat(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("~/.gitconfig não é arquivo regular: %v", info.Mode())
+	}
+}
+
+func TestApplyGitSigningKeyUpdatesRegularHomeCopy(t *testing.T) {
+	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
+	home := filepath.Join(t.TempDir(), "home")
+	gitDir := filepath.Join(dotfiles, "git")
+	if err := os.MkdirAll(gitDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(home, 0755); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(gitDir, ".gitconfig")
+	content := "[user]\n    signingkey =\n    email = \"dev@example.com\"\n"
+	if err := os.WriteFile(source, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	destination := filepath.Join(home, ".gitconfig")
+	if err := os.Symlink(source, destination); err != nil {
+		t.Fatal(err)
+	}
+	fingerprint := "0123456789ABCDEF0123456789ABCDEF01234567"
+
+	if err := applyGitSigningKey(dotfiles, home, fingerprint); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{source, destination} {
+		got, err := readGitSigningKey(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != fingerprint {
+			t.Fatalf("signingkey inesperada em %s: %s", path, got)
+		}
+	}
+	info, err := os.Lstat(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("cópia home inválida: %v", info.Mode())
+	}
+}
+
 func TestWriteGitConfigRequiresIdentity(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("GIT_USER_EMAIL=dev@example.com\n"), 0600); err != nil {

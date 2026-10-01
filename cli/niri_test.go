@@ -7,11 +7,14 @@ import (
 	"time"
 )
 
-func TestInstallNiriCreatesConfigSymlink(t *testing.T) {
+func TestInstallNiriCreatesRegularConfigDirectory(t *testing.T) {
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := filepath.Join(dotfiles, "niri")
 	if err := os.MkdirAll(source, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "config.kdl"), []byte("new"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -19,12 +22,19 @@ func TestInstallNiriCreatesConfigSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	destination := filepath.Join(home, ".config", "niri")
-	target, err := os.Readlink(destination)
+	info, err := os.Lstat(destination)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if target != source {
-		t.Fatalf("destino inesperado: %s", target)
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("destino não é diretório regular: %v", info.Mode())
+	}
+	content, err := os.ReadFile(filepath.Join(destination, "config.kdl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "new" {
+		t.Fatalf("conteúdo inesperado: %q", content)
 	}
 }
 
@@ -34,6 +44,9 @@ func TestInstallNiriPreservesExistingConfiguration(t *testing.T) {
 	source := filepath.Join(dotfiles, "niri")
 	destination := filepath.Join(home, ".config", "niri")
 	if err := os.MkdirAll(source, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "config.kdl"), []byte("new"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(destination, 0755); err != nil {
@@ -55,8 +68,50 @@ func TestInstallNiriPreservesExistingConfiguration(t *testing.T) {
 	if string(content) != "old" {
 		t.Fatalf("backup inesperado: %q", content)
 	}
-	if target, err := os.Readlink(destination); err != nil || target != source {
-		t.Fatalf("symlink inesperado: target=%q err=%v", target, err)
+	content, err = os.ReadFile(filepath.Join(destination, "config.kdl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "new" {
+		t.Fatalf("cópia inesperada: %q", content)
+	}
+	if info, err := os.Lstat(destination); err != nil || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("destino não é diretório regular: info=%v err=%v", info, err)
+	}
+}
+
+func TestInstallNiriMigratesExistingSymlink(t *testing.T) {
+	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
+	home := filepath.Join(t.TempDir(), "home")
+	source := filepath.Join(dotfiles, "niri")
+	destination := filepath.Join(home, ".config", "niri")
+	if err := os.MkdirAll(source, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "config.kdl"), []byte("new"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(source, destination); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+
+	if err := installNiri(dotfiles, home, now); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("symlink não foi migrado: %v", info.Mode())
+	}
+	backup := destination + ".backup-20250102-030405"
+	if info, err := os.Lstat(backup); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("backup do symlink ausente: info=%v err=%v", info, err)
 	}
 }
 

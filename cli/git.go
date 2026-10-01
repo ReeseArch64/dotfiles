@@ -1,7 +1,5 @@
 package main
 
-// Tela de Git: status dos symlinks e job de configuração.
-
 import (
 	"errors"
 	"fmt"
@@ -29,12 +27,16 @@ func loadGitStatus(dotfiles string) gitStatus {
 	defs := gitLinkDefs(dotfiles, home)
 	var links []gitLink
 	for _, d := range defs {
-		target, err := os.Readlink(d.dst)
+		ok := regularFileMatches(d.src, d.dst)
+		if !d.copy {
+			target, err := os.Readlink(d.dst)
+			ok = err == nil && target == d.src
+		}
 		links = append(links, gitLink{
 			label: d.label,
 			src:   d.src,
 			dst:   d.dst,
-			ok:    err == nil && target == d.src,
+			ok:    ok,
 		})
 	}
 	_, envErr := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
@@ -71,12 +73,16 @@ func (g gitStatus) card(width int) string {
 		envColor, envValue = colErr, ".env ausente ou incompleto"
 	}
 	rows = append(rows, cardRow{envColor, "Identidade", envValue})
-	for _, l := range g.links {
+	for i, l := range g.links {
 		color, val := colOK, l.label+" ✔"
 		if !l.ok {
 			color, val = colWarn, l.label+" (não configurado)"
 		}
-		rows = append(rows, cardRow{color, "Link", val})
+		kind := "Link"
+		if i == 0 {
+			kind = "Arquivo"
+		}
+		rows = append(rows, cardRow{color, kind, val})
 	}
 	return renderCard(rows, width)
 }
@@ -85,18 +91,24 @@ func (m model) gitItems() []item {
 	return []item{
 		{
 			title: "Configurar Git",
-			desc:  "Usa o .env, instala as ferramentas e cria 4 symlinks",
+			desc:  "Usa o .env, instala ferramentas e configura os arquivos do Git",
 			job:   func() job { return gitJob(m.dotfiles) },
 		},
 	}
 }
 
-func gitLinkDefs(dotfiles, home string) []struct{ label, src, dst string } {
-	return []struct{ label, src, dst string }{
-		{"~/.gitconfig", filepath.Join(dotfiles, "git", ".gitconfig"), filepath.Join(home, ".gitconfig")},
-		{"~/.gitattributes", filepath.Join(dotfiles, "git", ".gitattributes"), filepath.Join(home, ".gitattributes")},
-		{"~/.gitignore", filepath.Join(dotfiles, "git", ".gitignore"), filepath.Join(home, ".gitignore")},
-		{"~/.config/git/config", filepath.Join(dotfiles, "git", "config"), filepath.Join(home, ".config", "git", "config")},
+func gitLinkDefs(dotfiles, home string) []struct {
+	label, src, dst string
+	copy            bool
+} {
+	return []struct {
+		label, src, dst string
+		copy            bool
+	}{
+		{"~/.gitconfig", filepath.Join(dotfiles, "git", ".gitconfig"), filepath.Join(home, ".gitconfig"), true},
+		{"~/.gitattributes", filepath.Join(dotfiles, "git", ".gitattributes"), filepath.Join(home, ".gitattributes"), false},
+		{"~/.gitignore", filepath.Join(dotfiles, "git", ".gitignore"), filepath.Join(home, ".gitignore"), false},
+		{"~/.config/git/config", filepath.Join(dotfiles, "git", "config"), filepath.Join(home, ".config", "git", "config"), false},
 	}
 }
 
@@ -245,7 +257,13 @@ func gitJob(dotfiles string) job {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)
 	}))
 	for _, d := range defs {
-		label, src, dst := d.label, d.src, d.dst
+		label, src, dst, copyTarget := d.label, d.src, d.dst, d.copy
+		if copyTarget {
+			steps = append(steps, nativeStep("Copiar "+label, func() error {
+				return copyFileAtomic(src, dst)
+			}))
+			continue
+		}
 		steps = append(steps, nativeStep("Symlink "+label, func() error {
 			os.Remove(dst)
 			return os.Symlink(src, dst)
@@ -264,7 +282,7 @@ func gitJob(dotfiles string) job {
 				}
 			}
 			return lipgloss.NewStyle().Foreground(colOK).Render(
-				fmt.Sprintf("%d/%d symlinks configurados", ok, len(g.links)))
+				fmt.Sprintf("%d/%d destinos do Git configurados", ok, len(g.links)))
 		},
 	}
 }

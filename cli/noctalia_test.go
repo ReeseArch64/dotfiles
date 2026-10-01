@@ -60,7 +60,7 @@ func TestInstallNoctaliaRequiresPlugins(t *testing.T) {
 	}
 }
 
-func TestInstallNoctaliaLinksFilesAndPreservesState(t *testing.T) {
+func TestInstallNoctaliaCopiesFilesAndPreservesState(t *testing.T) {
 	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
 	installNoctaliaTestPlugins(t, pluginDir)
 	stateDir := filepath.Join(home, ".local", "state", "noctalia")
@@ -76,26 +76,59 @@ func TestInstallNoctaliaLinksFilesAndPreservesState(t *testing.T) {
 	}
 	for _, name := range []string{"settings.toml", "state.toml"} {
 		destination := filepath.Join(stateDir, name)
-		target, err := os.Readlink(destination)
+		info, err := os.Lstat(destination)
 		if err != nil {
 			t.Fatal(err)
 		}
-		expected := filepath.Join(dotfiles, "noctalia", name)
-		if target != expected {
-			t.Fatalf("destino inesperado para %s: %s", name, target)
+		if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+			t.Fatalf("%s não é arquivo regular: %v", name, info.Mode())
+		}
+		content, err := os.ReadFile(destination)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != "new "+name {
+			t.Fatalf("cópia inesperada para %s: %q", name, content)
 		}
 		backup := destination + ".backup-20250102-030405"
-		content, err := os.ReadFile(backup)
+		backupContent, err := os.ReadFile(backup)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if string(content) != "old "+name {
-			t.Fatalf("backup inesperado para %s: %q", name, content)
+		if string(backupContent) != "old "+name {
+			t.Fatalf("backup inesperado para %s: %q", name, backupContent)
 		}
 	}
 	for _, name := range requiredNoctaliaPlugins {
 		if info, err := os.Stat(filepath.Join(pluginDir, name)); err != nil || !info.IsDir() {
 			t.Fatalf("plugin %s foi removido: %v", name, err)
+		}
+	}
+}
+
+func TestInstallNoctaliaMigratesExistingSymlinks(t *testing.T) {
+	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
+	installNoctaliaTestPlugins(t, pluginDir)
+	stateDir := filepath.Join(home, ".local", "state", "noctalia")
+	for _, name := range []string{"settings.toml", "state.toml"} {
+		source := filepath.Join(dotfiles, "noctalia", name)
+		if err := os.Symlink(source, filepath.Join(stateDir, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+
+	if err := installNoctalia(dotfiles, home, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"settings.toml", "state.toml"} {
+		destination := filepath.Join(stateDir, name)
+		info, err := os.Lstat(destination)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+			t.Fatalf("%s não foi migrado para arquivo regular", name)
 		}
 	}
 }
