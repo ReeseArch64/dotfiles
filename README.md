@@ -30,7 +30,7 @@ Os arquivos `~/.dotfiles/minha_chave_privada.asc` e `~/.dotfiles/minha_chave_pub
 
 A CLI valida essas chaves somente ao executar `GPG > Importar chaves`. Ela também confere os cabeçalhos OpenPGP nesse momento.
 
-O navegador não é requisito para abrir a CLI ou executar as configurações atuais. Uma ação futura poderá solicitá-lo antes de iniciar um login.
+O navegador não é requisito para abrir a CLI. A configuração Docker exige `zen-browser` e o diretório `~/.config/zen` antes do login.
 
 A instalação e as ações também usam:
 
@@ -189,10 +189,14 @@ O comando `/setup-pstack` grava a política em `~/.agents/rules/pstack-models.md
 
 Abra `Docker > Configurar Docker` na CLI. Essa ação:
 
-1. Instala `docker`, `docker-compose`, `lazydocker`, `docker-buildx`, `kind` e `util-linux` com o Pacman.
-2. Executa `sudo usermod -aG docker USUÁRIO`.
-3. Executa `sudo systemctl enable --now docker.service`.
-4. Executa `newgrp docker -c "docker login"` para autenticar com o grupo atualizado.
+1. Exige o executável `zen-browser` e o diretório `~/.config/zen`.
+2. Instala `docker`, `docker-compose`, `lazydocker`, `docker-buildx`, `kind`, `util-linux` e `xdg-utils` com o Pacman.
+3. Executa `sudo usermod -aG docker USUÁRIO`.
+4. Executa `sudo systemctl enable --now docker.service`.
+5. Executa `xdg-settings set default-web-browser zen.desktop`.
+6. Executa `newgrp docker -c "docker login"` para autenticar com o grupo atualizado.
+
+A CLI bloqueia toda a configuração Docker quando o Zen Browser ou seu perfil está ausente. Assim, o login nunca inicia sem esses requisitos.
 
 A CLI entrega o terminal ao login interativo. Abra uma nova sessão após a configuração para aplicar o grupo `docker` aos outros terminais.
 

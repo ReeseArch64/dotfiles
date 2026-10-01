@@ -3,14 +3,16 @@ package main
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"os/user"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
 var dockerPackages = []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "kind"}
-var dockerDependencies = []string{"util-linux"}
+var dockerDependencies = []string{"util-linux", "xdg-utils"}
 
 func dockerRequiredPackages() []string {
 	return append(append([]string{}, dockerPackages...), dockerDependencies...)
@@ -100,11 +102,30 @@ func (s dockerStatus) card(width int) string {
 	return renderCard(rows, width)
 }
 
-func dockerJobForUser(username string, packageSteps []step) job {
-	steps := append([]step{}, packageSteps...)
+func validateDockerLoginBrowser(home string, lookPath func(string) (string, error)) error {
+	var missing []string
+	if _, err := lookPath("zen-browser"); err != nil {
+		missing = append(missing, "executável zen-browser")
+	}
+	config := filepath.Join(home, ".config", "zen")
+	if info, err := os.Stat(config); err != nil || !info.IsDir() {
+		missing = append(missing, config)
+	}
+	if len(missing) > 0 {
+		return errors.New("Docker login exige Zen Browser configurado; ausente: " + strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+func dockerJobForUser(username, home string, packageSteps []step, lookPath func(string) (string, error)) job {
+	steps := []step{nativeStep("Validar Zen Browser para Docker login", func() error {
+		return validateDockerLoginBrowser(home, lookPath)
+	})}
+	steps = append(steps, packageSteps...)
 	steps = append(steps,
 		terminalStep("Adicionar "+username+" ao grupo docker", "sudo", "usermod", "-aG", "docker", username),
 		terminalStep("Habilitar e iniciar docker.service", "sudo", "systemctl", "enable", "--now", "docker.service"),
+		terminalStep("Definir Zen Browser como padrão", "xdg-settings", "set", "default-web-browser", "zen.desktop"),
 		terminalStep("Autenticar no Docker", "newgrp", "docker", "-c", "docker login"),
 	)
 	return job{
@@ -124,7 +145,11 @@ func dockerJob() job {
 	if err != nil {
 		return job{title: "Configurar Docker", steps: []step{nativeStep("Identificar usuário atual", func() error { return err })}}
 	}
-	return dockerJobForUser(username, ensurePkgs(dockerRequiredPackages()...))
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return job{title: "Configurar Docker", steps: []step{nativeStep("Identificar diretório pessoal", func() error { return err })}}
+	}
+	return dockerJobForUser(username, home, ensurePkgs(dockerRequiredPackages()...), exec.LookPath)
 }
 
 func (m model) dockerItems() []item {
