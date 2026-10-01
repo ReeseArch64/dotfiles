@@ -25,13 +25,11 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 A CLI abre somente em ambientes com CachyOS, Niri e Noctalia Shell.
 
-Os demais pré-requisitos são validados apenas pela ação que depende deles:
+Os arquivos `~/.dotfiles/minha_chave_privada.asc` e `~/.dotfiles/minha_chave_publica.asc` são requisitos exclusivos da importação GPG.
 
-- `GPG > Importar chaves` exige `~/.dotfiles/minha_chave_privada.asc` e `~/.dotfiles/minha_chave_publica.asc`.
-- `Desktop > Niri` exige o Zen Browser e o diretório `~/.config/zen-browser`.
-- `Desktop > Noctalia` exige o Zen Browser e o diretório `~/.config/zen-browser`.
+A CLI valida essas chaves somente ao executar `GPG > Importar chaves`. Ela também confere os cabeçalhos OpenPGP nesse momento.
 
-As ações de Niri e Noctalia instalam `zen-browser-bin` pelo Shelly quando necessário. A importação GPG confere os cabeçalhos OpenPGP das chaves.
+O navegador não é requisito para abrir a CLI ou executar as configurações atuais. Uma ação futura poderá solicitá-lo antes de iniciar um login.
 
 A instalação e as ações também usam:
 
@@ -76,13 +74,7 @@ GPG_PRIVATE_IMPORT=~/.dotfiles/minha_chave_privada.asc
 
 O `.env` está no `.gitignore` e não deve ser versionado.
 
-As ações dependentes instalam o Zen Browser com `shelly install aur zen-browser-bin`. Restaure a configuração esperada antes de executar essas ações:
-
-```bash
-mkdir -p ~/.config/zen-browser
-```
-
-Copie as duas chaves de um armazenamento seguro antes de executar a importação GPG:
+Copie as duas chaves de um armazenamento seguro somente se quiser executar a importação GPG:
 
 ```bash
 install -m 600 /origem/chave_privada.asc ~/.dotfiles/minha_chave_privada.asc
@@ -268,9 +260,7 @@ A CLI não copia as chaves. O padrão `*.asc` está no `.gitignore` para impedir
 
 ## Niri
 
-A opção `Niri` instala `zen-browser-bin` pelo Shelly quando necessário. Depois, ela valida `~/.config/zen-browser`.
-
-Após essa validação, a ação copia `niri/` para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
+A opção `Niri` copia `niri/` para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
 
 Quando o destino possui conteúdo diferente, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS`. Cópias idênticas não criam backups.
 
@@ -288,9 +278,7 @@ A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam se
 - `warp`
 - `zed-provider`
 
-A opção `Configurar Noctalia` instala `zen-browser-bin` pelo Shelly quando necessário. Ela também exige o diretório `~/.config/zen-browser`.
-
-A ação exige todos os plugins em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
+A opção `Configurar Noctalia` exige todos os plugins em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
 
 Após a validação, a CLI copia `noctalia/settings.toml` e `noctalia/state.toml` como arquivos regulares. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
 

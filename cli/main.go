@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.11.0"
+const version = "0.11.1"
 
 type screen int
 
