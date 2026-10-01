@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.8.0"
+const version = "0.9.0"
 
 type screen int
 
@@ -24,6 +24,8 @@ const (
 	screenDevelopment
 	screenDesktop
 	screenUtilities
+	screenAIAgents
+	screenPiAgent
 	screenSSH
 	screenFirewall
 	screenDocker
@@ -41,6 +43,8 @@ var screenTitles = map[screen]string{
 	screenDevelopment: "Desenvolvimento",
 	screenDesktop:     "Desktop",
 	screenUtilities:   "Utilitários",
+	screenAIAgents:    "Agentes de IA",
+	screenPiAgent:     "Pi Agent",
 	screenSSH:         "SSH",
 	screenFirewall:    "Firewall",
 	screenDocker:      "Docker",
@@ -83,6 +87,7 @@ type model struct {
 	git      gitStatus
 	gpg      gpgStatus
 	noctalia noctaliaStatus
+	piAgent  piAgentStatus
 	scripts  []script
 	job      *jobRun
 	status   string
@@ -117,6 +122,7 @@ func (m model) items() []item {
 			{title: "Desenvolvimento", desc: "Git e chaves GPG", goTo: screenDevelopment},
 			{title: "Desktop", desc: "Niri, Noctalia e foto de perfil", goTo: screenDesktop},
 			{title: "Utilitários", desc: "Scripts e informações do sistema", goTo: screenUtilities},
+			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
@@ -141,6 +147,12 @@ func (m model) items() []item {
 			{title: "Scripts", desc: "Executar qualquer script de scripts/", goTo: screenScripts},
 			{title: "Info do sistema", desc: "Host, kernel, uptime e estado do repositório", goTo: screenInfo},
 		}
+	case screenAIAgents:
+		return []item{
+			{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent},
+		}
+	case screenPiAgent:
+		return m.piAgentItems()
 	case screenSSH:
 		return m.sshItems()
 	case screenFirewall:
@@ -242,6 +254,8 @@ func (m *model) refresh() {
 		m.gpg = loadGPGStatus(m.dotfiles)
 	case screenNoctalia:
 		m.noctalia = loadNoctaliaStatus(m.dotfiles)
+	case screenPiAgent:
+		m.piAgent = loadPiAgentStatus(m.dotfiles)
 	case screenScripts:
 		m.scripts = listScripts(m.dotfiles)
 	case screenInfo:
@@ -339,6 +353,8 @@ func (m model) View() string {
 		body = m.gpg.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenNoctalia:
 		body = m.noctalia.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	case screenPiAgent:
+		body = m.piAgent.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	default:
 		body = m.viewMenu(inner, elapsed)
 	}

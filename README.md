@@ -11,6 +11,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
 - Copia a configuração do Niri para `~/.config/niri`.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
+- Configura o Pi Agent com tema, settings e pacotes.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
 - Gerencia `sshd.service` e `sshd.socket`.
@@ -32,6 +33,7 @@ Antes de abrir a interface, a CLI exige `ID=cachyos` em `/etc/os-release`. Ela t
 A instalação e as ações também usam:
 
 - `bash`
+- `curl`, usado pelo instalador oficial do Pi
 - `git`
 - `gpg`, instalado pelo pacote `gnupg` quando necessário
 - `make`
@@ -40,6 +42,7 @@ A instalação e as ações também usam:
 - `pacman`
 - `systemd`
 - `shelly`, usado para instalar `gitflow-next-bin` e `lazygit`
+- `pi`, necessário somente para configurar os pacotes do Pi Agent
 
 A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. Go e Make ainda são necessários para compilar a CLI.
 
@@ -105,7 +108,7 @@ A CLI não oferece opção para ignorar a validação de plataforma.
 
 Durante um job, aguarde a conclusão dos passos. A CLI entrega o terminal aos comandos que exigem senha ou confirmação.
 
-O menu principal contém cinco opções e organiza as ações nestes submenus:
+O menu principal contém seis opções e organiza as ações nestes submenus:
 
 | Submenu | Opções |
 | --- | --- |
@@ -113,6 +116,63 @@ O menu principal contém cinco opções e organiza as ações nestes submenus:
 | `Desenvolvimento` | Git e GPG |
 | `Desktop` | Niri, Noctalia e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
+| `Agentes de IA` | Pi Agent |
+
+## Pi Agent
+
+Abra `Agentes de IA > Pi Agent > Configurar Pi Agent`. A ação executa estas etapas:
+
+1. Valida `pi/agent/settings.json` e o tema `noctalia`.
+2. Quando o Pi está ausente, executa `curl -fsSL https://pi.dev/install.sh | sh`. Ao final, escolha não iniciar o Pi para continuar o job.
+3. Copia os dois arquivos como arquivos regulares para `~/.pi/agent`.
+4. Preserva arquivos diferentes com o sufixo `.backup-AAAAMMDD-HHMMSS`.
+5. Executa `pi update --extensions` para instalar ou atualizar os pacotes declarados.
+
+A configuração instala o repositório `nothingrotf/pi-extensions`, seus pacotes `ask`, `compact`, `fast-mode`, `filetools`, `goal`, `hud`, `inline-skill`, `loop`, `session-history`, `subagent`, `tgrep`, `todo` e `pstack`. Ela também instala `@gotgenes/pi-anthropic-auth` e `pi-antigravity` pelo gerenciador de pacotes do Pi.
+
+Os pacotes do Pi podem executar código com as permissões do usuário. Revise as origens antes de executar a configuração.
+
+Abra uma nova sessão do Pi ou execute `/reload` após alterar manualmente os arquivos.
+
+### Tutorial pós-configuração
+
+Após concluir o job da CLI, finalize a configuração manual:
+
+1. Abra um novo terminal para carregar o caminho instalado pelo script oficial.
+2. Confirme a instalação e os pacotes:
+
+   ```bash
+   pi --version
+   pi list
+   ```
+
+3. Inicie o Pi no diretório de um projeto:
+
+   ```bash
+   cd /caminho/do/projeto
+   pi
+   ```
+
+4. Execute `/login` e autentique o provedor Codex usado pelo modelo padrão.
+5. Execute `/login anthropic` se quiser usar uma assinatura Claude Pro ou Max.
+6. Execute `/login antigravity` para conectar uma conta Google ao provedor Antigravity.
+7. Execute `/model` e confirme que o modelo desejado está disponível.
+8. Execute `/setup-pstack` e escolha os modelos usados por cada função do pstack.
+9. Reinicie o Pi após configurar o pstack.
+
+Use estes comandos para conferir as extensões opcionais:
+
+```text
+/anthropic-auth:status
+/antigravity.models
+/antigravity.doctor
+```
+
+Em uma máquina remota, copie a URL final do OAuth Antigravity para o prompt do Pi. Como alternativa, encaminhe a porta `51121` por SSH.
+
+Não versione `~/.pi/agent/auth.json` nem `~/.pi/agent/antigravity-accounts.json`. Esses arquivos contêm credenciais de acesso.
+
+O comando `/setup-pstack` grava a política em `~/.agents/rules/pstack-models.md`. Revise as escolhas antes de iniciar tarefas delegadas.
 
 ## Docker
 
@@ -293,6 +353,7 @@ A tela `Info do sistema` apresenta:
 │   └── config           # Preferências globais do Git
 ├── niri/                # Origem copiada para ~/.config/niri
 ├── noctalia/            # Origem copiada para o estado do Noctalia
+├── pi/                   # Settings e tema do Pi Agent
 └── scripts/
     └── setup-ssh.sh     # Setup alternativo de SSH e UFW
 ```

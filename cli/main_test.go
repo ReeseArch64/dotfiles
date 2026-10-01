@@ -19,7 +19,7 @@ func TestMainMenuHasAtMostSixOptions(t *testing.T) {
 	if len(items) > 6 {
 		t.Fatalf("menu principal possui %d opções", len(items))
 	}
-	want := []string{"Sistema", "Desenvolvimento", "Desktop", "Utilitários", "Sair"}
+	want := []string{"Sistema", "Desenvolvimento", "Desktop", "Utilitários", "Agentes de IA", "Sair"}
 	if titles := itemTitles(items); !slices.Equal(titles, want) {
 		t.Fatalf("opções inesperadas: %v", titles)
 	}
@@ -32,6 +32,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 		screenDevelopment: {"Git", "GPG"},
 		screenDesktop:     {"Niri", "Noctalia", "Foto de perfil"},
 		screenUtilities:   {"Scripts", "Info do sistema"},
+		screenAIAgents:    {"Pi Agent"},
 	}
 	for category, want := range categories {
 		model.screen = category
@@ -43,7 +44,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 
 func TestMainMenuCategoriesOpenSubmenus(t *testing.T) {
 	model := newModel(t.TempDir())
-	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenUtilities}
+	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenUtilities, screenAIAgents}
 	for i, destination := range want {
 		item := model.items()[i]
 		if item.goTo != destination || item.job != nil || item.quit {
