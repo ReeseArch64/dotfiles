@@ -130,6 +130,8 @@ func (m model) sshItems() []item {
 	}
 
 	its := []item{
+		{title: "Configurar cliente", desc: "Validar identidades e copiar ssh/config para ~/.ssh/config",
+			job: func() job { return sshClientConfigJob(m.dotfiles) }},
 		{title: "Ativar permanente", desc: "sshd.service sempre rodando e habilitado no boot",
 			job: func() job { return enable("Ativar SSH permanente", "sshd.service", "sshd.socket") }},
 		{title: "Ativar via socket", desc: "sshd.socket: o daemon só sobe quando chega uma conexão",

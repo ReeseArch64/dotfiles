@@ -1,0 +1,34 @@
+# ==============================
+# SSH SERVER GLOBAL
+# ==============================
+
+Host 192.168.1.100
+  HostName 192.168.1.100
+  User alsgy
+
+Host 192.168.1.105
+  HostName 192.168.1.105
+  User alsgy
+
+# ==============================
+# CONFIGURAÇÃO GLOBAL
+# ==============================
+Host *
+  AddKeysToAgent yes
+  IdentitiesOnly yes
+
+# ==============================
+# GITHUB
+# ==============================
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_github_reesearch64
+
+# ==============================
+# GITLAB
+# ==============================
+Host gitlab.com
+  HostName gitlab.com
+  User git
+  IdentityFile ~/.ssh/id_gitlab_reesearch64

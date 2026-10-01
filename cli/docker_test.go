@@ -6,9 +6,9 @@ import (
 )
 
 func TestDockerPackages(t *testing.T) {
-	want := []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "kind"}
-	if !slices.Equal(dockerPackages, want) {
-		t.Fatalf("pacotes inesperados: %v", dockerPackages)
+	want := []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "kind", "util-linux"}
+	if packages := dockerRequiredPackages(); !slices.Equal(packages, want) {
+		t.Fatalf("pacotes inesperados: %v", packages)
 	}
 }
 
@@ -20,7 +20,7 @@ func TestDockerJobCommands(t *testing.T) {
 	want := [][]string{
 		{"sudo", "usermod", "-aG", "docker", "dev"},
 		{"sudo", "systemctl", "enable", "--now", "docker.service"},
-		{"sg", "docker", "-c", "docker login"},
+		{"newgrp", "docker", "-c", "docker login"},
 	}
 	for i, expected := range want {
 		if job.steps[i].cmd == nil {

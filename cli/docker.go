@@ -10,6 +10,11 @@ import (
 )
 
 var dockerPackages = []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "kind"}
+var dockerDependencies = []string{"util-linux"}
+
+func dockerRequiredPackages() []string {
+	return append(append([]string{}, dockerPackages...), dockerDependencies...)
+}
 
 type dockerStatus struct {
 	missing  []string
@@ -100,7 +105,7 @@ func dockerJobForUser(username string, packageSteps []step) job {
 	steps = append(steps,
 		terminalStep("Adicionar "+username+" ao grupo docker", "sudo", "usermod", "-aG", "docker", username),
 		terminalStep("Habilitar e iniciar docker.service", "sudo", "systemctl", "enable", "--now", "docker.service"),
-		terminalStep("Autenticar no Docker", "sg", "docker", "-c", "docker login"),
+		terminalStep("Autenticar no Docker", "newgrp", "docker", "-c", "docker login"),
 	)
 	return job{
 		title: "Configurar Docker",
@@ -119,7 +124,7 @@ func dockerJob() job {
 	if err != nil {
 		return job{title: "Configurar Docker", steps: []step{nativeStep("Identificar usuário atual", func() error { return err })}}
 	}
-	return dockerJobForUser(username, ensurePkgs(dockerPackages...))
+	return dockerJobForUser(username, ensurePkgs(dockerRequiredPackages()...))
 }
 
 func (m model) dockerItems() []item {

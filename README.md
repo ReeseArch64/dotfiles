@@ -15,6 +15,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Copia os wallpapers do repositório para `~/.wallpapers`.
 - Instala a foto de perfil do repositório como `~/.face`.
 - Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
+- Copia a configuração do cliente SSH para `~/.ssh/config`.
 - Gerencia `sshd.service` e `sshd.socket`.
 - Aplica ou remove hardening de acesso SSH.
 - Instala e gerencia regras do firewall UFW.
@@ -188,10 +189,10 @@ O comando `/setup-pstack` grava a política em `~/.agents/rules/pstack-models.md
 
 Abra `Docker > Configurar Docker` na CLI. Essa ação:
 
-1. Instala `docker`, `docker-compose`, `lazydocker`, `docker-buildx` e `kind` com o Pacman.
+1. Instala `docker`, `docker-compose`, `lazydocker`, `docker-buildx`, `kind` e `util-linux` com o Pacman.
 2. Executa `sudo usermod -aG docker USUÁRIO`.
 3. Executa `sudo systemctl enable --now docker.service`.
-4. Executa `docker login` com o grupo atualizado para autenticar o usuário.
+4. Executa `newgrp docker -c "docker login"` para autenticar com o grupo atualizado.
 
 A CLI entrega o terminal ao login interativo. Abra uma nova sessão após a configuração para aplicar o grupo `docker` aos outros terminais.
 
@@ -301,8 +302,20 @@ A ação substitui um arquivo ou link existente em `~/.face`. Faça backup da fo
 
 O menu `SSH` mostra o estado do servidor, o modo de inicialização, a porta, o hardening, as chaves autorizadas e os endereços locais.
 
+A ação `Configurar cliente` exige estes arquivos regulares em `~/.ssh`:
+
+- `id_github_reesearch64`
+- `id_github_reesearch64.pub`
+- `id_gitlab_reesearch64`
+- `id_gitlab_reesearch64.pub`
+
+Após validar os quatro arquivos, a ação copia `ssh/config` para `~/.ssh/config`. Ela aplica permissão `0700` ao diretório e `0600` ao arquivo.
+
+Uma configuração diferente é preservada como `~/.ssh/config.backup-AAAAMMDD-HHMMSS`. Uma cópia idêntica não cria outro backup.
+
 As ações disponíveis são:
 
+- **Configurar cliente:** valida as identidades e copia a configuração do cliente.
 - **Ativar permanente:** habilita `sshd.service` no boot.
 - **Ativar via socket:** habilita `sshd.socket` e inicia o daemon sob demanda.
 - **Ativar temporário:** inicia o serviço somente na sessão atual.
@@ -371,6 +384,7 @@ A tela `Info do sistema` apresenta:
 ├── niri/                # Origem copiada para ~/.config/niri
 ├── noctalia/            # Origem copiada para o estado do Noctalia
 ├── pi/                   # Settings e tema do Pi Agent
+├── ssh/                  # Configuração copiada para ~/.ssh/config
 ├── wallpapers/           # Imagens copiadas para ~/.wallpapers
 └── scripts/
     └── setup-ssh.sh     # Setup alternativo de SSH e UFW
@@ -397,6 +411,7 @@ Sem essa variável, a CLI procura o repositório a partir do caminho real do exe
 ## Segurança e recuperação
 
 - Revise ações de `sudo` antes de confirmar instalações ou mudanças de serviço.
+- Proteja as chaves privadas SSH e nunca as versione.
 - Adicione uma chave autorizada antes de habilitar o hardening SSH.
 - Libere a porta correta antes de ativar o firewall em uma máquina remota.
 - Faça backup dos quatro destinos Git, de `~/.wallpapers` e de `~/.face` antes de configurá-los.
