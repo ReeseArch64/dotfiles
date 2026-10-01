@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.5.0"
+const version = "0.6.0"
 
 type screen int
 
@@ -22,6 +22,7 @@ const (
 	screenMain screen = iota
 	screenSSH
 	screenFirewall
+	screenDocker
 	screenGit
 	screenGPG
 	screenNoctalia
@@ -34,6 +35,7 @@ var screenTitles = map[screen]string{
 	screenMain:     "Menu principal",
 	screenSSH:      "SSH",
 	screenFirewall: "Firewall",
+	screenDocker:   "Docker",
 	screenGit:      "Git",
 	screenGPG:      "GPG",
 	screenNoctalia: "Noctalia",
@@ -69,6 +71,7 @@ type model struct {
 	info     []infoRow
 	ssh      sshStatus
 	fw       fwStatus
+	docker   dockerStatus
 	git      gitStatus
 	gpg      gpgStatus
 	noctalia noctaliaStatus
@@ -104,6 +107,7 @@ func (m model) items() []item {
 		return []item{
 			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
+			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
 			{title: "Git", desc: "Instalar git, gitflow-next-bin e lazygit, além de configurar os symlinks", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Niri", desc: "Criar ~/.config/niri usando a configuração deste repositório", job: func() job { return niriJob(m.dotfiles) }},
@@ -117,6 +121,8 @@ func (m model) items() []item {
 		return m.sshItems()
 	case screenFirewall:
 		return m.fwItems()
+	case screenDocker:
+		return m.dockerItems()
 	case screenGit:
 		return m.gitItems()
 	case screenGPG:
@@ -204,6 +210,8 @@ func (m *model) refresh() {
 		m.ssh = loadSSHStatus()
 	case screenFirewall:
 		m.fw = loadFWStatus(loadSSHStatus().port())
+	case screenDocker:
+		m.docker = loadDockerStatus()
 	case screenGit:
 		m.git = loadGitStatus(m.dotfiles)
 	case screenGPG:
@@ -299,6 +307,8 @@ func (m model) View() string {
 		body = m.ssh.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenFirewall:
 		body = m.fw.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
+	case screenDocker:
+		body = m.docker.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenGit:
 		body = m.git.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
 	case screenGPG:

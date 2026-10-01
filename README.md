@@ -7,6 +7,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Instala e configura Git, gitflow-next e Lazygit.
 - Gera a identidade do Git a partir de um `.env` local.
 - Cria links simbólicos para configurações globais do Git.
+- Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
 - Configura o Niri em `~/.config/niri` com um link para o repositório.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
@@ -103,6 +104,19 @@ A CLI não oferece opção para ignorar a validação de plataforma.
 | `q`, `Ctrl+C` | Sair |
 
 Durante um job, aguarde a conclusão dos passos. A CLI entrega o terminal aos comandos que exigem senha ou confirmação.
+
+## Docker
+
+Abra `Docker > Configurar Docker` na CLI. Essa ação:
+
+1. Instala `docker`, `docker-compose`, `lazydocker`, `docker-buildx` e `kind` com o Pacman.
+2. Executa `sudo usermod -aG docker USUÁRIO`.
+3. Executa `sudo systemctl enable --now docker.service`.
+4. Executa `docker login` com o grupo atualizado para autenticar o usuário.
+
+A CLI entrega o terminal ao login interativo. Abra uma nova sessão após a configuração para aplicar o grupo `docker` aos outros terminais.
+
+Membros do grupo `docker` controlam o daemon e possuem privilégios equivalentes a acesso root. Adicione somente usuários confiáveis.
 
 ## Configuração do Git
 
