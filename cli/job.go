@@ -198,3 +198,12 @@ func ensurePkgs(pkgs ...string) []step {
 	return []step{terminalStep("Instalar "+strings.Join(missing, ", "),
 		append([]string{"sudo", "pacman", "-S", "--needed"}, missing...)...)}
 }
+
+func ensureShellyPkgs(source string, pkgs ...string) []step {
+	missing := missingPkgs(pkgs...)
+	if len(missing) == 0 {
+		return nil
+	}
+	return []step{terminalStep("Instalar "+strings.Join(missing, ", ")+" via Shelly",
+		append([]string{"shelly", "install", source, "--needed"}, missing...)...)}
+}

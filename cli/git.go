@@ -33,15 +33,21 @@ func loadGitStatus(dotfiles string) gitStatus {
 			ok:    err == nil && target == d.src,
 		})
 	}
-	return gitStatus{missing: missingPkgs("git"), links: links}
+	return gitStatus{missing: missingPkgs("git", "gitflow-next-bin", "lazygit"), links: links}
 }
 
 func (g gitStatus) card(width int) string {
 	var rows []cardRow
-	if len(g.missing) > 0 {
-		rows = append(rows, cardRow{colErr, "Pacote", "git não instalado"})
-	} else {
-		rows = append(rows, cardRow{colOK, "Pacote", "git instalado"})
+	missing := make(map[string]bool, len(g.missing))
+	for _, pkg := range g.missing {
+		missing[pkg] = true
+	}
+	for _, pkg := range []string{"git", "gitflow-next-bin", "lazygit"} {
+		color, value := colOK, pkg+" instalado"
+		if missing[pkg] {
+			color, value = colErr, pkg+" não instalado"
+		}
+		rows = append(rows, cardRow{color, "Pacote", value})
 	}
 	for _, l := range g.links {
 		color, val := colOK, l.label+" ✔"
@@ -57,7 +63,7 @@ func (m model) gitItems() []item {
 	return []item{
 		{
 			title: "Configurar Git",
-			desc:  "Instala git (se necessário) e cria 4 symlinks no home",
+			desc:  "Instala git, gitflow-next-bin e lazygit, depois cria 4 symlinks",
 			job:   func() job { return gitJob(m.dotfiles) },
 		},
 	}
@@ -77,6 +83,8 @@ func gitJob(dotfiles string) job {
 	defs := gitLinkDefs(dotfiles, home)
 
 	steps := ensurePkgs("git")
+	steps = append(steps, ensureShellyPkgs("aur", "gitflow-next-bin")...)
+	steps = append(steps, ensureShellyPkgs("standard", "lazygit")...)
 	steps = append(steps, nativeStep("Criar ~/.config/git/", func() error {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)
 	}))
