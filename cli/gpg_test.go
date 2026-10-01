@@ -17,8 +17,12 @@ func TestGPGImportPathsFromEnvAcceptsMountedDirectory(t *testing.T) {
 	}
 	public := filepath.Join(media, "public.asc")
 	private := filepath.Join(media, "private.ASC")
-	for _, path := range []string{public, private} {
-		if err := os.WriteFile(path, []byte("key"), 0600); err != nil {
+	keys := map[string]string{
+		public:  "-----BEGIN PGP PUBLIC KEY BLOCK-----\npublic\n",
+		private: "-----BEGIN PGP PRIVATE KEY BLOCK-----\nprivate\n",
+	}
+	for path, content := range keys {
+		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -40,7 +44,11 @@ func TestGPGImportPathsFromEnvAcceptsMountedDirectory(t *testing.T) {
 func TestGPGImportPathsFromEnvRejectsInvalidInputs(t *testing.T) {
 	dir := t.TempDir()
 	valid := filepath.Join(dir, "public.asc")
-	if err := os.WriteFile(valid, []byte("key"), 0600); err != nil {
+	invalid := filepath.Join(dir, "invalid.asc")
+	if err := os.WriteFile(valid, []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\npublic\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(invalid, []byte("não é uma chave"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	tests := []struct {
@@ -52,6 +60,7 @@ func TestGPGImportPathsFromEnvRejectsInvalidInputs(t *testing.T) {
 		{"mesmo arquivo", "GPG_PUBLIC_IMPORT=" + valid + "\nGPG_PRIVATE_IMPORT=" + valid + "\n", "arquivos diferentes"},
 		{"extensão inválida", "GPG_PUBLIC_IMPORT=" + valid + "\nGPG_PRIVATE_IMPORT=" + filepath.Join(dir, "private.key") + "\n", ".asc"},
 		{"arquivo ausente", "GPG_PUBLIC_IMPORT=" + valid + "\nGPG_PRIVATE_IMPORT=" + filepath.Join(dir, "private.asc") + "\n", "acessar chave privada"},
+		{"conteúdo inválido", "GPG_PUBLIC_IMPORT=" + valid + "\nGPG_PRIVATE_IMPORT=" + invalid + "\n", "bloco OpenPGP válido"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

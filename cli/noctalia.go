@@ -179,11 +179,13 @@ func loadNoctaliaStatusForHome(dotfiles, home string) noctaliaStatus {
 
 func noctaliaJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
+	steps := zenBrowserPrerequisiteSteps(home)
+	steps = append(steps, nativeStep("Verificar plugins e copiar configuração", func() error {
+		return installNoctalia(dotfiles, home, time.Now())
+	}))
 	return job{
 		title: "Configurar Noctalia",
-		steps: []step{nativeStep("Verificar plugins e copiar configuração", func() error {
-			return installNoctalia(dotfiles, home, time.Now())
-		})},
+		steps: steps,
 		result: func() string {
 			return lipgloss.NewStyle().Foreground(colOK).Render("settings.toml e state.toml configurados")
 		},

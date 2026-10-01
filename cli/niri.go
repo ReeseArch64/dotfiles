@@ -70,11 +70,13 @@ func installNiri(dotfiles, home string, now time.Time) error {
 func niriJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	destination := filepath.Join(home, ".config", "niri")
+	steps := zenBrowserPrerequisiteSteps(home)
+	steps = append(steps, nativeStep("Copiar configuração para ~/.config/niri", func() error {
+		return installNiri(dotfiles, home, time.Now())
+	}))
 	return job{
 		title: "Configurar Niri",
-		steps: []step{nativeStep("Copiar configuração para ~/.config/niri", func() error {
-			return installNiri(dotfiles, home, time.Now())
-		})},
+		steps: steps,
 		result: func() string {
 			return lipgloss.NewStyle().Foreground(colOK).Render("Configuração copiada para " + destination)
 		},

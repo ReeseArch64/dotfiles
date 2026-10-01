@@ -94,16 +94,29 @@ func gpgImportPathsFromEnv(path string) (gpgImportPaths, error) {
 	if paths.public == paths.private {
 		return gpgImportPaths{}, errors.New("as chaves pública e privada devem ser arquivos diferentes")
 	}
-	for label, file := range map[string]string{"pública": paths.public, "privada": paths.private} {
-		if !strings.EqualFold(filepath.Ext(file), ".asc") {
-			return gpgImportPaths{}, fmt.Errorf("a chave %s deve usar a extensão .asc: %s", label, file)
+	keys := []struct {
+		label, path, header string
+	}{
+		{"pública", paths.public, "-----BEGIN PGP PUBLIC KEY BLOCK-----"},
+		{"privada", paths.private, "-----BEGIN PGP PRIVATE KEY BLOCK-----"},
+	}
+	for _, key := range keys {
+		if !strings.EqualFold(filepath.Ext(key.path), ".asc") {
+			return gpgImportPaths{}, fmt.Errorf("a chave %s deve usar a extensão .asc: %s", key.label, key.path)
 		}
-		info, err := os.Stat(file)
+		info, err := os.Stat(key.path)
 		if err != nil {
-			return gpgImportPaths{}, fmt.Errorf("acessar chave %s %s: %w", label, file, err)
+			return gpgImportPaths{}, fmt.Errorf("acessar chave %s %s: %w", key.label, key.path, err)
 		}
 		if !info.Mode().IsRegular() {
-			return gpgImportPaths{}, fmt.Errorf("a chave %s não é um arquivo regular: %s", label, file)
+			return gpgImportPaths{}, fmt.Errorf("a chave %s não é um arquivo regular: %s", key.label, key.path)
+		}
+		content, err := os.ReadFile(key.path)
+		if err != nil {
+			return gpgImportPaths{}, fmt.Errorf("ler chave %s %s: %w", key.label, key.path, err)
+		}
+		if !strings.Contains(string(content), key.header) {
+			return gpgImportPaths{}, fmt.Errorf("a chave %s não contém um bloco OpenPGP válido: %s", key.label, key.path)
 		}
 	}
 	return paths, nil

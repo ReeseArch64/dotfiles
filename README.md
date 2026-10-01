@@ -22,19 +22,15 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 ## Requisitos
 
-Este projeto exige estes pré-requisitos:
+A CLI abre somente em ambientes com CachyOS, Niri e Noctalia Shell.
 
-1. CachyOS
-2. Niri
-3. Noctalia Shell
-4. Zen Browser disponível como `zen-browser`
-5. Diretório `~/.config/zen-browser`
-6. Chave privada `~/.dotfiles/minha_chave_privada.asc`
-7. Chave pública `~/.dotfiles/minha_chave_publica.asc`
+Os demais pré-requisitos são validados apenas pela ação que depende deles:
 
-Antes de abrir a interface, a CLI valida todos esses itens. Ela também confere os cabeçalhos OpenPGP das duas chaves.
+- `GPG > Importar chaves` exige `~/.dotfiles/minha_chave_privada.asc` e `~/.dotfiles/minha_chave_publica.asc`.
+- `Desktop > Niri` exige o Zen Browser e o diretório `~/.config/zen-browser`.
+- `Desktop > Noctalia` exige o Zen Browser e o diretório `~/.config/zen-browser`.
 
-A execução termina com uma mensagem que lista cada requisito ausente ou inválido.
+As ações de Niri e Noctalia instalam `zen-browser-bin` pelo Shelly quando necessário. A importação GPG confere os cabeçalhos OpenPGP das chaves.
 
 A instalação e as ações também usam:
 
@@ -79,14 +75,13 @@ GPG_PRIVATE_IMPORT=~/.dotfiles/minha_chave_privada.asc
 
 O `.env` está no `.gitignore` e não deve ser versionado.
 
-Instale o Zen Browser e restaure a configuração esperada:
+As ações dependentes instalam o Zen Browser com `shelly install aur zen-browser-bin`. Restaure a configuração esperada antes de executar essas ações:
 
 ```bash
-shelly install aur zen-browser-bin
 mkdir -p ~/.config/zen-browser
 ```
 
-Copie as duas chaves de um armazenamento seguro:
+Copie as duas chaves de um armazenamento seguro antes de executar a importação GPG:
 
 ```bash
 install -m 600 /origem/chave_privada.asc ~/.dotfiles/minha_chave_privada.asc
@@ -115,7 +110,7 @@ Também é possível compilar e executar diretamente:
 make run
 ```
 
-A CLI não oferece opção para ignorar a validação de plataforma ou dos pré-requisitos.
+A CLI não oferece opção para ignorar a validação de plataforma. Requisitos locais não impedem a abertura da interface.
 
 ## Navegação da CLI
 
@@ -272,7 +267,9 @@ A CLI não copia as chaves. O padrão `*.asc` está no `.gitignore` para impedir
 
 ## Niri
 
-A opção `Niri` copia o diretório `niri/` do repositório para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
+A opção `Niri` instala `zen-browser-bin` pelo Shelly quando necessário. Depois, ela valida `~/.config/zen-browser`.
+
+Após essa validação, a ação copia `niri/` para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
 
 Quando o destino possui conteúdo diferente, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS`. Cópias idênticas não criam backups.
 
@@ -290,7 +287,9 @@ A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam se
 - `warp`
 - `zed-provider`
 
-A opção `Configurar Noctalia` exige todos esses diretórios em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
+A opção `Configurar Noctalia` instala `zen-browser-bin` pelo Shelly quando necessário. Ela também exige o diretório `~/.config/zen-browser`.
+
+A ação exige todos os plugins em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
 
 Após a validação, a CLI copia `noctalia/settings.toml` e `noctalia/state.toml` como arquivos regulares. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -23,34 +22,6 @@ func checkPlatform(osReleasePath string, lookPath func(string) (string, error)) 
 	}
 	if len(missing) > 0 {
 		return fmt.Errorf("ambiente incompatível: requer CachyOS -> Niri -> Noctalia Shell; ausente: %s", strings.Join(missing, ", "))
-	}
-	return nil
-}
-
-func checkPrerequisites(dotfiles, home string, lookPath func(string) (string, error)) error {
-	var issues []string
-	if _, err := lookPath("zen-browser"); err != nil {
-		issues = append(issues, "Zen Browser (zen-browser) não instalado")
-	}
-	zenConfig := filepath.Join(home, ".config", "zen-browser")
-	if info, err := os.Stat(zenConfig); err != nil || !info.IsDir() {
-		issues = append(issues, zenConfig+" ausente ou inválido")
-	}
-	keys := []struct {
-		name, header string
-	}{
-		{"minha_chave_privada.asc", "-----BEGIN PGP PRIVATE KEY BLOCK-----"},
-		{"minha_chave_publica.asc", "-----BEGIN PGP PUBLIC KEY BLOCK-----"},
-	}
-	for _, key := range keys {
-		path := filepath.Join(dotfiles, key.name)
-		content, err := os.ReadFile(path)
-		if err != nil || !strings.Contains(string(content), key.header) {
-			issues = append(issues, path+" ausente ou inválido")
-		}
-	}
-	if len(issues) > 0 {
-		return errors.New("pré-requisitos ausentes: " + strings.Join(issues, "; "))
 	}
 	return nil
 }
