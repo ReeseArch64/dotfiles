@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -19,15 +20,18 @@ type gpgStatus struct {
 	gnupgInstalled bool
 	gitReady       bool
 	paths          gpgImportPaths
+	signingKey     string
 	configErr      error
 }
 
 func loadGPGStatus(dotfiles string) gpgStatus {
 	paths, err := gpgImportPathsFromEnv(filepath.Join(dotfiles, ".env"))
+	signingKey, _ := readGitSigningKey(filepath.Join(dotfiles, "git", ".gitconfig"))
 	return gpgStatus{
 		gnupgInstalled: len(missingPkgs("gnupg")) == 0,
 		gitReady:       loadGitStatus(dotfiles).readyForGPG(),
 		paths:          paths,
+		signingKey:     signingKey,
 		configErr:      err,
 	}
 }
@@ -45,11 +49,16 @@ func (g gpgStatus) card(width int) string {
 	if g.configErr != nil {
 		configColor, publicValue, privateValue = colErr, "chave pública inválida", "chave privada inválida"
 	}
+	signingColor, signingValue := colOK, g.signingKey
+	if signingValue == "" {
+		signingColor, signingValue = colWarn, "não configurada"
+	}
 	return renderCard([]cardRow{
 		{packageColor, "Pacote", packageValue},
 		{gitColor, "Requisito", gitValue},
 		{configColor, "Pública", publicValue},
 		{configColor, "Privada", privateValue},
+		{signingColor, "Assinatura", signingValue},
 	}, width)
 }
 
@@ -57,7 +66,7 @@ func (m model) gpgItems() []item {
 	return []item{
 		{
 			title: "Importar chaves",
-			desc:  "Importa as chaves pública e privada .asc definidas no .env",
+			desc:  "Importa as chaves .asc e configura user.signingkey",
 			job:   func() job { return gpgImportJob(m.dotfiles) },
 		},
 	}
@@ -107,6 +116,55 @@ func validateGPGImport(dotfiles string, pathErr error) error {
 	return pathErr
 }
 
+func parseGPGSecretFingerprint(output string) (string, error) {
+	secretKey := false
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Split(line, ":")
+		if len(fields) < 10 {
+			continue
+		}
+		switch fields[0] {
+		case "sec":
+			secretKey = true
+		case "fpr":
+			if secretKey && validGPGFingerprint(fields[9]) {
+				return fields[9], nil
+			}
+		case "pub", "ssb", "sub":
+			secretKey = false
+		}
+	}
+	return "", errors.New("fingerprint da chave privada não encontrado")
+}
+
+func validGPGFingerprint(value string) bool {
+	if len(value) != 32 && len(value) != 40 && len(value) != 64 {
+		return false
+	}
+	for _, char := range value {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", char) {
+			return false
+		}
+	}
+	return true
+}
+
+func signingKeyFromPrivateFile(path string) (string, error) {
+	output, err := exec.Command("gpg", "--batch", "--with-colons", "--import-options", "show-only", "--import", path).CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("identificar chave privada: %s: %w", strings.TrimSpace(string(output)), err)
+	}
+	return parseGPGSecretFingerprint(string(output))
+}
+
+func configureGitSigningKey(dotfiles, privateKeyPath string) error {
+	fingerprint, err := signingKeyFromPrivateFile(privateKeyPath)
+	if err != nil {
+		return err
+	}
+	return writeGitSigningKey(filepath.Join(dotfiles, "git", ".gitconfig"), fingerprint)
+}
+
 func gpgImportSteps(dotfiles string, paths gpgImportPaths, pathErr error, packageSteps []step) []step {
 	steps := []step{nativeStep("Validar Git e arquivos .asc", func() error {
 		return validateGPGImport(dotfiles, pathErr)
@@ -115,6 +173,9 @@ func gpgImportSteps(dotfiles string, paths gpgImportPaths, pathErr error, packag
 	return append(steps,
 		terminalStep("Importar chave pública", "gpg", "--import", paths.public),
 		terminalStep("Importar chave privada", "gpg", "--import", paths.private),
+		nativeStep("Configurar user.signingkey", func() error {
+			return configureGitSigningKey(dotfiles, paths.private)
+		}),
 	)
 }
 
@@ -125,7 +186,8 @@ func gpgImportJob(dotfiles string) job {
 		title: "Importar chaves GPG",
 		steps: steps,
 		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves pública e privada importadas")
+			signingKey, _ := readGitSigningKey(filepath.Join(dotfiles, "git", ".gitconfig"))
+			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves importadas · signingkey " + signingKey)
 		},
 	}
 }

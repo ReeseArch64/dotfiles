@@ -135,9 +135,14 @@ func writeGitConfig(dotfiles string) error {
 	if err != nil {
 		return err
 	}
-	content := fmt.Sprintf("[user]\n    signingkey =\n    email = %s\n    username = %s\n    name = %s\n",
-		strconv.Quote(identity.email), strconv.Quote(identity.username), strconv.Quote(identity.name))
 	path := filepath.Join(dotfiles, "git", ".gitconfig")
+	signingKey, _ := readGitSigningKey(path)
+	signingValue := ""
+	if signingKey != "" {
+		signingValue = " " + signingKey
+	}
+	content := fmt.Sprintf("[user]\n    signingkey =%s\n    email = %s\n    username = %s\n    name = %s\n",
+		signingValue, strconv.Quote(identity.email), strconv.Quote(identity.username), strconv.Quote(identity.name))
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".gitconfig-*")
 	if err != nil {
 		return fmt.Errorf("criar arquivo temporário: %w", err)
@@ -146,6 +151,75 @@ func writeGitConfig(dotfiles string) error {
 	defer os.Remove(tmpName)
 	if _, err = tmp.WriteString(content); err == nil {
 		err = tmp.Chmod(0644)
+	}
+	if closeErr := tmp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return fmt.Errorf("gravar %s: %w", path, err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("substituir %s: %w", path, err)
+	}
+	return nil
+}
+
+func readGitSigningKey(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("ler %s: %w", path, err)
+	}
+	section := ""
+	for _, line := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+			section = strings.ToLower(strings.TrimSpace(trimmed[1 : len(trimmed)-1]))
+			continue
+		}
+		key, value, ok := strings.Cut(trimmed, "=")
+		if section == "user" && ok && strings.EqualFold(strings.TrimSpace(key), "signingkey") {
+			return strings.TrimSpace(value), nil
+		}
+	}
+	return "", errors.New("user.signingkey ausente em " + path)
+}
+
+func writeGitSigningKey(path, signingKey string) error {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("ler %s: %w", path, err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("acessar %s: %w", path, err)
+	}
+	lines := strings.Split(string(content), "\n")
+	section := ""
+	found := false
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+			section = strings.ToLower(strings.TrimSpace(trimmed[1 : len(trimmed)-1]))
+			continue
+		}
+		key, _, ok := strings.Cut(trimmed, "=")
+		if section == "user" && ok && strings.EqualFold(strings.TrimSpace(key), "signingkey") {
+			lines[i] = "    signingkey = " + signingKey
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errors.New("user.signingkey ausente em " + path)
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".gitconfig-signingkey-*")
+	if err != nil {
+		return fmt.Errorf("criar arquivo temporário: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if _, err = tmp.WriteString(strings.Join(lines, "\n")); err == nil {
+		err = tmp.Chmod(info.Mode().Perm())
 	}
 	if closeErr := tmp.Close(); err == nil {
 		err = closeErr

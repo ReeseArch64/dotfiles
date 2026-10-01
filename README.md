@@ -133,7 +133,7 @@ Abra `Git > Configurar Git` na CLI. Essa ação executa as seguintes etapas:
 
 1. Lê `GIT_USER_EMAIL`, `GIT_USERNAME` e `GIT_USER_NAME` do `.env`.
 2. Gera `git/.gitconfig` de forma atômica.
-3. Mantém `user.signingkey` vazio.
+3. Preserva `user.signingkey` quando ele já está configurado.
 4. Instala `git`, `gitflow-next-bin` e `lazygit` quando necessário.
 5. Cria o diretório `~/.config/git`.
 6. Cria os quatro links simbólicos globais.
@@ -151,13 +151,9 @@ A configuração substitui qualquer arquivo ou link existente nesses destinos. F
 
 ### Assinatura de commits
 
-`user.signingkey` permanece vazio por enquanto. `git/config` mantém `commit.gpgsign = true`, portanto o Git tentará usar uma chave padrão disponível. Configure uma chave depois com:
+`git/config` mantém `commit.gpgsign = true`. A importação GPG identifica o fingerprint da chave privada e grava esse valor em `user.signingkey`.
 
-```bash
-git config --global user.signingkey ID_DA_CHAVE
-```
-
-A execução posterior de `Git > Configurar Git` volta a deixar esse campo vazio.
+A execução posterior de `Git > Configurar Git` preserva a chave configurada.
 
 ## Importação de chaves GPG
 
@@ -171,6 +167,8 @@ A ação executa as seguintes etapas:
 2. Instala o pacote `gnupg` com `pacman` quando necessário.
 3. Importa a chave pública com `gpg --import`.
 4. Importa a chave privada com `gpg --import`.
+5. Identifica o fingerprint da chave privada.
+6. Grava o fingerprint em `user.signingkey` no arquivo `git/.gitconfig`.
 
 Os arquivos podem ficar fora do repositório e não são copiados pela CLI. O padrão `*.asc` está no `.gitignore` para impedir o versionamento acidental de chaves exportadas.
 
