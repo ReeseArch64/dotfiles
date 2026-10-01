@@ -22,13 +22,19 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 ## Requisitos
 
-Este projeto suporta somente esta combinação:
+Este projeto exige estes pré-requisitos:
 
 1. CachyOS
 2. Niri
 3. Noctalia Shell
+4. Zen Browser disponível como `zen-browser`
+5. Diretório `~/.config/zen-browser`
+6. Chave privada `~/.dotfiles/minha_chave_privada.asc`
+7. Chave pública `~/.dotfiles/minha_chave_publica.asc`
 
-Antes de abrir a interface, a CLI exige `ID=cachyos` em `/etc/os-release`. Ela também exige os executáveis `niri` e `noctalia` no `PATH`. A execução termina com uma mensagem de erro quando qualquer requisito está ausente.
+Antes de abrir a interface, a CLI valida todos esses itens. Ela também confere os cabeçalhos OpenPGP das duas chaves.
+
+A execução termina com uma mensagem que lista cada requisito ausente ou inválido.
 
 A instalação e as ações também usam:
 
@@ -42,7 +48,7 @@ A instalação e as ações também usam:
 - `pacman`
 - `systemd`
 - `shelly`, usado para instalar `gitflow-next-bin` e `lazygit`
-- `pi`, necessário somente para configurar os pacotes do Pi Agent
+- `pi`, instalado automaticamente quando necessário para configurar o Pi Agent
 
 A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. Go e Make ainda são necessários para compilar a CLI.
 
@@ -67,11 +73,27 @@ Edite `.env` com a sua identidade:
 GIT_USER_EMAIL=seu-email@example.com
 GIT_USERNAME=seu-usuario
 GIT_USER_NAME=Seu Nome
-GPG_PUBLIC_IMPORT=/run/media/seu-usuario/pendrive/chave_publica.asc
-GPG_PRIVATE_IMPORT=/run/media/seu-usuario/pendrive/chave_privada.asc
+GPG_PUBLIC_IMPORT=~/.dotfiles/minha_chave_publica.asc
+GPG_PRIVATE_IMPORT=~/.dotfiles/minha_chave_privada.asc
 ```
 
 O `.env` está no `.gitignore` e não deve ser versionado.
+
+Instale o Zen Browser e restaure a configuração esperada:
+
+```bash
+shelly install aur zen-browser-bin
+mkdir -p ~/.config/zen-browser
+```
+
+Copie as duas chaves de um armazenamento seguro:
+
+```bash
+install -m 600 /origem/chave_privada.asc ~/.dotfiles/minha_chave_privada.asc
+install -m 644 /origem/chave_publica.asc ~/.dotfiles/minha_chave_publica.asc
+```
+
+Os arquivos `*.asc` permanecem ignorados pelo Git. Nunca versione a chave privada.
 
 Compile e instale o comando:
 
@@ -93,7 +115,7 @@ Também é possível compilar e executar diretamente:
 make run
 ```
 
-A CLI não oferece opção para ignorar a validação de plataforma.
+A CLI não oferece opção para ignorar a validação de plataforma ou dos pré-requisitos.
 
 ## Navegação da CLI
 
@@ -219,7 +241,7 @@ A execução posterior de `Git > Configurar Git` preserva a chave configurada.
 
 Configure o Git antes de abrir `GPG > Importar chaves`. A ação valida os quatro destinos do Git, a identidade e os pacotes instalados pelo fluxo de Git.
 
-Defina `GPG_PUBLIC_IMPORT` e `GPG_PRIVATE_IMPORT` no `.env`. Cada variável deve apontar para um arquivo regular com extensão `.asc`. Caminhos absolutos permitem importar diretamente de pendrives montados em `/run/media`, discos externos ou qualquer outro diretório acessível.
+Defina `GPG_PUBLIC_IMPORT` e `GPG_PRIVATE_IMPORT` no `.env`. Use as cópias obrigatórias em `~/.dotfiles/minha_chave_publica.asc` e `~/.dotfiles/minha_chave_privada.asc`.
 
 A ação executa as seguintes etapas:
 
@@ -230,7 +252,7 @@ A ação executa as seguintes etapas:
 5. Identifica o fingerprint da chave privada.
 6. Grava o fingerprint em `user.signingkey` no repositório e em `~/.gitconfig`.
 
-Os arquivos podem ficar fora do repositório e não são copiados pela CLI. O padrão `*.asc` está no `.gitignore` para impedir o versionamento acidental de chaves exportadas.
+A CLI não copia as chaves. O padrão `*.asc` está no `.gitignore` para impedir o versionamento acidental.
 
 ### Comportamentos globais do Git
 

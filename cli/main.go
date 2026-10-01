@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.9.0"
+const version = "0.10.0"
 
 type screen int
 
@@ -502,11 +502,21 @@ func findDotfiles() string {
 }
 
 func main() {
+	dotfiles := findDotfiles()
 	if err := checkPlatform("/etc/os-release", exec.LookPath); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}
-	p := tea.NewProgram(newModel(findDotfiles()), tea.WithAltScreen())
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "erro: identificar diretório pessoal:", err)
+		os.Exit(1)
+	}
+	if err := checkPrerequisites(dotfiles, home, exec.LookPath); err != nil {
+		fmt.Fprintln(os.Stderr, "erro:", err)
+		os.Exit(1)
+	}
+	p := tea.NewProgram(newModel(dotfiles), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
