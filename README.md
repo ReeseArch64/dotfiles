@@ -15,6 +15,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
 - Copia a configuração do Niri para `~/.config/niri`.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
+- Instala o Ghostty e copia sua configuração para `~/.config/ghostty`.
 - Configura o Pi Agent com tema, settings e pacotes.
 - Copia os wallpapers do repositório para `~/.wallpapers`.
 - Instala a foto de perfil do repositório como `~/.face`.
@@ -122,6 +123,10 @@ A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Nod
 
 A opção `Desenvolvimento > Ferramentas de terminal` instala Vim, Neovim, wget, curl, bat, eza e tree via Shelly.
 
+## Ghostty
+
+A opção `Desktop > Ghostty` instala o pacote `ghostty` via Shelly e copia a pasta `ghostty/` para `~/.config/ghostty`. Uma configuração diferente é preservada como `~/.config/ghostty.backup-AAAAMMDD-HHMMSS`.
+
 ## Navegação da CLI
 
 | Tecla | Ação |
@@ -141,7 +146,7 @@ O menu principal contém seis opções e organiza as ações nestes submenus:
 | --- | --- |
 | `Sistema` | SSH, Firewall e Docker |
 | `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Instalar IDEs e Ferramentas de terminal |
-| `Desktop` | Niri, Noctalia, Wallpapers e Foto de perfil |
+| `Desktop` | Niri, Noctalia, Ghostty, Wallpapers e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |
 
@@ -401,6 +406,7 @@ A tela `Info do sistema` apresenta:
 │   ├── .gitconfig       # Identidade gerada pelo .env
 │   ├── .gitignore       # Exclusões globais
 │   └── config           # Preferências globais do Git
+├── ghostty/             # Configuração copiada para ~/.config/ghostty
 ├── mise.toml            # Configuração global vinculada em ~/.config/mise
 ├── niri/                # Origem copiada para ~/.config/niri
 ├── noctalia/            # Origem copiada para o estado do Noctalia
