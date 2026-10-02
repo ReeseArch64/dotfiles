@@ -16,6 +16,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Copia a configuração do Niri para `~/.config/niri`.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
 - Instala o Ghostty e copia sua configuração para `~/.config/ghostty`.
+- Instala o Obsidian e copia sua configuração para `~/.obsidian`.
 - Configura o Pi Agent com tema, settings e pacotes.
 - Copia os wallpapers do repositório para `~/.wallpapers`.
 - Instala a foto de perfil do repositório como `~/.face`.
@@ -127,6 +128,10 @@ A opção `Desenvolvimento > Ferramentas de terminal` instala Vim, Neovim, wget,
 
 A opção `Desktop > Ghostty` instala o pacote `ghostty` via Shelly e copia a pasta `ghostty/` para `~/.config/ghostty`. Uma configuração diferente é preservada como `~/.config/ghostty.backup-AAAAMMDD-HHMMSS`.
 
+## Obsidian
+
+A opção `Desktop > Obsidian` instala o pacote `obsidian-bin` via Shelly e copia a pasta `obsidian/` para `~/.obsidian`. Uma configuração diferente é preservada como `~/.obsidian.backup-AAAAMMDD-HHMMSS`.
+
 ## Navegação da CLI
 
 | Tecla | Ação |
@@ -146,7 +151,7 @@ O menu principal contém seis opções e organiza as ações nestes submenus:
 | --- | --- |
 | `Sistema` | SSH, Firewall e Docker |
 | `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Instalar IDEs e Ferramentas de terminal |
-| `Desktop` | Niri, Noctalia, Ghostty, Wallpapers e Foto de perfil |
+| `Desktop` | Niri, Noctalia, Ghostty, Obsidian, Wallpapers e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |
 
@@ -410,6 +415,7 @@ A tela `Info do sistema` apresenta:
 ├── mise.toml            # Configuração global vinculada em ~/.config/mise
 ├── niri/                # Origem copiada para ~/.config/niri
 ├── noctalia/            # Origem copiada para o estado do Noctalia
+├── obsidian/            # Configuração copiada para ~/.obsidian
 ├── pi/                   # Settings e tema do Pi Agent
 ├── ssh/                  # Configuração copiada para ~/.ssh/config
 ├── wallpapers/           # Imagens copiadas para ~/.wallpapers
