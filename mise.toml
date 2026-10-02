@@ -1,0 +1,36 @@
+[tools]
+awscli = { version = "latest", symlink_bins = true }
+
+java = { version = "temurin" }
+
+node = { version = "latest" }
+
+bun = { version = "latest" }
+
+pnpm = { version = "latest" }
+
+yarn = { version = "latest" }
+
+deno = { version = "latest" }
+
+ruby = { version = "latest" }
+
+python = { version = "latest" }
+
+go = { version = "latest" }
+
+uv = { version = "latest" }
+
+gh = { version = "latest" }
+
+jq = { version = "latest" }
+
+yq = { version = "latest" }
+
+ripgrep = { version = "latest" }
+
+fzf = { version = "latest" }
+
+shellcheck = { version = "latest" }
+
+shfmt = { version = "latest" }

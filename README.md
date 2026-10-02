@@ -5,6 +5,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 ## Recursos
 
 - Instala e configura Git, gitflow-next e Lazygit.
+- Instala o mise e conecta sua configuração global.
 - Gera a identidade do Git a partir de um `.env` local.
 - Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
@@ -43,7 +44,7 @@ A instalação e as ações também usam:
 - `sudo`
 - `pacman`
 - `systemd`
-- `shelly`, usado para instalar `gitflow-next-bin` e `lazygit`
+- `shelly`, usado para instalar `gitflow-next-bin`, `lazygit` e `mise`
 - `pi`, instalado automaticamente quando necessário para configurar o Pi Agent
 
 A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. Go e Make ainda são necessários para compilar a CLI.
@@ -106,6 +107,10 @@ make run
 
 A CLI não oferece opção para ignorar a validação de plataforma. Requisitos locais não impedem a abertura da interface.
 
+## Mise
+
+A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e cria `~/.config/mise/config.toml` como link simbólico para `mise.toml` deste repositório.
+
 ## Navegação da CLI
 
 | Tecla | Ação |
@@ -124,7 +129,7 @@ O menu principal contém seis opções e organiza as ações nestes submenus:
 | Submenu | Opções |
 | --- | --- |
 | `Sistema` | SSH, Firewall e Docker |
-| `Desenvolvimento` | Git e GPG |
+| `Desenvolvimento` | Git, GPG e Mise |
 | `Desktop` | Niri, Noctalia, Wallpapers e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |
@@ -385,6 +390,7 @@ A tela `Info do sistema` apresenta:
 │   ├── .gitconfig       # Identidade gerada pelo .env
 │   ├── .gitignore       # Exclusões globais
 │   └── config           # Preferências globais do Git
+├── mise.toml            # Configuração global vinculada em ~/.config/mise
 ├── niri/                # Origem copiada para ~/.config/niri
 ├── noctalia/            # Origem copiada para o estado do Noctalia
 ├── pi/                   # Settings e tema do Pi Agent
