@@ -6,6 +6,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 - Instala e configura Git, gitflow-next e Lazygit.
 - Instala o mise e conecta sua configuração global.
+- Instala o Visual Studio Code e o Zed via Shelly.
 - Gera a identidade do Git a partir de um `.env` local.
 - Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
@@ -44,7 +45,7 @@ A instalação e as ações também usam:
 - `sudo`
 - `pacman`
 - `systemd`
-- `shelly`, usado para instalar `gitflow-next-bin`, `lazygit` e `mise`
+- `shelly`, usado para instalar `gitflow-next-bin`, `lazygit`, `mise`, `visual-studio-code-bin` e `zed`
 - `pi`, instalado automaticamente quando necessário para configurar o Pi Agent
 
 A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. Go e Make ainda são necessários para compilar a CLI.
@@ -129,7 +130,7 @@ O menu principal contém seis opções e organiza as ações nestes submenus:
 | Submenu | Opções |
 | --- | --- |
 | `Sistema` | SSH, Firewall e Docker |
-| `Desenvolvimento` | Git, GPG e Mise |
+| `Desenvolvimento` | Git, GPG, Mise e Instalar IDEs |
 | `Desktop` | Niri, Noctalia, Wallpapers e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |

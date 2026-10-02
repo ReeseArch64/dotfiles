@@ -136,6 +136,7 @@ func (m model) items() []item {
 			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Mise", desc: "Instalar via Shelly e configurar o mise.toml", job: func() job { return miseJob(m.dotfiles) }},
+			{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
 		}
 	case screenDesktop:
 		return []item{
