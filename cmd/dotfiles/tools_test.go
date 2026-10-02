@@ -11,13 +11,19 @@ func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 	if !slices.Equal(terminalToolPackages, wantShelly) {
 		t.Fatalf("pacotes Shelly inesperados: %v", terminalToolPackages)
 	}
-	wantAur := []string{"viddy-bin"}
+	wantAur := []string{"viddy"}
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
 		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
 	}
 	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship"}
 	if !slices.Equal(terminalToolPacmanPackages, wantPacman) {
 		t.Fatalf("pacotes Pacman inesperados: %v", terminalToolPacmanPackages)
+	}
+}
+
+func TestTerminalToolsExcludeUnsupportedViddyBinPackage(t *testing.T) {
+	if slices.Contains(terminalToolAurPackages, "viddy-bin") {
+		t.Fatal("viddy-bin usa uma expansão de array incompatível com o Shelly")
 	}
 }
 

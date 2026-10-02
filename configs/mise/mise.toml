@@ -20,17 +20,3 @@ python = { version = "latest" }
 go = { version = "latest" }
 
 uv = { version = "latest" }
-
-gh = { version = "latest" }
-
-jq = { version = "latest" }
-
-yq = { version = "latest" }
-
-ripgrep = { version = "latest" }
-
-fzf = { version = "latest" }
-
-shellcheck = { version = "latest" }
-
-shfmt = { version = "latest" }

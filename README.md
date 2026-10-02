@@ -9,7 +9,7 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Instala o ambiente JavaScript com Node.js, npm, Bun, Deno e pnpm.
 - Instala o Flutter via mise.
 - Instala o Visual Studio Code e o Zed via Shelly.
-- Instala Neovim, wget, curl, bat, eza, scc e viddy-bin via Shelly, Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide e starship via Pacman, e o LunarVim pelo script oficial.
+- Instala Neovim, wget, curl, bat, eza, scc e viddy via Shelly, Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide e starship via Pacman, e o LunarVim pelo script oficial.
 - Gera a identidade do Git a partir de um `.env` local.
 - Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
@@ -130,7 +130,7 @@ A opção `Desenvolvimento > Ambiente Flutter` configura o mise e instala a vers
 
 ## Ferramentas de terminal
 
-A opção `Desenvolvimento > Ferramentas de terminal` instala Neovim, wget, curl, bat, eza, scc e viddy-bin via Shelly. Ela instala Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide e starship via Pacman. Quando o comando `lvim` está ausente, a ação instala o LunarVim com a branch `release-1.4/neovim-0.9` do instalador oficial.
+A opção `Desenvolvimento > Ferramentas de terminal` instala Neovim, wget, curl, bat, eza, scc e viddy via Shelly. Ela instala Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide e starship via Pacman. Quando o comando `lvim` está ausente, a ação instala o LunarVim com a branch `release-1.4/neovim-0.9` do instalador oficial.
 
 ## Ghostty
 

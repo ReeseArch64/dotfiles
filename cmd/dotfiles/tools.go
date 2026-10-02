@@ -5,7 +5,7 @@ import "os/exec"
 const lunarVimInstallCommand = "LV_BRANCH='release-1.4/neovim-0.9' bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh)"
 
 var terminalToolPackages = []string{"neovim", "wget", "curl", "bat", "eza", "scc"}
-var terminalToolAurPackages = []string{"viddy-bin"}
+var terminalToolAurPackages = []string{"viddy"}
 var terminalToolPacmanPackages = []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship"}
 
 func lunarVimInstallStep() step {
