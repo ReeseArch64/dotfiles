@@ -122,7 +122,7 @@ func (m model) items() []item {
 			{title: "Ambiente JavaScript", desc: "Instalar ferramentas e autenticar no npm", job: func() job { return javascriptJob(m.dotfiles) }},
 			{title: "Ambiente Flutter", desc: "Instalar Flutter via mise", job: func() job { return flutterJob(m.dotfiles) }},
 			{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
-			{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: terminalToolsJob},
+			{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.dotfiles) }},
 		}
 	case screenDesktop:
 		return []item{

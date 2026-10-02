@@ -15,7 +15,7 @@ func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
 		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
 	}
-	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship"}
+	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "yq", "jq", "fd", "ripgrep", "fzf"}
 	if !slices.Equal(terminalToolPacmanPackages, wantPacman) {
 		t.Fatalf("pacotes Pacman inesperados: %v", terminalToolPacmanPackages)
 	}
@@ -36,7 +36,7 @@ func TestLunarVimInstallStepUsesReleaseBranch(t *testing.T) {
 }
 
 func TestTerminalToolsJobInstallsMissingLunarVim(t *testing.T) {
-	configured := terminalToolsJobFor(func(string) (string, error) {
+	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "", errors.New("ausente")
 	})
 	if len(configured.steps) == 0 || configured.steps[len(configured.steps)-1].label != "Instalar LunarVim" {
@@ -44,8 +44,20 @@ func TestTerminalToolsJobInstallsMissingLunarVim(t *testing.T) {
 	}
 }
 
+func TestTerminalToolsJobConfiguresBtop(t *testing.T) {
+	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
+		return "/home/user/.local/bin/lvim", nil
+	})
+	for _, current := range configured.steps {
+		if current.label == "Copiar configuração para ~/.config/btop" {
+			return
+		}
+	}
+	t.Fatal("configuração do btop ausente")
+}
+
 func TestTerminalToolsJobKeepsExistingLunarVim(t *testing.T) {
-	configured := terminalToolsJobFor(func(string) (string, error) {
+	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "/home/user/.local/bin/lvim", nil
 	})
 	for _, current := range configured.steps {
