@@ -26,8 +26,8 @@ func TestPacmanInstallStepUsesNeeded(t *testing.T) {
 }
 
 func TestShellyInstallStepOmitsUnsupportedNeededArgument(t *testing.T) {
-	current := shellyInstallStep("aur", "gitflow-next-bin")
-	want := []string{"shelly", "install", "aur", "gitflow-next-bin"}
+	current := shellyInstallStep("aur", "visual-studio-code-bin")
+	want := []string{"shelly", "install", "aur", "visual-studio-code-bin"}
 	got := commandTail(t, current, len(want))
 	if !slices.Equal(got, want) {
 		t.Fatalf("comando Shelly inesperado: %v", got)

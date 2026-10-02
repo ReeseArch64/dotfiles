@@ -120,8 +120,9 @@ func (m model) items() []item {
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Mise", desc: "Instalar via Shelly e configurar o mise.toml", job: func() job { return miseJob(m.dotfiles) }},
 			{title: "Ambiente JavaScript", desc: "Instalar ferramentas e autenticar no npm", job: func() job { return javascriptJob(m.dotfiles) }},
+			{title: "Ambiente Flutter", desc: "Instalar Flutter via mise", job: func() job { return flutterJob(m.dotfiles) }},
 			{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
-			{title: "Ferramentas de terminal", desc: "Instalar Neovim, LunarVim, wget, curl, bat e eza", job: terminalToolsJob},
+			{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: terminalToolsJob},
 		}
 	case screenDesktop:
 		return []item{

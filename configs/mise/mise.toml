@@ -3,6 +3,8 @@ awscli = { version = "latest", symlink_bins = true }
 
 java = { version = "temurin" }
 
+flutter = { version = "latest" }
+
 node = { version = "latest" }
 
 bun = { version = "latest" }

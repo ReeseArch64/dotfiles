@@ -7,9 +7,17 @@ import (
 )
 
 func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
-	want := []string{"neovim", "wget", "curl", "bat", "eza"}
-	if !slices.Equal(terminalToolPackages, want) {
-		t.Fatalf("pacotes inesperados: %v", terminalToolPackages)
+	wantShelly := []string{"neovim", "wget", "curl", "bat", "eza", "scc"}
+	if !slices.Equal(terminalToolPackages, wantShelly) {
+		t.Fatalf("pacotes Shelly inesperados: %v", terminalToolPackages)
+	}
+	wantAur := []string{"viddy-bin"}
+	if !slices.Equal(terminalToolAurPackages, wantAur) {
+		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
+	}
+	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship"}
+	if !slices.Equal(terminalToolPacmanPackages, wantPacman) {
+		t.Fatalf("pacotes Pacman inesperados: %v", terminalToolPacmanPackages)
 	}
 }
 

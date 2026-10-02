@@ -40,7 +40,7 @@ func loadGitStatus(dotfiles string) gitStatus {
 		})
 	}
 	_, envErr := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
-	return gitStatus{missing: missingPkgs("git", "gitflow-next-bin", "lazygit"), links: links, envOK: envErr == nil}
+	return gitStatus{missing: missingPkgs("git", "lazygit"), links: links, envOK: envErr == nil}
 }
 
 func (g gitStatus) readyForGPG() bool {
@@ -61,7 +61,7 @@ func (g gitStatus) card(width int) string {
 	for _, pkg := range g.missing {
 		missing[pkg] = true
 	}
-	for _, pkg := range []string{"git", "gitflow-next-bin", "lazygit"} {
+	for _, pkg := range []string{"git", "lazygit"} {
 		color, value := colOK, pkg+" instalado"
 		if missing[pkg] {
 			color, value = colErr, pkg+" não instalado"
@@ -251,7 +251,6 @@ func gitJob(dotfiles string) job {
 
 	steps := []step{nativeStep("Gerar configs/git/.gitconfig com .env", func() error { return writeGitConfig(dotfiles) })}
 	steps = append(steps, ensurePkgs("git")...)
-	steps = append(steps, ensureShellyPkgs("aur", "gitflow-next-bin")...)
 	steps = append(steps, ensureShellyPkgs("standard", "lazygit")...)
 	steps = append(steps, nativeStep("Criar ~/.config/git/", func() error {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)

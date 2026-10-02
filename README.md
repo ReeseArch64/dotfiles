@@ -4,11 +4,12 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 ## Recursos
 
-- Instala e configura Git, gitflow-next e Lazygit.
+- Instala e configura Git e Lazygit.
 - Instala o mise e conecta sua configuração global.
 - Instala o ambiente JavaScript com Node.js, npm, Bun, Deno e pnpm.
+- Instala o Flutter via mise.
 - Instala o Visual Studio Code e o Zed via Shelly.
-- Instala Neovim, wget, curl, bat e eza via Shelly e instala o LunarVim pelo script oficial.
+- Instala Neovim, wget, curl, bat, eza, scc e viddy-bin via Shelly, Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide e starship via Pacman, e o LunarVim pelo script oficial.
 - Gera a identidade do Git a partir de um `.env` local.
 - Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
@@ -123,9 +124,13 @@ A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e vincula 
 
 A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Bun, Deno e pnpm. As versões ficam em `configs/mise/mise.toml`. O npm acompanha o Node.js, e a ação executa `npm login`.
 
+## Ambiente Flutter
+
+A opção `Desenvolvimento > Ambiente Flutter` configura o mise e instala a versão mais recente do Flutter declarada em `configs/mise/mise.toml`.
+
 ## Ferramentas de terminal
 
-A opção `Desenvolvimento > Ferramentas de terminal` instala Neovim, wget, curl, bat e eza via Shelly. Quando o comando `lvim` está ausente, a ação instala o LunarVim com a branch `release-1.4/neovim-0.9` do instalador oficial.
+A opção `Desenvolvimento > Ferramentas de terminal` instala Neovim, wget, curl, bat, eza, scc e viddy-bin via Shelly. Ela instala Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide e starship via Pacman. Quando o comando `lvim` está ausente, a ação instala o LunarVim com a branch `release-1.4/neovim-0.9` do instalador oficial.
 
 ## Ghostty
 
@@ -153,7 +158,7 @@ O menu principal contém cinco opções e organiza as ações nestes submenus:
 | Submenu | Opções |
 | --- | --- |
 | `Sistema` | SSH, Firewall, Docker e Drivers |
-| `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Instalar IDEs e Ferramentas de terminal |
+| `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Ambiente Flutter, Instalar IDEs e Ferramentas de terminal |
 | `Desktop` | Niri, Noctalia, Ghostty, Obsidian, Wallpapers e Foto de perfil |
 | `Agentes de IA` | Pi Agent |
 
@@ -237,7 +242,7 @@ Abra `Git > Configurar Git` na CLI. Essa ação executa as seguintes etapas:
 1. Lê `GIT_USER_EMAIL`, `GIT_USERNAME` e `GIT_USER_NAME` do `.env`.
 2. Gera `configs/git/.gitconfig` de forma atômica.
 3. Preserva `user.signingkey` quando ele já está configurado.
-4. Instala `git`, `gitflow-next-bin` e `lazygit` quando necessário.
+4. Instala `git` e `lazygit` quando necessário.
 5. Cria o diretório `~/.config/git`.
 6. Copia `~/.gitconfig` e cria links para os outros três arquivos globais.
 
