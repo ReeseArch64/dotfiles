@@ -6,7 +6,9 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 
 - Instala e configura Git, gitflow-next e Lazygit.
 - Instala o mise e conecta sua configuração global.
+- Instala o ambiente JavaScript com Node.js, npm, Yarn, Bun, Deno e pnpm.
 - Instala o Visual Studio Code e o Zed via Shelly.
+- Instala Vim, Neovim, wget, curl, bat, eza e tree via Shelly.
 - Gera a identidade do Git a partir de um `.env` local.
 - Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
@@ -45,7 +47,7 @@ A instalação e as ações também usam:
 - `sudo`
 - `pacman`
 - `systemd`
-- `shelly`, usado para instalar `gitflow-next-bin`, `lazygit`, `mise`, `visual-studio-code-bin` e `zed`
+- `shelly`, usado para instalar os pacotes operacionais das opções correspondentes
 - `pi`, instalado automaticamente quando necessário para configurar o Pi Agent
 
 A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. Go e Make ainda são necessários para compilar a CLI.
@@ -110,7 +112,15 @@ A CLI não oferece opção para ignorar a validação de plataforma. Requisitos 
 
 ## Mise
 
-A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e cria `~/.config/mise/config.toml` como link simbólico para `mise.toml` deste repositório.
+A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e cria `~/.config/mise/config.toml` como link simbólico para `mise.toml` deste repositório. Ela também ativa o mise no Fish. Abra um novo terminal para usar diretamente os comandos instalados, sem prefixá-los com `mise`.
+
+## Ambiente JavaScript
+
+A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Yarn, Bun, Deno e pnpm nas versões declaradas em `mise.toml`. O npm acompanha a instalação do Node.js. Depois, a ação executa `npm login` no terminal para autenticar o usuário. Em novos terminais Fish, todos esses comandos ficam disponíveis diretamente.
+
+## Ferramentas de terminal
+
+A opção `Desenvolvimento > Ferramentas de terminal` instala Vim, Neovim, wget, curl, bat, eza e tree via Shelly.
 
 ## Navegação da CLI
 
@@ -130,7 +140,7 @@ O menu principal contém seis opções e organiza as ações nestes submenus:
 | Submenu | Opções |
 | --- | --- |
 | `Sistema` | SSH, Firewall e Docker |
-| `Desenvolvimento` | Git, GPG, Mise e Instalar IDEs |
+| `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Instalar IDEs e Ferramentas de terminal |
 | `Desktop` | Niri, Noctalia, Wallpapers e Foto de perfil |
 | `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |

@@ -33,18 +33,41 @@ func installMiseConfig(dotfiles, home string) error {
 	return nil
 }
 
-func miseJob(dotfiles string) job {
+const miseFishActivation = "mise activate fish | source\n"
+
+func installMiseFishActivation(home string) error {
+	destination := filepath.Join(home, ".config", "fish", "conf.d", "dotfiles-mise.fish")
+	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
+		return fmt.Errorf("criar %s: %w", filepath.Dir(destination), err)
+	}
+	if err := os.WriteFile(destination, []byte(miseFishActivation), 0644); err != nil {
+		return fmt.Errorf("gravar %s: %w", destination, err)
+	}
+	return nil
+}
+
+func miseSetupSteps(dotfiles string) []step {
 	home, _ := os.UserHomeDir()
 	steps := ensureShellyPkgs("standard", "mise")
-	steps = append(steps, nativeStep("Symlink ~/.config/mise/config.toml", func() error {
-		return installMiseConfig(dotfiles, home)
-	}))
+	steps = append(steps,
+		nativeStep("Symlink ~/.config/mise/config.toml", func() error {
+			return installMiseConfig(dotfiles, home)
+		}),
+		nativeStep("Ativar ferramentas do mise no Fish", func() error {
+			return installMiseFishActivation(home)
+		}),
+	)
+	return steps
+}
+
+func miseJob(dotfiles string) job {
+	steps := miseSetupSteps(dotfiles)
 	return job{
 		title: "Configurar mise",
 		steps: steps,
 		result: func() string {
 			return lipgloss.NewStyle().Foreground(colOK).Render(
-				"~/.config/mise/config.toml aponta para " + filepath.Join(dotfiles, "mise.toml"))
+				"Configuração ativa. Abra um novo terminal para usar as ferramentas diretamente.")
 		},
 	}
 }

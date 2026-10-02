@@ -29,7 +29,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	model := newModel(t.TempDir())
 	categories := map[screen][]string{
 		screenSystem:      {"SSH", "Firewall", "Docker"},
-		screenDevelopment: {"Git", "GPG", "Mise", "Instalar IDEs"},
+		screenDevelopment: {"Git", "GPG", "Mise", "Ambiente JavaScript", "Instalar IDEs", "Ferramentas de terminal"},
 		screenDesktop:     {"Niri", "Noctalia", "Wallpapers", "Foto de perfil"},
 		screenUtilities:   {"Scripts", "Info do sistema"},
 		screenAIAgents:    {"Pi Agent"},

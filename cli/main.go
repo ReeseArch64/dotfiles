@@ -119,7 +119,7 @@ func (m model) items() []item {
 	case screenMain:
 		return []item{
 			{title: "Sistema", desc: "SSH, firewall e Docker", goTo: screenSystem},
-			{title: "Desenvolvimento", desc: "Git e chaves GPG", goTo: screenDevelopment},
+			{title: "Desenvolvimento", desc: "Git, ambientes e IDEs", goTo: screenDevelopment},
 			{title: "Desktop", desc: "Niri, Noctalia e foto de perfil", goTo: screenDesktop},
 			{title: "Utilitários", desc: "Scripts e informações do sistema", goTo: screenUtilities},
 			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
@@ -136,7 +136,9 @@ func (m model) items() []item {
 			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Mise", desc: "Instalar via Shelly e configurar o mise.toml", job: func() job { return miseJob(m.dotfiles) }},
+			{title: "Ambiente JavaScript", desc: "Instalar ferramentas e autenticar no npm", job: func() job { return javascriptJob(m.dotfiles) }},
 			{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
+			{title: "Ferramentas de terminal", desc: "Instalar Vim, Neovim, wget, curl, bat, eza e tree", job: terminalToolsJob},
 		}
 	case screenDesktop:
 		return []item{
