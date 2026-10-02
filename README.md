@@ -116,7 +116,7 @@ A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e cria `~/
 
 ## Ambiente JavaScript
 
-A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Yarn, Bun, Deno e pnpm nas versões declaradas em `mise.toml`. O npm acompanha a instalação do Node.js. Depois, a ação executa `npm login` no terminal para autenticar o usuário. Em novos terminais Fish, todos esses comandos ficam disponíveis diretamente.
+A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Yarn, Bun, Deno e pnpm nas versões declaradas em `mise.toml`. O npm acompanha a instalação do Node.js. A ação cria `~/.yarnrc` como link simbólico para `.yarnrc` deste repositório e executa `npm login` no terminal. Em novos terminais Fish, todos esses comandos ficam disponíveis diretamente.
 
 ## Ferramentas de terminal
 
