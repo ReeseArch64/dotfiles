@@ -1,0 +1,281 @@
+config_version = 14
+
+[bar.default]
+background_opacity = 0.32999999262392521
+end = [ "group:g1", "network", "volume", "battery" ]
+start = [ "workspaces", "spacer_2", "weather", "spacer_3", "media" ]
+thickness = 35
+
+    [[bar.default.capsule_group]]
+    accordion = false
+    accordion_direction = "end"
+    enabled = true
+    fill = "surface_variant"
+    id = "g1"
+    members = [ "tray", "bar_2", "github", "mini-docker", "bluetooth", "notifications", "clipboard" ]
+    opacity = 1.0
+    padding = 6.0
+
+[brightness]
+sync_all_monitors = true
+
+[calendar]
+enabled = true
+
+[desktop_widgets]
+enabled = false
+schema_version = 2
+widget_order = []
+
+    [desktop_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [desktop_widgets.widget]
+
+[dock]
+active_monitor_only = true
+background_opacity = 0.20999999530613422
+layer = "overlay"
+pinned = [ "zen", "dev.noctalia.Noctalia", "md.obsidian.Obsidian" ]
+show_instance_count = false
+smart_auto_hide = true
+
+[idle]
+behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
+
+    [idle.behavior.lock]
+    action = "lock"
+    enabled = true
+    timeout = 600.0
+
+    [idle.behavior.lock-and-suspend]
+    action = "lock_and_suspend"
+    enabled = true
+    timeout = 900.0
+
+    [idle.behavior.screen-off]
+    action = "screen_off"
+    enabled = true
+    timeout = 660.0
+
+[location]
+auto_locate = true
+
+[lockscreen]
+blurred_desktop = true
+
+[lockscreen_widgets]
+enabled = false
+schema_version = 2
+widget_order = [ "lockscreen-login-box@DP-1", "lockscreen-login-box@DP-2", "lockscreen-login-box@DP-3" ]
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@DP-1"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "DP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@DP-1".settings]
+        background_color = "surface_variant"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@DP-2"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "DP-2"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@DP-2".settings]
+        background_color = "surface_variant"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@DP-3"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "DP-3"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@DP-3".settings]
+        background_color = "surface_variant"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+[plugin_settings."davemhammer/obsidian"]
+vault_name = "MegaBrain"
+vault_path = "/home/alsgy/.obsidian"
+
+[plugin_settings."nightwatch75/file-search"]
+exclude_dirs = "orca, Android, .git, go, node_modules, .cache, .venv, .local, .config"
+panel_open_near_click = false
+panel_placement = "floating"
+panel_position = "center"
+
+[plugin_settings."noctalia/mpvpaper"]
+video_directory = "/home/alsgy/Pictures/Wallpapers/Wallpapers Live"
+
+[plugin_settings."shangshui0302/github-kanban"]
+bar_display_mode = "icon"
+kanban_open_near_click = false
+
+[plugins]
+enabled = [ "8bury/mini-docker", "cleboost/zed-provider", "shangshui0302/github-kanban", "riversyx/noctaproton-vpn" ]
+
+[shell]
+external_ip_enabled = true
+font_family = "Open Sans"
+screen_time_enabled = true
+
+    [shell.screenshot]
+    annotate = true
+    confirm_region = true
+    directory = "/home/alsgy/Pictures/Screenshots"
+    remember_last_region = true
+    show_cursor = true
+
+    [shell.window_switcher]
+    mru = true
+
+[theme]
+builtin = "Dracula"
+
+    [theme.templates]
+    builtin_ids = [ "alacritty", "btop", "gtk3", "gtk4", "ghostty", "kcolorscheme", "kitty", "niri", "qt" ]
+    community_ids = [
+        "antigravity",
+        "claude-code",
+        "codex",
+        "opencode",
+        "pi-agent",
+        "zen-browser",
+        "discord",
+        "telegram",
+        "micro",
+        "neovim",
+        "obsidian",
+        "vscode",
+        "zed",
+        "fastfetch",
+        "obs",
+        "fcitx5",
+        "bat",
+        "lazygit",
+        "tmux",
+        "yazi"
+    ]
+
+[wallpaper]
+directory = "/home/alsgy/.wallpapers"
+fill_mode = "stretch"
+transition_on_startup = true
+
+    [wallpaper.default]
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
+
+    [wallpaper.last]
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
+
+    [wallpaper.monitors.DP-1]
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
+
+[widget.bar_2]
+type = "riversyx/noctaproton-vpn:bar"
+
+[widget.brightness]
+enabled = false
+
+[widget.clock]
+timezone = "America/Sao_Paulo"
+
+[widget.control-center]
+enabled = false
+
+[widget.github]
+type = "shangshui0302/github-kanban:github"
+
+[widget.launcher]
+enabled = false
+
+[widget.media]
+album_art_only = true
+
+[widget.mini-docker]
+enable_scroll = false
+show_count = false
+status_mode = "hidden"
+type = "8bury/mini-docker:mini-docker"
+
+[widget.privacy]
+enabled = false
+
+[widget.session]
+enabled = false
+
+[widget.spacer_2]
+type = "spacer"
+
+[widget.spacer_3]
+type = "spacer"
+
+[widget.sysmon]
+stat = "gpu_vram"
+visualization = "none"
+
+[widget.wallpaper]
+enabled = false

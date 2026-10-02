@@ -1,17 +1,18 @@
 # ReeseArch64 Dotfiles
 
-Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto inclui uma CLI interativa para Git, SSH, UFW, wallpapers, foto de perfil, scripts e diagnóstico do sistema.
+Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto inclui uma CLI interativa para configurar o sistema, o desenvolvimento e o desktop.
 
 ## Recursos
 
 - Instala e configura Git, gitflow-next e Lazygit.
 - Instala o mise e conecta sua configuração global.
-- Instala o ambiente JavaScript com Node.js, npm, Yarn, Bun, Deno e pnpm.
+- Instala o ambiente JavaScript com Node.js, npm, Bun, Deno e pnpm.
 - Instala o Visual Studio Code e o Zed via Shelly.
-- Instala Vim, Neovim, wget, curl, bat, eza e tree via Shelly.
+- Instala Neovim, wget, curl, bat e eza via Shelly e instala o LunarVim pelo script oficial.
 - Gera a identidade do Git a partir de um `.env` local.
 - Instala as configurações globais do Git.
 - Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
+- Instala dependências de drivers e ferramentas de diagnóstico gráfico.
 - Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
 - Copia a configuração do Niri para `~/.config/niri`.
 - Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
@@ -25,8 +26,6 @@ Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto in
 - Gerencia `sshd.service` e `sshd.socket`.
 - Aplica ou remove hardening de acesso SSH.
 - Instala e gerencia regras do firewall UFW.
-- Exibe informações da máquina e do repositório.
-- Descobre e executa scripts de `scripts/`.
 
 ## Requisitos
 
@@ -44,15 +43,15 @@ A instalação e as ações também usam:
 - `curl`, usado pelo instalador oficial do Pi
 - `git`
 - `gpg`, instalado pelo pacote `gnupg` quando necessário
-- `make`
-- Go compatível com a versão declarada em `cli/go.mod`
+- `base-devel`, instalado pela opção `Sistema > Drivers`
+- Go compatível com a versão declarada em `go.mod`
 - `sudo`
 - `pacman`
 - `systemd`
 - `shelly`, usado para instalar os pacotes operacionais das opções correspondentes
 - `pi`, instalado automaticamente quando necessário para configurar o Pi Agent
 
-A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. Go e Make ainda são necessários para compilar a CLI.
+A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. O Go ainda é necessário para compilar a CLI.
 
 ## Instalação
 
@@ -112,25 +111,29 @@ make run
 
 A CLI não oferece opção para ignorar a validação de plataforma. Requisitos locais não impedem a abertura da interface.
 
+## Drivers
+
+A opção `Sistema > Drivers` instala `base-devel`, `vulkan-tools`, `mesa-utils` e `linux-headers` com o Pacman. O pacote `mesa-utils` fornece o comando `glxinfo`.
+
 ## Mise
 
-A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e cria `~/.config/mise/config.toml` como link simbólico para `mise.toml` deste repositório. Ela também ativa o mise no Fish. Abra um novo terminal para usar diretamente os comandos instalados, sem prefixá-los com `mise`.
+A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e vincula `configs/mise/mise.toml` em `~/.config/mise/config.toml`. Ela também ativa o mise no Fish. Abra um novo terminal para usar diretamente os comandos instalados.
 
 ## Ambiente JavaScript
 
-A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Yarn, Bun, Deno e pnpm nas versões declaradas em `mise.toml`. O npm acompanha a instalação do Node.js. A ação cria `~/.yarnrc` como link simbólico para `.yarnrc` deste repositório e executa `npm login` no terminal. Em novos terminais Fish, todos esses comandos ficam disponíveis diretamente.
+A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Bun, Deno e pnpm. As versões ficam em `configs/mise/mise.toml`. O npm acompanha o Node.js, e a ação executa `npm login`.
 
 ## Ferramentas de terminal
 
-A opção `Desenvolvimento > Ferramentas de terminal` instala Vim, Neovim, wget, curl, bat, eza e tree via Shelly.
+A opção `Desenvolvimento > Ferramentas de terminal` instala Neovim, wget, curl, bat e eza via Shelly. Quando o comando `lvim` está ausente, a ação instala o LunarVim com a branch `release-1.4/neovim-0.9` do instalador oficial.
 
 ## Ghostty
 
-A opção `Desktop > Ghostty` instala o pacote `ghostty` via Shelly e copia a pasta `ghostty/` para `~/.config/ghostty`. Uma configuração diferente é preservada como `~/.config/ghostty.backup-AAAAMMDD-HHMMSS`.
+A opção `Desktop > Ghostty` instala o pacote `ghostty` via Shelly e copia `configs/ghostty/` para `~/.config/ghostty`. Uma configuração diferente recebe um backup com timestamp.
 
 ## Obsidian
 
-A opção `Desktop > Obsidian` instala o pacote `obsidian-bin` via Shelly e copia a pasta `obsidian/` para `~/.obsidian`. Uma configuração diferente é preservada como `~/.obsidian.backup-AAAAMMDD-HHMMSS`.
+A opção `Desktop > Obsidian` instala o pacote `obsidian-bin` via Shelly e copia `configs/obsidian/` para `~/.obsidian`. Uma configuração diferente recebe um backup com timestamp.
 
 ## Navegação da CLI
 
@@ -145,21 +148,20 @@ A opção `Desktop > Obsidian` instala o pacote `obsidian-bin` via Shelly e copi
 
 Durante um job, aguarde a conclusão dos passos. A CLI entrega o terminal aos comandos que exigem senha ou confirmação.
 
-O menu principal contém seis opções e organiza as ações nestes submenus:
+O menu principal contém cinco opções e organiza as ações nestes submenus:
 
 | Submenu | Opções |
 | --- | --- |
-| `Sistema` | SSH, Firewall e Docker |
+| `Sistema` | SSH, Firewall, Docker e Drivers |
 | `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Instalar IDEs e Ferramentas de terminal |
 | `Desktop` | Niri, Noctalia, Ghostty, Obsidian, Wallpapers e Foto de perfil |
-| `Utilitários` | Scripts e Info do sistema |
 | `Agentes de IA` | Pi Agent |
 
 ## Pi Agent
 
 Abra `Agentes de IA > Pi Agent > Configurar Pi Agent`. A ação executa estas etapas:
 
-1. Valida `pi/agent/settings.json` e o tema `noctalia`.
+1. Valida `configs/pi/agent/settings.json` e o tema `noctalia`.
 2. Quando o Pi está ausente, executa `curl -fsSL https://pi.dev/install.sh | sh`. Ao final, escolha não iniciar o Pi para continuar o job.
 3. Copia os dois arquivos como arquivos regulares para `~/.pi/agent`.
 4. Preserva arquivos diferentes com o sufixo `.backup-AAAAMMDD-HHMMSS`.
@@ -233,7 +235,7 @@ Membros do grupo `docker` controlam o daemon e possuem privilégios equivalentes
 Abra `Git > Configurar Git` na CLI. Essa ação executa as seguintes etapas:
 
 1. Lê `GIT_USER_EMAIL`, `GIT_USERNAME` e `GIT_USER_NAME` do `.env`.
-2. Gera `git/.gitconfig` de forma atômica.
+2. Gera `configs/git/.gitconfig` de forma atômica.
 3. Preserva `user.signingkey` quando ele já está configurado.
 4. Instala `git`, `gitflow-next-bin` e `lazygit` quando necessário.
 5. Cria o diretório `~/.config/git`.
@@ -243,16 +245,16 @@ Os destinos são:
 
 | Destino | Origem no repositório | Finalidade |
 | --- | --- | --- |
-| `~/.gitconfig` | `git/.gitconfig` | Identidade do usuário |
-| `~/.gitattributes` | `git/.gitattributes` | Tratamento global de arquivos e diffs |
-| `~/.gitignore` | `git/.gitignore` | Exclusões globais |
-| `~/.config/git/config` | `git/config` | Comportamento global do Git |
+| `~/.gitconfig` | `configs/git/.gitconfig` | Identidade do usuário |
+| `~/.gitattributes` | `configs/git/.gitattributes` | Tratamento global de arquivos e diffs |
+| `~/.gitignore` | `configs/git/.gitignore` | Exclusões globais |
+| `~/.config/git/config` | `configs/git/config` | Comportamento global do Git |
 
 `~/.gitconfig` é um arquivo regular e independente. Os outros três destinos são links simbólicos. A configuração substitui arquivos ou links existentes nesses destinos.
 
 ### Assinatura de commits
 
-`git/config` mantém `commit.gpgsign = true`. A importação GPG identifica o fingerprint da chave privada e grava esse valor em `user.signingkey`.
+`configs/git/config` mantém `commit.gpgsign = true`. A importação GPG identifica o fingerprint da chave privada e grava esse valor em `user.signingkey`.
 
 A execução posterior de `Git > Configurar Git` preserva a chave configurada.
 
@@ -275,7 +277,7 @@ A CLI não copia as chaves. O padrão `*.asc` está no `.gitignore` para impedir
 
 ### Comportamentos globais do Git
 
-`git/config` define, entre outros ajustes:
+`configs/git/config` define, entre outros ajustes:
 
 - branch inicial `main`;
 - `pull` com rebase e somente fast-forward;
@@ -284,14 +286,14 @@ A CLI não copia as chaves. O padrão `*.asc` está no `.gitignore` para impedir
 - algoritmo de diff `histogram` e detecção de cópias;
 - rebase com autostash e autosquash;
 - `rerere` habilitado;
-- editor e ferramenta de merge `vimdiff`;
+- editor `nvim` e ferramenta de merge `nvimdiff`;
 - cache de credenciais por uma hora;
 - Git LFS quando o executável estiver instalado;
 - aliases `ci`, `co`, `cm`, `cb`, `st`, `sf` e `lg`.
 
 ## Niri
 
-A opção `Niri` copia `niri/` para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
+A opção `Niri` copia `configs/niri/` para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
 
 Quando o destino possui conteúdo diferente, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS`. Cópias idênticas não criam backups.
 
@@ -300,23 +302,19 @@ Quando o destino possui conteúdo diferente, a CLI preserva a configuração ant
 A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam ser baixados pela interface do Noctalia:
 
 - `github-kanban`
-- `llamanager`
 - `mini-docker`
 - `noctaproton-vpn`
-- `pomodoro`
-- `ssh-launcher`
-- `warp`
 - `zed-provider`
 
 A opção `Configurar Noctalia` exige todos os plugins em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
 
-Após a validação, a CLI copia `noctalia/settings.toml` e `noctalia/state.toml` como arquivos regulares. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
+Após a validação, a CLI copia `configs/noctalia/settings.toml` e `configs/noctalia/state.toml` como arquivos regulares. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
 
 Arquivos existentes são preservados com o sufixo `.backup-AAAAMMDD-HHMMSS` antes da ativação.
 
 ## Wallpapers
 
-A opção `Desktop > Wallpapers` copia `wallpapers/` para `~/.wallpapers`. O destino é um diretório regular, sem links simbólicos.
+A opção `Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`. O destino é um diretório regular, sem links simbólicos.
 
 A pasta inclui imagens para desktop, Android e iPhone. A CLI preserva um destino diferente como `~/.wallpapers.backup-AAAAMMDD-HHMMSS`.
 
@@ -324,7 +322,7 @@ Uma cópia idêntica não cria outro backup. Execute a ação novamente para apl
 
 ## Foto de perfil
 
-A opção `Foto de perfil` cria `~/.face` como link simbólico para `.face` no repositório. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
+A opção `Foto de perfil` cria `~/.face` como link simbólico para `assets/face.jpg`. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
 
 A ação substitui um arquivo ou link existente em `~/.face`. Faça backup da foto atual antes de executar a opção.
 
@@ -339,7 +337,7 @@ A ação `Configurar cliente` exige estes arquivos regulares em `~/.ssh`:
 - `id_gitlab_reesearch64`
 - `id_gitlab_reesearch64.pub`
 
-Após validar os quatro arquivos, a ação copia `ssh/config` para `~/.ssh/config`. Ela aplica permissão `0700` ao diretório e `0600` ao arquivo.
+Após validar os quatro arquivos, a ação copia `configs/ssh/config` para `~/.ssh/config`. Ela aplica permissão `0700` ao diretório e `0600` ao arquivo.
 
 Uma configuração diferente é preservada como `~/.ssh/config.backup-AAAAMMDD-HHMMSS`. Uma cópia idêntica não cria outro backup.
 
@@ -368,59 +366,27 @@ As ações disponíveis são:
 
 A ativação usa `deny incoming` e `allow outgoing`. Em uma sessão SSH remota, a CLI libera a porta atual antes de ativar o UFW para reduzir o risco de perder acesso.
 
-## Scripts
-
-A tela `Scripts` lista arquivos `*.sh` em `scripts/`. A primeira linha de comentário após o shebang aparece como descrição.
-
-O script `scripts/setup-ssh.sh` oferece um fluxo independente e legado para instalar OpenSSH e UFW. Consulte as opções com:
-
-```bash
-./scripts/setup-ssh.sh --help
-```
-
-Opções principais:
-
-- `--socket`
-- `--temp`
-- `--stop`
-- `--lan-only`
-- `--subnet CIDR`
-- `--harden`
-
-## Informações do sistema
-
-A tela `Info do sistema` apresenta:
-
-- usuário e hostname;
-- distribuição e kernel;
-- uptime;
-- shell e terminal;
-- caminho dos dotfiles;
-- branch e último commit do repositório.
-
 ## Estrutura do repositório
 
 ```text
 .
+├── assets/
+│   ├── face.jpg         # Foto instalada em ~/.face
+│   └── wallpapers/      # Imagens copiadas para ~/.wallpapers
+├── cmd/dotfiles/        # Aplicação Go com Bubble Tea
+├── configs/
+│   ├── ghostty/         # Configuração copiada para ~/.config/ghostty
+│   ├── git/             # Arquivos globais do Git
+│   ├── mise/            # Versões globais das ferramentas
+│   ├── niri/            # Configuração copiada para ~/.config/niri
+│   ├── noctalia/        # Configuração copiada para o estado do Noctalia
+│   ├── obsidian/        # Configuração copiada para ~/.obsidian
+│   ├── pi/              # Settings e tema do Pi Agent
+│   └── ssh/             # Configuração copiada para ~/.ssh/config
 ├── .env.example         # Modelo da identidade Git
-├── .face                # Foto de perfil instalada em ~/.face
-├── Makefile             # Build, instalação, execução e limpeza
-├── cli/                 # Aplicação Go com Bubble Tea
-├── git/
-│   ├── .gitattributes   # Atributos globais
-│   ├── .gitconfig       # Identidade gerada pelo .env
-│   ├── .gitignore       # Exclusões globais
-│   └── config           # Preferências globais do Git
-├── ghostty/             # Configuração copiada para ~/.config/ghostty
-├── mise.toml            # Configuração global vinculada em ~/.config/mise
-├── niri/                # Origem copiada para ~/.config/niri
-├── noctalia/            # Origem copiada para o estado do Noctalia
-├── obsidian/            # Configuração copiada para ~/.obsidian
-├── pi/                   # Settings e tema do Pi Agent
-├── ssh/                  # Configuração copiada para ~/.ssh/config
-├── wallpapers/           # Imagens copiadas para ~/.wallpapers
-└── scripts/
-    └── setup-ssh.sh     # Setup alternativo de SSH e UFW
+├── go.mod               # Módulo Go da CLI
+├── go.sum               # Dependências fixadas da CLI
+└── Makefile             # Build, instalação, execução e limpeza
 ```
 
 ## Comandos de desenvolvimento
@@ -430,7 +396,7 @@ make cli       # compila bin/dotfiles
 make run       # compila e executa
 make install   # compila e cria o link em ~/.local/bin
 make clean     # remove bin/
-cd cli && go test ./...
+go test ./...
 ```
 
 Use `DOTFILES_DIR` para apontar a CLI para outro checkout:
