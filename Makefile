@@ -3,6 +3,7 @@ BIN := bin/dotfiles
 .PHONY: cli install run clean
 
 cli:
+	mkdir -p $(dir $(BIN))
 	go build -trimpath -ldflags "-s -w" -o $(BIN) ./cmd/dotfiles
 
 # Symlink em ~/.local/bin: o binário acha o repositório seguindo o link.

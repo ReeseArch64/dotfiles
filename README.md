@@ -1,65 +1,70 @@
 # ReeseArch64 Dotfiles
 
-Dotfiles pessoais para máquinas CachyOS com Niri e Noctalia Shell. O projeto inclui uma CLI interativa para configurar o sistema, o desenvolvimento e o desktop.
+Configuração pessoal para CachyOS com Niri e Noctalia Shell.
 
-## Recursos
+O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente.
 
-- Instala e configura Git e Lazygit.
-- Instala o mise e conecta sua configuração global.
-- Instala o ambiente JavaScript com Node.js, npm, Bun, Deno e pnpm.
-- Instala o Flutter via mise.
-- Instala o Visual Studio Code e o Zed via Shelly.
-- Instala Neovim, wget, curl, bat, eza, scc e viddy via Shelly, Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide, starship, btop, yq, jq, fd, ripgrep e fzf via Pacman, e o LunarVim pelo script oficial.
-- Gera a identidade do Git a partir de um `.env` local.
-- Instala as configurações globais do Git.
-- Instala e configura Docker, Compose, Buildx, Lazydocker e Kind.
-- Instala dependências de drivers e ferramentas de diagnóstico gráfico.
-- Instala GnuPG e importa chaves públicas e privadas de arquivos `.asc`.
-- Copia a configuração do Niri para `~/.config/niri`.
-- Verifica os plugins e configura o Noctalia em `~/.local/state/noctalia`.
-- Instala o Ghostty e copia sua configuração para `~/.config/ghostty`.
-- Instala o Obsidian e copia sua configuração para `~/.obsidian`.
-- Configura o Pi Agent com tema, settings e pacotes.
-- Copia os wallpapers do repositório para `~/.wallpapers`.
-- Instala a foto de perfil do repositório como `~/.face`.
-- Impede a execução fora da combinação CachyOS, Niri e Noctalia Shell.
-- Copia a configuração do cliente SSH para `~/.ssh/config`.
-- Gerencia `sshd.service` e `sshd.socket`.
-- Aplica ou remove hardening de acesso SSH.
-- Instala e gerencia regras do firewall UFW.
+## Visão geral
+
+A CLI organiza as ações em quatro áreas:
+
+| Área | Ações |
+| --- | --- |
+| Sistema | SSH, Firewall, Docker e Drivers |
+| Desenvolvimento | Git, GPG, Mise, JavaScript, Flutter, IDEs e ferramentas de terminal |
+| Desktop | Niri, Noctalia, Ghostty, Obsidian, wallpapers e foto de perfil |
+| Agentes de IA | Pi Agent |
+
+As ações de Pacman e Shelly instalam somente os pacotes ausentes.
+
+Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache pode evitar prompts, e credenciais expiradas podem exigir nova autenticação.
+
+## Conteúdo
+
+- [Requisitos](#requisitos)
+- [Instalação rápida](#instalação-rápida)
+- [Navegação](#navegação)
+- [Sistema](#sistema)
+- [Desenvolvimento](#desenvolvimento)
+- [Desktop](#desktop)
+- [Pi Agent](#pi-agent)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Desenvolvimento da CLI](#desenvolvimento-da-cli)
+- [Solução de problemas](#solução-de-problemas)
+- [Segurança](#segurança)
 
 ## Requisitos
 
-A CLI abre somente em ambientes com CachyOS, Niri e Noctalia Shell.
+A CLI exige este ambiente:
 
-Os arquivos `~/.dotfiles/minha_chave_privada.asc` e `~/.dotfiles/minha_chave_publica.asc` são requisitos exclusivos da importação GPG.
+- CachyOS
+- Niri
+- Noctalia Shell
 
-A CLI valida essas chaves somente ao executar `GPG > Importar chaves`. Ela também confere os cabeçalhos OpenPGP nesse momento.
+Ela encerra a execução quando algum desses componentes está ausente.
 
-O navegador não é requisito para abrir a CLI. A configuração Docker exige `zen-browser` e o diretório `~/.config/zen` antes do login.
+Também são necessários:
 
-A instalação e as ações também usam:
+- Go compatível com `go.mod`
+- Git
+- Bash
+- curl
+- Acesso à internet
+- Pacman
+- Shelly
+- sudo
+- systemd
 
-- `bash`
-- `curl`, usado pelo instalador oficial do Pi
-- `git`
-- `gpg`, instalado pelo pacote `gnupg` quando necessário
-- `base-devel`, instalado pela opção `Sistema > Drivers`
-- Go compatível com a versão declarada em `go.mod`
-- `sudo`
-- `pacman`
-- `systemd`
-- `shelly`, usado para instalar os pacotes operacionais das opções correspondentes
-- `pi`, instalado automaticamente quando necessário para configurar o Pi Agent
+Algumas ações possuem requisitos próprios. Eles estão descritos nas seções correspondentes.
 
-A CLI instala os pacotes operacionais ausentes quando a ação correspondente é executada. O Go ainda é necessário para compilar a CLI.
+Pi Agent e LunarVim executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
 
-## Instalação
+## Instalação rápida
 
-Clone o repositório em `~/.dotfiles`:
+Clone o repositório no diretório padrão:
 
 ```bash
-git clone git@github.com:ReeseArch64/dotfiles.git ~/.dotfiles
+git clone https://github.com/ReeseArch64/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ```
 
@@ -69,7 +74,7 @@ Crie o arquivo de ambiente:
 cp .env.example .env
 ```
 
-Edite `.env` com a sua identidade:
+Preencha sua identidade e os caminhos das chaves GPG:
 
 ```dotenv
 GIT_USER_EMAIL=seu-email@example.com
@@ -79,354 +84,418 @@ GPG_PUBLIC_IMPORT=~/.dotfiles/minha_chave_publica.asc
 GPG_PRIVATE_IMPORT=~/.dotfiles/minha_chave_privada.asc
 ```
 
-O `.env` está no `.gitignore` e não deve ser versionado.
+Compile a CLI e crie o comando em `~/.local/bin`:
 
-Copie as duas chaves de um armazenamento seguro somente se quiser executar a importação GPG:
+```bash
+make install
+```
+
+Adicione `~/.local/bin` ao `PATH`, se necessário. Depois, execute:
+
+```bash
+dotfiles
+```
+
+Para compilar e executar sem instalar o comando:
+
+```bash
+make run
+```
+
+## Navegação
+
+| Tecla | Ação |
+| --- | --- |
+| `↑`, `k` | Selecionar o item anterior |
+| `↓`, `j`, `Tab` | Selecionar o próximo item |
+| `Enter`, `→`, `l`, `Espaço` | Abrir ou executar o item |
+| `1` a `9` | Abrir diretamente o item numerado |
+| `Esc`, `←`, `h`, `Backspace` | Voltar |
+| `q`, `Ctrl+C` | Sair |
+
+Durante uma ação, aguarde todos os passos. A CLI entrega o terminal aos comandos que exigem senha, autenticação ou confirmação.
+
+## Sistema
+
+### Drivers
+
+`Sistema > Drivers` instala via Pacman:
+
+- `base-devel`
+- `vulkan-tools`
+- `mesa-utils`
+- `linux-headers`
+
+O pacote `mesa-utils` fornece o comando `glxinfo`.
+
+### Docker
+
+`Sistema > Docker > Configurar Docker` executa estas etapas:
+
+1. Valida o executável `zen-browser` e o diretório `~/.config/zen`.
+2. Instala Docker, Compose, Buildx, Lazydocker e Kind.
+3. Instala `util-linux` e `xdg-utils`, necessários ao fluxo.
+4. Adiciona o usuário atual ao grupo `docker`.
+5. Habilita e inicia `docker.service`.
+6. Define o Zen Browser como navegador padrão.
+7. Executa `docker login` com o grupo atualizado.
+
+Abra uma nova sessão após a configuração. A alteração do grupo não alcança terminais que já estavam abertos.
+
+Membros do grupo `docker` controlam o daemon com privilégios equivalentes a acesso root.
+
+### SSH
+
+O menu `Sistema > SSH` mostra o serviço, o socket, a porta, o hardening e os endereços locais.
+
+As ações de servidor instalam `openssh` via Pacman quando necessário.
+
+As ações disponíveis são:
+
+- Configurar o cliente SSH.
+- Ativar `sshd.service` permanentemente.
+- Ativar `sshd.socket` sob demanda.
+- Iniciar o serviço somente na sessão atual.
+- Parar e desabilitar o serviço e o socket.
+- Aplicar ou remover o hardening.
+
+A configuração do cliente exige estes arquivos regulares em `~/.ssh`:
+
+```text
+id_github_reesearch64
+id_github_reesearch64.pub
+id_gitlab_reesearch64
+id_gitlab_reesearch64.pub
+```
+
+A ação copia `configs/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
+
+Uma configuração diferente recebe o sufixo `.backup-AAAAMMDD-HHMMSS`.
+
+O hardening desativa senhas, autenticação interativa e login de root. Ele exige uma chave em `~/.ssh/authorized_keys`.
+
+A CLI valida a configuração com `sshd -t` antes de recarregar o serviço.
+
+### Firewall
+
+O menu `Sistema > Firewall` instala `ufw` e `iptables-nft` via Pacman quando necessário.
+
+Ele mostra as políticas, regras, porta SSH e sub-rede local. O menu permite:
+
+- Ativar ou desativar o UFW.
+- Liberar a porta SSH para qualquer origem.
+- Liberar a porta SSH somente para a rede local.
+- Remover regras que liberam a porta SSH.
+
+A ativação usa `deny incoming` e `allow outgoing`. Em sessões remotas, a CLI libera a porta SSH antes de ativar o firewall.
+
+## Desenvolvimento
+
+### Git
+
+`Desenvolvimento > Git > Configurar Git`:
+
+1. Lê a identidade do arquivo `.env`.
+2. Instala `git` via Pacman.
+3. Instala `lazygit` via Shelly.
+4. Gera `configs/git/.gitconfig` de forma atômica.
+5. Preserva o `user.signingkey` existente em `configs/git/.gitconfig`.
+6. Aplica os arquivos globais.
+
+| Destino | Origem | Formato |
+| --- | --- | --- |
+| `~/.gitconfig` | `configs/git/.gitconfig` | Cópia regular |
+| `~/.gitattributes` | `configs/git/.gitattributes` | Link simbólico |
+| `~/.gitignore` | `configs/git/.gitignore` | Link simbólico |
+| `~/.config/git/config` | `configs/git/config` | Link simbólico |
+
+A ação substitui `~/.gitconfig` e recria os três links simbólicos sem backup automático.
+
+A configuração global ativa assinatura GPG, rebase, autosquash, `rerere` e aliases.
+
+Ela também declara os filtros do Git LFS, mas a CLI não instala `git-lfs`. Instale esse pacote antes de trabalhar com arquivos LFS.
+
+### GPG
+
+`Desenvolvimento > GPG > Importar chaves` exige que a configuração do Git esteja pronta.
+
+Copie as chaves somente quando quiser executar a importação:
 
 ```bash
 install -m 600 /origem/chave_privada.asc ~/.dotfiles/minha_chave_privada.asc
 install -m 644 /origem/chave_publica.asc ~/.dotfiles/minha_chave_publica.asc
 ```
 
-Os arquivos `*.asc` permanecem ignorados pelo Git. Nunca versione a chave privada.
+A ação:
 
-Compile e instale o comando:
+1. Valida os caminhos e os cabeçalhos OpenPGP.
+2. Instala `gnupg` via Pacman.
+3. Importa as chaves pública e privada.
+4. Obtém o fingerprint da chave privada.
+5. Atualiza `user.signingkey` no repositório e em `~/.gitconfig`.
 
-```bash
-make install
-```
+A CLI não copia as chaves. O `.gitignore` exclui `.env` e arquivos `*.asc`.
 
-O comando cria `bin/dotfiles` e o link `~/.local/bin/dotfiles`. Adicione `~/.local/bin` ao `PATH` quando necessário.
+### Mise
 
-Execute a interface:
+`Desenvolvimento > Mise`:
 
-```bash
-dotfiles
-```
+- Instala `mise` via Shelly.
+- Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
+- Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
 
-Também é possível compilar e executar diretamente:
+Abra um novo terminal para carregar a ativação do Fish.
 
-```bash
-make run
-```
+O arquivo `configs/mise/mise.toml` declara:
 
-A CLI não oferece opção para ignorar a validação de plataforma. Requisitos locais não impedem a abertura da interface.
+- AWS CLI
+- Java Temurin
+- Flutter
+- Node.js
+- Bun
+- pnpm
+- Deno
+- Ruby
+- Python
+- Go
+- uv
 
-## Drivers
+A ação Mise configura o gerenciador. Os ambientes JavaScript e Flutter possuem ações próprias de instalação.
 
-A opção `Sistema > Drivers` instala `base-devel`, `vulkan-tools`, `mesa-utils` e `linux-headers` com o Pacman. O pacote `mesa-utils` fornece o comando `glxinfo`.
+### JavaScript
 
-## Mise
+`Desenvolvimento > Ambiente JavaScript` configura o Mise e instala:
 
-A opção `Desenvolvimento > Mise` instala o pacote `mise` via Shelly e vincula `configs/mise/mise.toml` em `~/.config/mise/config.toml`. Ela também ativa o mise no Fish. Abra um novo terminal para usar diretamente os comandos instalados.
+- Node.js
+- npm, incluído com Node.js
+- Bun
+- Deno
+- pnpm
 
-## Ambiente JavaScript
+Ao final, a CLI executa `npm login`.
 
-A opção `Desenvolvimento > Ambiente JavaScript` configura o mise e instala Node.js, Bun, Deno e pnpm. As versões ficam em `configs/mise/mise.toml`. O npm acompanha o Node.js, e a ação executa `npm login`.
+### Flutter
 
-## Ambiente Flutter
+`Desenvolvimento > Ambiente Flutter` configura o Mise e instala a versão declarada em `configs/mise/mise.toml`.
 
-A opção `Desenvolvimento > Ambiente Flutter` configura o mise e instala a versão mais recente do Flutter declarada em `configs/mise/mise.toml`.
+### IDEs
 
-## Ferramentas de terminal
+`Desenvolvimento > Instalar IDEs` instala:
 
-A opção `Desenvolvimento > Ferramentas de terminal` instala Neovim, wget, curl, bat, eza, scc e viddy via Shelly. Ela instala Yazi, Hurl, Glow, FFmpeg, mpv, yt-dlp, scrcpy, android-tools, ncdu, tealdeer, hyperfine, atuin, zoxide, starship, btop, yq, jq, fd, ripgrep e fzf via Pacman. A ação copia `configs/btop/` para `~/.config/btop`, preservando uma configuração diferente com backup. Quando o comando `lvim` está ausente, a ação instala o LunarVim com a branch `release-1.4/neovim-0.9` do instalador oficial.
+- `visual-studio-code-bin` via Shelly/AUR
+- `zed` via Shelly
 
-## Ghostty
+### Ferramentas de terminal
 
-A opção `Desktop > Ghostty` instala o pacote `ghostty` via Shelly e copia `configs/ghostty/` para `~/.config/ghostty`. Uma configuração diferente recebe um backup com timestamp.
+`Desenvolvimento > Ferramentas de terminal` instala os seguintes grupos.
 
-## Obsidian
+**Shelly:**
 
-A opção `Desktop > Obsidian` instala o pacote `obsidian-bin` via Shelly e copia `configs/obsidian/` para `~/.obsidian`. Uma configuração diferente recebe um backup com timestamp.
+- Neovim
+- wget
+- curl
+- bat
+- eza
+- scc
+- viddy, compilado pelo pacote AUR
 
-## Navegação da CLI
+**Pacman:**
 
-| Tecla | Ação |
-| --- | --- |
-| `↑`, `k` | Item anterior |
-| `↓`, `j`, `Tab` | Próximo item |
-| `Enter`, `→`, `l`, `Espaço` | Selecionar |
-| `1` a `9` | Abrir o item correspondente |
-| `Esc`, `←`, `h`, `Backspace` | Voltar |
-| `q`, `Ctrl+C` | Sair |
+- Yazi
+- Hurl
+- Glow
+- FFmpeg
+- mpv
+- yt-dlp
+- scrcpy
+- android-tools
+- ncdu
+- tealdeer
+- hyperfine
+- atuin
+- zoxide
+- starship
+- btop
+- yq
+- jq
+- fd
+- ripgrep
+- fzf
 
-Durante um job, aguarde a conclusão dos passos. A CLI entrega o terminal aos comandos que exigem senha ou confirmação.
+Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
-O menu principal contém cinco opções e organiza as ações nestes submenus:
+A ação também copia `configs/btop/` para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
 
-| Submenu | Opções |
-| --- | --- |
-| `Sistema` | SSH, Firewall, Docker e Drivers |
-| `Desenvolvimento` | Git, GPG, Mise, Ambiente JavaScript, Ambiente Flutter, Instalar IDEs e Ferramentas de terminal |
-| `Desktop` | Niri, Noctalia, Ghostty, Obsidian, Wallpapers e Foto de perfil |
-| `Agentes de IA` | Pi Agent |
+## Desktop
 
-## Pi Agent
+### Niri
 
-Abra `Agentes de IA > Pi Agent > Configurar Pi Agent`. A ação executa estas etapas:
+`Desktop > Niri` copia `configs/niri/` para `~/.config/niri`.
 
-1. Valida `configs/pi/agent/settings.json` e o tema `noctalia`.
-2. Quando o Pi está ausente, executa `curl -fsSL https://pi.dev/install.sh | sh`. Ao final, escolha não iniciar o Pi para continuar o job.
-3. Copia os dois arquivos como arquivos regulares para `~/.pi/agent`.
-4. Preserva arquivos diferentes com o sufixo `.backup-AAAAMMDD-HHMMSS`.
-5. Executa `pi update --extensions` para instalar ou atualizar os pacotes declarados.
+### Noctalia
 
-A configuração instala o repositório `nothingrotf/pi-extensions`, seus pacotes `ask`, `compact`, `fast-mode`, `filetools`, `goal`, `hud`, `inline-skill`, `loop`, `session-history`, `subagent`, `tgrep`, `todo` e `pstack`. Ela também instala `@gotgenes/pi-anthropic-auth` e `pi-antigravity` pelo gerenciador de pacotes do Pi.
-
-Os pacotes do Pi podem executar código com as permissões do usuário. Revise as origens antes de executar a configuração.
-
-Abra uma nova sessão do Pi ou execute `/reload` após alterar manualmente os arquivos.
-
-### Tutorial pós-configuração
-
-Após concluir o job da CLI, finalize a configuração manual:
-
-1. Abra um novo terminal para carregar o caminho instalado pelo script oficial.
-2. Confirme a instalação e os pacotes:
-
-   ```bash
-   pi --version
-   pi list
-   ```
-
-3. Inicie o Pi no diretório de um projeto:
-
-   ```bash
-   cd /caminho/do/projeto
-   pi
-   ```
-
-4. Execute `/login` e autentique o provedor Codex usado pelo modelo padrão.
-5. Execute `/login anthropic` se quiser usar uma assinatura Claude Pro ou Max.
-6. Execute `/login antigravity` para conectar uma conta Google ao provedor Antigravity.
-7. Execute `/model` e confirme que o modelo desejado está disponível.
-8. Execute `/setup-pstack` e escolha os modelos usados por cada função do pstack.
-9. Reinicie o Pi após configurar o pstack.
-
-Use estes comandos para conferir as extensões opcionais:
-
-```text
-/anthropic-auth:status
-/antigravity.models
-/antigravity.doctor
-```
-
-Em uma máquina remota, copie a URL final do OAuth Antigravity para o prompt do Pi. Como alternativa, encaminhe a porta `51121` por SSH.
-
-Não versione `~/.pi/agent/auth.json` nem `~/.pi/agent/antigravity-accounts.json`. Esses arquivos contêm credenciais de acesso.
-
-O comando `/setup-pstack` grava a política em `~/.agents/rules/pstack-models.md`. Revise as escolhas antes de iniciar tarefas delegadas.
-
-## Docker
-
-Abra `Docker > Configurar Docker` na CLI. Essa ação:
-
-1. Exige o executável `zen-browser` e o diretório `~/.config/zen`.
-2. Instala `docker`, `docker-compose`, `lazydocker`, `docker-buildx`, `kind`, `util-linux` e `xdg-utils` com o Pacman.
-3. Executa `sudo usermod -aG docker USUÁRIO`.
-4. Executa `sudo systemctl enable --now docker.service`.
-5. Executa `xdg-settings set default-web-browser zen.desktop`.
-6. Executa `newgrp docker -c "docker login"` para autenticar com o grupo atualizado.
-
-A CLI bloqueia toda a configuração Docker quando o Zen Browser ou seu perfil está ausente. Assim, o login nunca inicia sem esses requisitos.
-
-A CLI entrega o terminal ao login interativo. Abra uma nova sessão após a configuração para aplicar o grupo `docker` aos outros terminais.
-
-Membros do grupo `docker` controlam o daemon e possuem privilégios equivalentes a acesso root. Adicione somente usuários confiáveis.
-
-## Configuração do Git
-
-Abra `Git > Configurar Git` na CLI. Essa ação executa as seguintes etapas:
-
-1. Lê `GIT_USER_EMAIL`, `GIT_USERNAME` e `GIT_USER_NAME` do `.env`.
-2. Gera `configs/git/.gitconfig` de forma atômica.
-3. Preserva `user.signingkey` quando ele já está configurado.
-4. Instala `git` e `lazygit` quando necessário.
-5. Cria o diretório `~/.config/git`.
-6. Copia `~/.gitconfig` e cria links para os outros três arquivos globais.
-
-Os destinos são:
-
-| Destino | Origem no repositório | Finalidade |
-| --- | --- | --- |
-| `~/.gitconfig` | `configs/git/.gitconfig` | Identidade do usuário |
-| `~/.gitattributes` | `configs/git/.gitattributes` | Tratamento global de arquivos e diffs |
-| `~/.gitignore` | `configs/git/.gitignore` | Exclusões globais |
-| `~/.config/git/config` | `configs/git/config` | Comportamento global do Git |
-
-`~/.gitconfig` é um arquivo regular e independente. Os outros três destinos são links simbólicos. A configuração substitui arquivos ou links existentes nesses destinos.
-
-### Assinatura de commits
-
-`configs/git/config` mantém `commit.gpgsign = true`. A importação GPG identifica o fingerprint da chave privada e grava esse valor em `user.signingkey`.
-
-A execução posterior de `Git > Configurar Git` preserva a chave configurada.
-
-## Importação de chaves GPG
-
-Configure o Git antes de abrir `GPG > Importar chaves`. A ação valida os quatro destinos do Git, a identidade e os pacotes instalados pelo fluxo de Git.
-
-Defina `GPG_PUBLIC_IMPORT` e `GPG_PRIVATE_IMPORT` no `.env`. Use as cópias obrigatórias em `~/.dotfiles/minha_chave_publica.asc` e `~/.dotfiles/minha_chave_privada.asc`.
-
-A ação executa as seguintes etapas:
-
-1. Valida que o Git está configurado e que os dois arquivos existem.
-2. Instala o pacote `gnupg` com `pacman` quando necessário.
-3. Importa a chave pública com `gpg --import`.
-4. Importa a chave privada com `gpg --import`.
-5. Identifica o fingerprint da chave privada.
-6. Grava o fingerprint em `user.signingkey` no repositório e em `~/.gitconfig`.
-
-A CLI não copia as chaves. O padrão `*.asc` está no `.gitignore` para impedir o versionamento acidental.
-
-### Comportamentos globais do Git
-
-`configs/git/config` define, entre outros ajustes:
-
-- branch inicial `main`;
-- `pull` com rebase e somente fast-forward;
-- configuração automática do upstream no primeiro push;
-- remoção de referências obsoletas no fetch;
-- algoritmo de diff `histogram` e detecção de cópias;
-- rebase com autostash e autosquash;
-- `rerere` habilitado;
-- editor `nvim` e ferramenta de merge `nvimdiff`;
-- cache de credenciais por uma hora;
-- Git LFS quando o executável estiver instalado;
-- aliases `ci`, `co`, `cm`, `cb`, `st`, `sf` e `lg`.
-
-## Niri
-
-A opção `Niri` copia `configs/niri/` para `~/.config/niri`. O destino é um diretório regular, sem links simbólicos.
-
-Quando o destino possui conteúdo diferente, a CLI preserva a configuração anterior em `~/.config/niri.backup-AAAAMMDD-HHMMSS`. Cópias idênticas não criam backups.
-
-## Noctalia
-
-A tela `Noctalia` lista os plugins necessários e indica quais ainda precisam ser baixados pela interface do Noctalia:
+`Desktop > Noctalia` exige estes plugins:
 
 - `github-kanban`
 - `mini-docker`
 - `noctaproton-vpn`
 - `zed-provider`
 
-A opção `Configurar Noctalia` exige todos os plugins em `~/.local/state/noctalia/plugins/materialized/community`. A CLI não baixa os plugins.
+A CLI procura os plugins neste diretório:
 
-Após a validação, a CLI copia `configs/noctalia/settings.toml` e `configs/noctalia/state.toml` como arquivos regulares. Os demais dados do Noctalia, inclusive os plugins, permanecem no diretório de estado.
+```text
+~/.local/state/noctalia/plugins/materialized/community
+```
 
-Arquivos existentes são preservados com o sufixo `.backup-AAAAMMDD-HHMMSS` antes da ativação.
+A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `state.toml` para o estado do Noctalia.
 
-## Wallpapers
+### Ghostty
 
-A opção `Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`. O destino é um diretório regular, sem links simbólicos.
+`Desktop > Ghostty` instala `ghostty` via Shelly e copia `configs/ghostty/` para `~/.config/ghostty`.
 
-A pasta inclui imagens para desktop, Android e iPhone. A CLI preserva um destino diferente como `~/.wallpapers.backup-AAAAMMDD-HHMMSS`.
+### Obsidian
 
-Uma cópia idêntica não cria outro backup. Execute a ação novamente para aplicar alterações feitas nas imagens do repositório.
+`Desktop > Obsidian` instala `obsidian-bin` via Shelly/AUR e copia `configs/obsidian/` para `~/.obsidian`.
 
-## Foto de perfil
+### Wallpapers
 
-A opção `Foto de perfil` cria `~/.face` como link simbólico para `assets/face.jpg`. A imagem versionada é um JPEG quadrado de 300 por 300 pixels.
+`Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`.
 
-A ação substitui um arquivo ou link existente em `~/.face`. Faça backup da foto atual antes de executar a opção.
+A pasta contém imagens para desktop, Android e iPhone.
 
-## SSH
+### Foto de perfil
 
-O menu `SSH` mostra o estado do servidor, o modo de inicialização, a porta, o hardening, as chaves autorizadas e os endereços locais.
+`Desktop > Foto de perfil` cria `~/.face` como link simbólico para `assets/face.jpg`.
 
-A ação `Configurar cliente` exige estes arquivos regulares em `~/.ssh`:
+A ação substitui o destino existente. Faça uma cópia manual quando quiser preservar a foto atual.
 
-- `id_github_reesearch64`
-- `id_github_reesearch64.pub`
-- `id_gitlab_reesearch64`
-- `id_gitlab_reesearch64.pub`
+### Backups de diretórios
 
-Após validar os quatro arquivos, a ação copia `configs/ssh/config` para `~/.ssh/config`. Ela aplica permissão `0700` ao diretório e `0600` ao arquivo.
+Niri, Ghostty, Obsidian, wallpapers e btop usam cópias regulares.
 
-Uma configuração diferente é preservada como `~/.ssh/config.backup-AAAAMMDD-HHMMSS`. Uma cópia idêntica não cria outro backup.
+Quando o destino é diferente, a CLI o renomeia com o sufixo `.backup-AAAAMMDD-HHMMSS`. Conteúdo idêntico não gera outro backup.
 
-As ações disponíveis são:
+## Pi Agent
 
-- **Configurar cliente:** valida as identidades e copia a configuração do cliente.
-- **Ativar permanente:** habilita `sshd.service` no boot.
-- **Ativar via socket:** habilita `sshd.socket` e inicia o daemon sob demanda.
-- **Ativar temporário:** inicia o serviço somente na sessão atual.
-- **Parar SSH:** desabilita e para o serviço e o socket.
-- **Aplicar hardening:** desativa senha, autenticação interativa e login de root.
-- **Remover hardening:** remove `/etc/ssh/sshd_config.d/10-hardening.conf`.
+`Agentes de IA > Pi Agent > Configurar Pi Agent`:
 
-O hardening exige pelo menos uma entrada válida em `~/.ssh/authorized_keys`. A CLI valida a configuração com `sshd -t` antes de recarregar o serviço.
+1. Valida o settings e o tema Noctalia.
+2. Instala o Pi pelo script oficial quando necessário.
+3. Copia os arquivos para `~/.pi/agent`.
+4. Preserva arquivos diferentes com backup datado.
+5. Executa `pi update --extensions`.
 
-## Firewall
+A configuração inclui o repositório `nothingrotf/pi-extensions` e seus pacotes `ask`, `compact`, `fast-mode`, `filetools`, `goal`, `hud`, `inline-skill`, `loop`, `session-history`, `subagent`, `tgrep`, `todo` e `pstack`.
 
-O menu `Firewall` usa UFW e mostra o serviço, as políticas, as regras de entrada, a porta SSH e a sub-rede local detectada.
+Ela também inclui `@gotgenes/pi-anthropic-auth` e `pi-antigravity`. A atualização pode alterar pacotes que já estão instalados.
 
-As ações disponíveis são:
+Após a configuração:
 
-- ativar ou desativar o firewall;
-- liberar a porta SSH para qualquer origem;
-- liberar a porta SSH apenas para a LAN;
-- remover regras que liberam a porta SSH.
+1. Abra um novo terminal.
+2. Execute `pi` dentro de um projeto.
+3. Use `/login` para autenticar o provedor Codex.
+4. Use `/login anthropic` e `/login antigravity` quando necessário.
+5. Use `/setup-pstack` para configurar os modelos do pstack.
+6. Reinicie o Pi.
 
-A ativação usa `deny incoming` e `allow outgoing`. Em uma sessão SSH remota, a CLI libera a porta atual antes de ativar o UFW para reduzir o risco de perder acesso.
+Nunca versione estes arquivos:
+
+```text
+~/.pi/agent/auth.json
+~/.pi/agent/antigravity-accounts.json
+```
+
+Os pacotes do Pi executam código com as permissões do usuário. Revise as origens antes de atualizar extensões.
 
 ## Estrutura do repositório
 
 ```text
 .
 ├── assets/
-│   ├── face.jpg         # Foto instalada em ~/.face
-│   └── wallpapers/      # Imagens copiadas para ~/.wallpapers
-├── cmd/dotfiles/        # Aplicação Go com Bubble Tea
+│   ├── face.jpg
+│   └── wallpapers/
+├── cmd/dotfiles/          # Código e testes da CLI
 ├── configs/
-│   ├── ghostty/         # Configuração copiada para ~/.config/ghostty
-│   ├── git/             # Arquivos globais do Git
-│   ├── mise/            # Versões globais das ferramentas
-│   ├── niri/            # Configuração copiada para ~/.config/niri
-│   ├── noctalia/        # Configuração copiada para o estado do Noctalia
-│   ├── obsidian/        # Configuração copiada para ~/.obsidian
-│   ├── pi/              # Settings e tema do Pi Agent
-│   └── ssh/             # Configuração copiada para ~/.ssh/config
-├── .env.example         # Modelo da identidade Git
-├── go.mod               # Módulo Go da CLI
-├── go.sum               # Dependências fixadas da CLI
-└── Makefile             # Build, instalação, execução e limpeza
+│   ├── btop/
+│   ├── ghostty/
+│   ├── git/
+│   ├── mise/
+│   ├── niri/
+│   ├── noctalia/
+│   ├── obsidian/
+│   ├── pi/
+│   └── ssh/
+├── .env.example
+├── go.mod
+├── go.sum
+└── Makefile
 ```
 
-## Comandos de desenvolvimento
+## Desenvolvimento da CLI
 
 ```bash
-make cli       # compila bin/dotfiles
-make run       # compila e executa
-make install   # compila e cria o link em ~/.local/bin
-make clean     # remove bin/
+make cli       # Compila bin/dotfiles
+make run       # Compila e executa a CLI
+make install   # Instala o comando em ~/.local/bin
+make clean     # Remove bin/
 go test ./...
+go vet ./...
 ```
 
-Use `DOTFILES_DIR` para apontar a CLI para outro checkout:
+Use outro checkout com `DOTFILES_DIR`:
 
 ```bash
 DOTFILES_DIR=/caminho/para/dotfiles dotfiles
 ```
 
-Sem essa variável, a CLI procura o repositório a partir do caminho real do executável. Se a descoberta falhar, usa `~/.dotfiles`.
+Sem essa variável, a CLI resolve o repositório pelo executável. Se isso falhar, ela usa `~/.dotfiles`.
 
-## Segurança e recuperação
+## Solução de problemas
 
-- Revise ações de `sudo` antes de confirmar instalações ou mudanças de serviço.
-- Proteja as chaves privadas SSH e nunca as versione.
-- Adicione uma chave autorizada antes de habilitar o hardening SSH.
-- Libere a porta correta antes de ativar o firewall em uma máquina remota.
-- Faça backup dos quatro destinos Git, de `~/.wallpapers` e de `~/.face` antes de configurá-los.
-- Nunca versione `.env`, chaves privadas ou credenciais.
-- Desmonte o pendrive após importar as chaves quando ele não estiver em uso.
+### Falha em pacote AUR pelo Shelly
 
-Para remover somente o comando instalado:
+Instale manualmente para obter a mensagem completa:
+
+```bash
+shelly install aur nome-do-pacote
+```
+
+`AUR operation failed` é uma mensagem geral. Consulte as linhas anteriores e o bloco `Technical details` para encontrar a causa.
+
+Para pacotes oficiais, use:
+
+```bash
+shelly install standard nome-do-pacote
+```
+
+### Comando `dotfiles` não encontrado
+
+Confirme o link e o `PATH`:
+
+```bash
+ls -l ~/.local/bin/dotfiles
+printf '%s\n' "$PATH"
+```
+
+### Remoção da CLI
+
+Remova somente o comando e o binário:
 
 ```bash
 rm -f ~/.local/bin/dotfiles
 make clean
 ```
 
-A remoção do comando não desfaz serviços, regras de firewall ou configurações instaladas. Remova `~/.face` manualmente quando quiser desfazer a foto de perfil.
+Essa remoção não desfaz serviços, pacotes, regras de firewall ou configurações aplicadas.
+
+## Segurança
+
+- Nunca versione `.env`, arquivos `*.asc`, chaves SSH privadas ou credenciais.
+- Revise cada ação antes de selecioná-la. A autorização do `sudo` cobre os passos privilegiados seguintes.
+- Configure uma chave autorizada antes de ativar o hardening SSH.
+- Confirme a porta SSH antes de ativar o firewall remotamente.
+- Revise pacotes do AUR e extensões do Pi antes da instalação.
+
+## Licença
+
+Consulte [LICENSE](LICENSE).
