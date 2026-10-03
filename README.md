@@ -222,12 +222,13 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 
 1. Instala o `mise` via Shelly.
 2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
-3. Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
-4. Instala todas as ferramentas declaradas no `mise.toml`.
-5. Instala `rustup` via Pacman.
-6. Instala e seleciona a toolchain Rust estável.
-7. Valida `rustc --version` e `cargo --version`.
-8. Executa `npm login`.
+3. Marca a configuração do Mise como confiável.
+4. Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
+5. Instala todas as ferramentas declaradas no `mise.toml`.
+6. Instala `rustup` via Pacman.
+7. Instala e seleciona a toolchain Rust estável.
+8. Valida `rustc --version` e `cargo --version`.
+9. Executa `npm login`.
 
 O arquivo `configs/mise/mise.toml` instala:
 
@@ -242,6 +243,8 @@ O arquivo `configs/mise/mise.toml` instala:
 - Python
 - Go
 - uv
+- PHP
+- Composer, incluído pelo plugin PHP do Mise
 
 Abra um novo terminal para carregar a ativação do Mise no Fish.
 

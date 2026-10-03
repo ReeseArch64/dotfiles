@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 )
 
@@ -51,14 +53,36 @@ func TestInstallMiseFishActivation(t *testing.T) {
 	}
 }
 
+func TestMiseConfigIncludesPHPAndComposer(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "..", "configs", "mise", "mise.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`php = "https://github.com/verzly/mise-php#latest"`,
+		`php = { version = "latest" }`,
+	} {
+		if !strings.Contains(string(content), want) {
+			t.Fatalf("configuração %q ausente em mise.toml", want)
+		}
+	}
+}
+
 func TestMiseSetupActivatesToolsAfterConfig(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	steps := miseSetupSteps("/tmp/dotfiles")
-	if len(steps) < 2 {
+	if len(steps) < 3 {
 		t.Fatalf("passos insuficientes: %d", len(steps))
 	}
-	if steps[len(steps)-2].label != "Symlink ~/.config/mise/config.toml" {
-		t.Fatalf("configuração ausente: %s", steps[len(steps)-2].label)
+	if steps[len(steps)-3].label != "Symlink ~/.config/mise/config.toml" {
+		t.Fatalf("configuração ausente: %s", steps[len(steps)-3].label)
+	}
+	if steps[len(steps)-2].label != "Confiar na configuração do mise" {
+		t.Fatalf("confiança ausente: %s", steps[len(steps)-2].label)
+	}
+	want := []string{"mise", "trust", "/tmp/dotfiles/configs/mise/mise.toml"}
+	if got := commandTail(t, steps[len(steps)-2], len(want)); !slices.Equal(got, want) {
+		t.Fatalf("comando de confiança inesperado: %v", got)
 	}
 	if steps[len(steps)-1].label != "Ativar ferramentas do mise no Fish" {
 		t.Fatalf("ativação ausente: %s", steps[len(steps)-1].label)

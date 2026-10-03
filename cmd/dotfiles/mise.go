@@ -51,6 +51,7 @@ func miseSetupSteps(dotfiles string) []step {
 		nativeStep("Symlink ~/.config/mise/config.toml", func() error {
 			return installMiseConfig(dotfiles, home)
 		}),
+		terminalStep("Confiar na configuração do mise", "mise", "trust", configPath(dotfiles, "mise", "mise.toml")),
 		nativeStep("Ativar ferramentas do mise no Fish", func() error {
 			return installMiseFishActivation(home)
 		}),

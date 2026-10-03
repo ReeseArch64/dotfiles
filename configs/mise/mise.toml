@@ -1,3 +1,6 @@
+[plugins]
+php = "https://github.com/verzly/mise-php#latest"
+
 [tools]
 awscli = { version = "latest", symlink_bins = true }
 
@@ -20,3 +23,5 @@ python = { version = "latest" }
 go = { version = "latest" }
 
 uv = { version = "latest" }
+
+php = { version = "latest" }
