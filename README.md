@@ -291,6 +291,10 @@ Abra um novo terminal para carregar a ativação do Mise no Fish.
 - fd
 - ripgrep
 - fzf
+- wl-clipboard
+- just
+- rate-mirrors
+- CMake
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
