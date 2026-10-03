@@ -59,7 +59,7 @@ Também são necessários:
 
 Algumas ações possuem requisitos próprios. Eles estão descritos nas seções correspondentes.
 
-Pi Agent e LunarVim executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
+Pi Agent, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
 
 ## Instalação rápida
 
@@ -225,10 +225,12 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 3. Marca a configuração do Mise como confiável.
 4. Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
 5. Instala todas as ferramentas declaradas no `mise.toml`.
-6. Instala `rustup` via Pacman.
+6. Instala `rustup` e o toolkit `tk` para Python via Pacman.
 7. Instala e seleciona a toolchain Rust estável.
 8. Valida `rustc --version` e `cargo --version`.
-9. Executa `npm login`.
+9. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
+10. Executa `bs auth init`.
+11. Executa `npm login`.
 
 O arquivo `configs/mise/mise.toml` instala:
 

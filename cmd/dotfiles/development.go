@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 )
 
+var developmentPacmanPackages = []string{"rustup", "tk"}
+
+const betterStackInstallCommand = "curl -fsSL https://raw.githubusercontent.com/sounak98/betterstack-cli/main/install.sh | sh"
+
 func developmentToolsInstallStep(dotfiles string) step {
 	return terminalStep(
 		"Instalar ferramentas configuradas via mise",
@@ -21,6 +25,15 @@ func npmLoginStep(home string) step {
 
 func rustupToolchainStep() step {
 	return terminalStep("Instalar toolchain Rust estável", "rustup", "default", "stable")
+}
+
+func betterStackInstallStep() step {
+	return terminalStep("Instalar Better Stack CLI", "sh", "-c", betterStackInstallCommand)
+}
+
+func betterStackLoginStep(home string) step {
+	path := filepath.Join(home, ".local", "bin") + ":" + os.Getenv("PATH")
+	return terminalStep("Autenticar no Better Stack", "env", "PATH="+path, "bs", "auth", "init")
 }
 
 func rustToolPath(home, name string) (string, error) {
@@ -48,22 +61,24 @@ func verifyRustTools(home string) error {
 	return nil
 }
 
-func developmentEnvironmentSteps(dotfiles, home string, rustupSteps []step) []step {
+func developmentEnvironmentSteps(dotfiles, home string, packageSteps []step) []step {
 	steps := miseSetupSteps(dotfiles)
 	steps = append(steps, developmentToolsInstallStep(dotfiles))
-	steps = append(steps, rustupSteps...)
+	steps = append(steps, packageSteps...)
 	return append(steps,
 		rustupToolchainStep(),
 		nativeStep("Verificar rustc e cargo", func() error {
 			return verifyRustTools(home)
 		}),
+		betterStackInstallStep(),
+		betterStackLoginStep(home),
 		npmLoginStep(home),
 	)
 }
 
 func developmentEnvironmentJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
-	steps := developmentEnvironmentSteps(dotfiles, home, ensurePkgs("rustup"))
+	steps := developmentEnvironmentSteps(dotfiles, home, ensurePkgs(developmentPacmanPackages...))
 	return job{
 		title: "Configurar Ambiente de Desenvolvimento",
 		steps: steps,
