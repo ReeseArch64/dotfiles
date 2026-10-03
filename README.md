@@ -11,8 +11,8 @@ A CLI organiza as ações em quatro áreas:
 | Área | Ações |
 | --- | --- |
 | Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
-| Desenvolvimento | Git, GPG, ambiente de desenvolvimento, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Ghostty, Zen Browser, Obsidian, wallpapers e foto de perfil |
+| Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
+| Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
@@ -302,6 +302,24 @@ A cópia substitui o `config.fish` atual. Ela também remove o antigo arquivo `c
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
+### Ambiente Sandbox
+
+`Desenvolvimento > Ambiente Sandbox` executa estas etapas:
+
+1. Instala `podman`, `podman-compose` e `distrobox` via Pacman.
+2. Instala `podman-tui-bin` via Shelly/AUR.
+3. Define `container_manager="podman"` em `~/.config/distrobox/distrobox.conf`.
+4. Preserva as outras opções existentes no arquivo do Distrobox.
+5. Executa `distrobox create --name sandbox --image archlinux`.
+
+Entre no ambiente depois da criação:
+
+```bash
+distrobox enter sandbox
+```
+
+Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Distrobox integra o diretório pessoal por padrão e não funciona como limite de segurança.
+
 ### IDEs
 
 `Desenvolvimento > Instalar IDEs` instala:
@@ -408,6 +426,10 @@ mv zen-backup.tar ~/.dotfiles/
 A restauração substitui os dados atuais sem manter backup. Feche o Zen Browser e preserve manualmente qualquer perfil ou chave necessária.
 
 O `.gitignore` exclui `zen-backup.tar` e `zen-backup/`. O arquivo contém dados pessoais e credenciais que nunca devem ser versionados.
+
+### Thunderbird
+
+`Desktop > Thunderbird` instala o pacote `thunderbird` via Pacman quando ele ainda não está instalado.
 
 ### Obsidian
 
