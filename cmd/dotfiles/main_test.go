@@ -28,10 +28,11 @@ func TestMainMenuHasAtMostFiveOptions(t *testing.T) {
 func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	model := newModel(t.TempDir())
 	categories := map[screen][]string{
-		screenSystem:      {"SSH", "Firewall", "Docker", "Drivers"},
+		screenSystem:      {"SSH", "Firewall", "Docker", "Drivers", "Aplicativos pré-instalados"},
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Instalar IDEs", "Ferramentas de terminal"},
 		screenDesktop:     {"Niri", "Noctalia", "Ghostty", "Obsidian", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent"},
+		screenCleanup:     {"Remover aplicativos"},
 	}
 	for category, want := range categories {
 		model.screen = category

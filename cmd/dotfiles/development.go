@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-var developmentPacmanPackages = []string{"rustup", "tk"}
+var developmentPacmanPackages = []string{"fish", "rustup", "tk"}
 
 const betterStackInstallCommand = "curl -fsSL https://raw.githubusercontent.com/sounak98/betterstack-cli/main/install.sh | sh"
 
@@ -18,9 +18,24 @@ func developmentToolsInstallStep(dotfiles string) step {
 	)
 }
 
-func npmLoginStep(home string) step {
+func miseToolLoginStep(home, label, command string, args ...string) step {
 	path := filepath.Join(home, ".local", "share", "mise", "shims") + ":" + os.Getenv("PATH")
-	return terminalStep("Autenticar no npm", "env", "PATH="+path, "npm", "login")
+	argv := []string{"env", "PATH=" + path, command}
+	return terminalStep(label, append(argv, args...)...)
+}
+
+func cloudLoginSteps(home string) []step {
+	return []step{
+		miseToolLoginStep(home, "Autenticar na AWS", "aws", "login"),
+		miseToolLoginStep(home, "Autenticar no Google Cloud", "gcloud", "auth", "login"),
+		miseToolLoginStep(home, "Autenticar no Railway", "railway", "login"),
+		miseToolLoginStep(home, "Autenticar no Firebase", "firebase", "login"),
+		miseToolLoginStep(home, "Autenticar no Azure", "az", "login"),
+	}
+}
+
+func npmLoginStep(home string) step {
+	return miseToolLoginStep(home, "Autenticar no npm", "npm", "login")
 }
 
 func rustupToolchainStep() step {
@@ -64,7 +79,9 @@ func verifyRustTools(home string) error {
 func developmentEnvironmentSteps(dotfiles, home string, packageSteps []step) []step {
 	steps := miseSetupSteps(dotfiles)
 	steps = append(steps, developmentToolsInstallStep(dotfiles))
+	steps = append(steps, cloudLoginSteps(home)...)
 	steps = append(steps, packageSteps...)
+	steps = append(steps, fishConfigStep(dotfiles, home))
 	return append(steps,
 		rustupToolchainStep(),
 		nativeStep("Verificar rustc e cargo", func() error {

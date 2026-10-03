@@ -31,6 +31,7 @@ const (
 	screenGit
 	screenGPG
 	screenNoctalia
+	screenCleanup
 	screenJob
 )
 
@@ -47,6 +48,7 @@ var screenTitles = map[screen]string{
 	screenGit:         "Git",
 	screenGPG:         "GPG",
 	screenNoctalia:    "Noctalia",
+	screenCleanup:     "Aplicativos pré-instalados",
 }
 
 type item struct {
@@ -113,6 +115,7 @@ func (m model) items() []item {
 			{title: "Firewall", desc: "Ativar o UFW e liberar o SSH somente na LAN", goTo: screenFirewall},
 			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
 			{title: "Drivers", desc: "Instalar base-devel, Vulkan, glxinfo e headers do Linux", job: driversJob},
+			{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Ghostty", goTo: screenCleanup},
 		}
 	case screenDevelopment:
 		return []item{
@@ -149,6 +152,8 @@ func (m model) items() []item {
 		return m.gpgItems()
 	case screenNoctalia:
 		return m.noctaliaItems()
+	case screenCleanup:
+		return m.cleanupItems()
 	}
 	return nil
 }

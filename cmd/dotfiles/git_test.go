@@ -3,9 +3,74 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
+
+func TestGitPacmanPackagesIncludeGitHubCLI(t *testing.T) {
+	want := []string{"git", "github-cli"}
+	if !slices.Equal(gitPacmanPackages, want) {
+		t.Fatalf("pacotes Pacman do Git inesperados: %v", gitPacmanPackages)
+	}
+}
+
+func TestGitShellyPackagesIncludeGlab(t *testing.T) {
+	want := []string{"lazygit", "glab"}
+	if !slices.Equal(gitShellyPackages, want) {
+		t.Fatalf("pacotes Git inesperados: %v", gitShellyPackages)
+	}
+}
+
+func TestGitHubLoginStepUsesSSH(t *testing.T) {
+	current := githubLoginStep()
+	want := []string{"gh", "auth", "login", "--git-protocol", "ssh"}
+	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
+		t.Fatalf("comando gh inesperado: %v", got)
+	}
+}
+
+func TestGlabLoginStepUsesSSH(t *testing.T) {
+	current := glabLoginStep()
+	want := []string{"glab", "auth", "login", "--git-protocol", "ssh"}
+	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
+		t.Fatalf("comando glab inesperado: %v", got)
+	}
+}
+
+func TestValidateGitSSHRequiresConfiguredClient(t *testing.T) {
+	dotfiles := t.TempDir()
+	home := t.TempDir()
+	if err := validateGitSSH(dotfiles, home); err == nil || !strings.Contains(err.Error(), "chaves ausentes") {
+		t.Fatalf("erro inesperado: %v", err)
+	}
+}
+
+func TestValidateGitSSHAcceptsConfiguredClient(t *testing.T) {
+	dotfiles := t.TempDir()
+	home := t.TempDir()
+	if err := os.MkdirAll(configPath(dotfiles, "ssh"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(home, ".ssh"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range requiredSSHIdentityFiles {
+		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte(name), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	content := []byte("Host github.com\n")
+	if err := os.WriteFile(configPath(dotfiles, "ssh", "config"), content, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".ssh", "config"), content, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateGitSSH(dotfiles, home); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestWriteGitSigningKeyPreservesIdentity(t *testing.T) {
 	path := filepath.Join(t.TempDir(), ".gitconfig")
@@ -36,6 +101,16 @@ func TestWriteGitSigningKeyPreservesIdentity(t *testing.T) {
 	}
 	if info.Mode().Perm() != 0600 {
 		t.Fatalf("permissões inesperadas: %v", info.Mode().Perm())
+	}
+}
+
+func TestGitJobValidatesSSHBeforeAuthentications(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	steps := gitJob(t.TempDir()).steps
+	labels := jobStepLabels(job{steps: steps})
+	want := []string{"Validar SSH para GitHub e GitLab", "Autenticar no GitHub com SSH", "Autenticar no GitLab com SSH"}
+	if got := labels[len(labels)-len(want):]; !slices.Equal(got, want) {
+		t.Fatalf("passos finais inesperados: %v", got)
 	}
 }
 

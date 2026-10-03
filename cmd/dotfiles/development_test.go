@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-func TestDevelopmentPacmanPackagesIncludeRustupAndTk(t *testing.T) {
-	want := []string{"rustup", "tk"}
+func TestDevelopmentPacmanPackagesIncludeFishRustupAndTk(t *testing.T) {
+	want := []string{"fish", "rustup", "tk"}
 	if !slices.Equal(developmentPacmanPackages, want) {
 		t.Fatalf("pacotes do ambiente inesperados: %v", developmentPacmanPackages)
 	}
@@ -20,6 +20,32 @@ func TestDevelopmentToolsInstallStepUsesMiseConfig(t *testing.T) {
 	want := []string{"mise", "--cd", "/tmp/dotfiles", "install"}
 	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
 		t.Fatalf("comando mise inesperado: %v", got)
+	}
+}
+
+func TestCloudLoginStepsUseMiseShims(t *testing.T) {
+	t.Setenv("PATH", "/usr/bin")
+	steps := cloudLoginSteps("/tmp/home")
+	want := []struct {
+		label string
+		args  []string
+	}{
+		{"Autenticar na AWS", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "aws", "login"}},
+		{"Autenticar no Google Cloud", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "gcloud", "auth", "login"}},
+		{"Autenticar no Railway", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "railway", "login"}},
+		{"Autenticar no Firebase", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "firebase", "login"}},
+		{"Autenticar no Azure", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "az", "login"}},
+	}
+	if len(steps) != len(want) {
+		t.Fatalf("quantidade de autenticações inesperada: %d", len(steps))
+	}
+	for i, expected := range want {
+		if steps[i].label != expected.label {
+			t.Fatalf("rótulo inesperado: %s", steps[i].label)
+		}
+		if got := commandTail(t, steps[i], len(expected.args)); !slices.Equal(got, expected.args) {
+			t.Fatalf("comando de autenticação inesperado para %s: %v", expected.label, got)
+		}
 	}
 }
 
@@ -88,13 +114,18 @@ printf '%s 1.0.0\n' "$(basename "$0")"`)
 func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	steps := developmentEnvironmentSteps("/tmp/dotfiles", home, []step{{label: "Instalar rustup, tk"}})
+	steps := developmentEnvironmentSteps("/tmp/dotfiles", home, []step{{label: "Instalar fish, rustup, tk"}})
 	labels := jobStepLabels(job{steps: steps})
 	for _, want := range []string{
 		"Symlink ~/.config/mise/config.toml",
-		"Ativar ferramentas do mise no Fish",
 		"Instalar ferramentas configuradas via mise",
-		"Instalar rustup, tk",
+		"Autenticar na AWS",
+		"Autenticar no Google Cloud",
+		"Autenticar no Railway",
+		"Autenticar no Firebase",
+		"Autenticar no Azure",
+		"Instalar fish, rustup, tk",
+		"Copiar configuração para ~/.config/fish/config.fish",
 		"Instalar toolchain Rust estável",
 		"Verificar rustc e cargo",
 		"Instalar Better Stack CLI",
@@ -105,7 +136,16 @@ func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 			t.Fatalf("passo %q ausente: %v", want, labels)
 		}
 	}
-	if slices.Index(labels, "Instalar rustup, tk") > slices.Index(labels, "Instalar toolchain Rust estável") {
+	if slices.Index(labels, "Instalar ferramentas configuradas via mise") > slices.Index(labels, "Autenticar na AWS") {
+		t.Fatalf("ferramentas do Mise devem ser instaladas antes das autenticações: %v", labels)
+	}
+	if slices.Index(labels, "Autenticar no Azure") > slices.Index(labels, "Instalar fish, rustup, tk") {
+		t.Fatalf("autenticações cloud devem ocorrer antes das instalações do Pacman: %v", labels)
+	}
+	if slices.Index(labels, "Instalar fish, rustup, tk") > slices.Index(labels, "Copiar configuração para ~/.config/fish/config.fish") {
+		t.Fatalf("Fish deve ser instalado antes de copiar sua configuração: %v", labels)
+	}
+	if slices.Index(labels, "Instalar fish, rustup, tk") > slices.Index(labels, "Instalar toolchain Rust estável") {
 		t.Fatalf("rustup deve ser instalado antes da toolchain: %v", labels)
 	}
 	if slices.Index(labels, "Instalar Better Stack CLI") > slices.Index(labels, "Autenticar no Better Stack") {

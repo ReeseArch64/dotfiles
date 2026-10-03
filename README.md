@@ -10,7 +10,7 @@ A CLI organiza as ações em quatro áreas:
 
 | Área | Ações |
 | --- | --- |
-| Sistema | SSH, Firewall, Docker e Drivers |
+| Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
 | Desenvolvimento | Git, GPG, ambiente de desenvolvimento, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
@@ -123,6 +123,35 @@ Durante uma ação, aguarde todos os passos. A CLI entrega o terminal aos comand
 
 O pacote `mesa-utils` fornece o comando `glxinfo`.
 
+### Aplicativos pré-instalados
+
+`Sistema > Aplicativos pré-instalados > Remover aplicativos` remove estes pacotes do CachyOS:
+
+- `firefox`
+- `alacritty`
+- `meld`
+- `micro`
+
+A ação exige que o pacote `ghostty` esteja instalado antes de remover o Alacritty. Configure o Ghostty no menu `Desktop` primeiro.
+
+A CLI atualiza as bases e executa `pacman -Rns` somente com os quatro pacotes que ainda estão instalados. Confirme a lista apresentada pelo Pacman antes de continuar.
+
+Após a desinstalação, a ação remove estes diretórios do usuário atual:
+
+```text
+~/.mozilla
+~/.cache/mozilla
+~/.config/alacritty
+~/.cache/alacritty
+~/.config/meld
+~/.local/share/meld
+~/.cache/meld
+~/.config/micro
+~/.cache/micro
+```
+
+Esse conteúdo não recebe backup. Preserve manualmente qualquer dado necessário antes de executar a ação.
+
 ### Docker
 
 `Sistema > Docker > Configurar Docker` executa estas etapas:
@@ -178,9 +207,12 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 
 `Desenvolvimento > Git > Configurar Git`:
 
-1. Instala `git` via Pacman.
-2. Instala `lazygit` via Shelly.
+1. Instala `git` e `github-cli` via Pacman.
+2. Instala `lazygit` e `glab` via Shelly.
 3. Aplica os arquivos globais.
+4. Exige que as chaves e o arquivo `~/.ssh/config` já estejam configurados.
+5. Executa `gh auth login --git-protocol ssh`.
+6. Executa `glab auth login --git-protocol ssh`.
 
 | Destino | Origem | Formato |
 | --- | --- | --- |
@@ -223,19 +255,26 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 1. Instala o `mise` via Shelly.
 2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
 3. Marca a configuração do Mise como confiável.
-4. Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
-5. Instala todas as ferramentas declaradas no `mise.toml`.
-6. Instala `rustup` e o toolkit `tk` para Python via Pacman.
-7. Instala e seleciona a toolchain Rust estável.
-8. Valida `rustc --version` e `cargo --version`.
-9. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
-10. Executa `bs auth init`.
-11. Executa `npm login`.
+4. Instala todas as ferramentas declaradas no `mise.toml`.
+5. Autentica AWS, Google Cloud, Railway, Firebase e Azure.
+6. Instala Fish, `rustup` e o toolkit `tk` para Python via Pacman.
+7. Copia `configs/fish/config.fish` para `~/.config/fish/config.fish`.
+8. Instala e seleciona a toolchain Rust estável.
+9. Valida `rustc --version` e `cargo --version`.
+10. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
+11. Executa `bs auth init`.
+12. Executa `npm login`.
 
 O arquivo `configs/mise/mise.toml` instala:
 
 - AWS CLI
-- Java Temurin
+- Google Cloud CLI
+- Railway CLI
+- Firebase CLI
+- Azure CLI
+- Java Temurin 8, 11, 17 e 21, com Java 21 como padrão
+- Gradle
+- Maven
 - Flutter
 - Node.js e npm
 - Bun
@@ -245,10 +284,20 @@ O arquivo `configs/mise/mise.toml` instala:
 - Python
 - Go
 - uv
-- PHP
-- Composer, incluído pelo plugin PHP do Mise
 
-Abra um novo terminal para carregar a ativação do Mise no Fish.
+Após a instalação pelo Mise, a ação executa estes fluxos interativos:
+
+```text
+aws login
+gcloud auth login
+railway login
+firebase login
+az login
+```
+
+A cópia substitui o `config.fish` atual. Ela também remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada.
+
+Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
 ### IDEs
 
@@ -270,6 +319,9 @@ Abra um novo terminal para carregar a ativação do Mise no Fish.
 - eza
 - scc
 - viddy, compilado pelo pacote AUR
+- mprocs, compilado pelo pacote AUR
+- Posting, compilado pelo pacote AUR
+- usql-bin, instalado pelo pacote AUR
 
 **Pacman:**
 
@@ -297,6 +349,7 @@ Abra um novo terminal para carregar a ativação do Mise no Fish.
 - just
 - rate-mirrors
 - CMake
+- git-delta
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 

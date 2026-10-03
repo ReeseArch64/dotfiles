@@ -1,27 +1,24 @@
-[plugins]
-php = "https://github.com/verzly/mise-php#latest"
-
 [tools]
 awscli = { version = "latest", symlink_bins = true }
+gcloud = { version = "latest" }
+railway = { version = "latest" }
+firebase = { version = "latest" }
+azure-cli = { version = "latest" }
 
-java = { version = "temurin" }
+java = ["temurin-21", "temurin-17", "temurin-11", "temurin-8"]
+gradle = { version = "latest" }
+maven = { version = "latest" }
 
 flutter = { version = "latest" }
 
 node = { version = "latest" }
-
 bun = { version = "latest" }
-
 pnpm = { version = "latest" }
-
 deno = { version = "latest" }
 
 ruby = { version = "latest" }
 
 python = { version = "latest" }
-
-go = { version = "latest" }
-
 uv = { version = "latest" }
 
-php = { version = "latest" }
+go = { version = "latest" }

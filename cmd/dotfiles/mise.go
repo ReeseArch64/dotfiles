@@ -31,19 +31,6 @@ func installMiseConfig(dotfiles, home string) error {
 	return nil
 }
 
-const miseFishActivation = "mise activate fish | source\n"
-
-func installMiseFishActivation(home string) error {
-	destination := filepath.Join(home, ".config", "fish", "conf.d", "dotfiles-mise.fish")
-	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
-		return fmt.Errorf("criar %s: %w", filepath.Dir(destination), err)
-	}
-	if err := os.WriteFile(destination, []byte(miseFishActivation), 0644); err != nil {
-		return fmt.Errorf("gravar %s: %w", destination, err)
-	}
-	return nil
-}
-
 func miseSetupSteps(dotfiles string) []step {
 	home, _ := os.UserHomeDir()
 	steps := ensureShellyPkgs("standard", "mise")
@@ -52,9 +39,6 @@ func miseSetupSteps(dotfiles string) []step {
 			return installMiseConfig(dotfiles, home)
 		}),
 		terminalStep("Confiar na configuração do mise", "mise", "trust", configPath(dotfiles, "mise", "mise.toml")),
-		nativeStep("Ativar ferramentas do mise no Fish", func() error {
-			return installMiseFishActivation(home)
-		}),
 	)
 	return steps
 }

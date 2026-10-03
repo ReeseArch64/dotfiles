@@ -10,6 +10,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var gitPacmanPackages = []string{"git", "github-cli"}
+var gitShellyPackages = []string{"lazygit", "glab"}
+
 type gitStatus struct {
 	missing []string
 	links   []gitLink
@@ -37,7 +40,7 @@ func loadGitStatus(dotfiles string) gitStatus {
 			ok:    ok,
 		})
 	}
-	return gitStatus{missing: missingPkgs("git", "lazygit"), links: links}
+	return gitStatus{missing: missingPkgs("git", "github-cli", "lazygit", "glab"), links: links}
 }
 
 func (g gitStatus) readyForGPG() bool {
@@ -58,7 +61,7 @@ func (g gitStatus) card(width int) string {
 	for _, pkg := range g.missing {
 		missing[pkg] = true
 	}
-	for _, pkg := range []string{"git", "lazygit"} {
+	for _, pkg := range []string{"git", "github-cli", "lazygit", "glab"} {
 		color, value := colOK, pkg+" instalado"
 		if missing[pkg] {
 			color, value = colErr, pkg+" não instalado"
@@ -173,12 +176,32 @@ func writeGitSigningKey(path, signingKey string) error {
 	return nil
 }
 
+func validateGitSSH(dotfiles, home string) error {
+	if missing := missingSSHIdentityFiles(home); len(missing) > 0 {
+		return errors.New("configure o SSH antes de autenticar GitHub e GitLab: chaves ausentes: " + strings.Join(missing, ", "))
+	}
+	source := configPath(dotfiles, "ssh", "config")
+	destination := filepath.Join(home, ".ssh", "config")
+	if !regularFileMatches(source, destination) {
+		return errors.New("configure o SSH antes de autenticar GitHub e GitLab: ~/.ssh/config não está configurado")
+	}
+	return nil
+}
+
+func githubLoginStep() step {
+	return terminalStep("Autenticar no GitHub com SSH", "gh", "auth", "login", "--git-protocol", "ssh")
+}
+
+func glabLoginStep() step {
+	return terminalStep("Autenticar no GitLab com SSH", "glab", "auth", "login", "--git-protocol", "ssh")
+}
+
 func gitJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	defs := gitLinkDefs(dotfiles, home)
 
-	steps := ensurePkgs("git")
-	steps = append(steps, ensureShellyPkgs("standard", "lazygit")...)
+	steps := ensurePkgs(gitPacmanPackages...)
+	steps = append(steps, ensureShellyPkgs("standard", gitShellyPackages...)...)
 	steps = append(steps, nativeStep("Criar ~/.config/git/", func() error {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)
 	}))
@@ -195,6 +218,13 @@ func gitJob(dotfiles string) job {
 			return os.Symlink(src, dst)
 		}))
 	}
+	steps = append(steps,
+		nativeStep("Validar SSH para GitHub e GitLab", func() error {
+			return validateGitSSH(dotfiles, home)
+		}),
+		githubLoginStep(),
+		glabLoginStep(),
+	)
 
 	return job{
 		title: "Configurar Git",
