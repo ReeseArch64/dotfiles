@@ -1,2 +1,4 @@
 bin/
 *.asc
+zen-backup.tar
+zen-backup/

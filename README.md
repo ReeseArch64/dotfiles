@@ -12,7 +12,7 @@ A CLI organiza as ações em quatro áreas:
 | --- | --- |
 | Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
 | Desenvolvimento | Git, GPG, ambiente de desenvolvimento, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Ghostty, Obsidian, wallpapers e foto de perfil |
+| Desktop | Niri, Noctalia, Ghostty, Zen Browser, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
@@ -316,15 +316,12 @@ Abra um novo terminal para carregar a configuração do Fish e a ativação do M
 **Shelly:**
 
 - Neovim
-- wget
-- curl
-- bat
-- eza
 - scc
 - viddy, compilado pelo pacote AUR
 - mprocs, compilado pelo pacote AUR
 - Posting, compilado pelo pacote AUR
 - usql-bin, instalado pelo pacote AUR
+- proton-pass-cli-bin, instalado pelo pacote AUR
 
 **Pacman:**
 
@@ -354,6 +351,10 @@ Abra um novo terminal para carregar a configuração do Fish e a ativação do M
 - CMake
 - git-delta
 - Ventoy
+- eza
+- bat
+- wget
+- curl
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
@@ -385,6 +386,28 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 ### Ghostty
 
 `Desktop > Ghostty` instala `ghostty` via Shelly e copia `configs/ghostty/` para `~/.config/ghostty`.
+
+### Zen Browser
+
+Na máquina original, crie o backup com o Zen Browser fechado:
+
+```bash
+tar -cvf zen-backup.tar -C ~ .config/zen .cache/zen .local/share/keyrings
+mv zen-backup.tar ~/.dotfiles/
+```
+
+`Desktop > Zen Browser` executa estas etapas:
+
+1. Exige o arquivo regular `~/.dotfiles/zen-backup.tar`.
+2. Instala `zen-browser-bin` via Shelly/AUR.
+3. Aceita somente `.config/zen`, `.cache/zen` e `.local/share/keyrings` no arquivo.
+4. Descompacta o conteúdo em `~/.dotfiles/zen-backup`.
+5. Substitui os três diretórios correspondentes no diretório pessoal.
+6. Remove de `zen-backup` os diretórios movidos para seus destinos.
+
+A restauração substitui os dados atuais sem manter backup. Feche o Zen Browser e preserve manualmente qualquer perfil ou chave necessária.
+
+O `.gitignore` exclui `zen-backup.tar` e `zen-backup/`. O arquivo contém dados pessoais e credenciais que nunca devem ser versionados.
 
 ### Obsidian
 

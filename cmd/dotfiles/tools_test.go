@@ -7,15 +7,15 @@ import (
 )
 
 func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
-	wantShelly := []string{"neovim", "wget", "curl", "bat", "eza", "scc"}
+	wantShelly := []string{"neovim", "scc"}
 	if !slices.Equal(terminalToolPackages, wantShelly) {
 		t.Fatalf("pacotes Shelly inesperados: %v", terminalToolPackages)
 	}
-	wantAur := []string{"viddy", "mprocs", "posting", "usql-bin"}
+	wantAur := []string{"viddy", "mprocs", "posting", "usql-bin", "proton-pass-cli-bin"}
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
 		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
 	}
-	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "git-delta", "ventoy"}
+	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "git-delta", "ventoy", "eza", "bat", "wget", "curl"}
 	if !slices.Equal(terminalToolPacmanPackages, wantPacman) {
 		t.Fatalf("pacotes Pacman inesperados: %v", terminalToolPacmanPackages)
 	}
