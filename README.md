@@ -157,7 +157,7 @@ Esse conteúdo não recebe backup. Preserve manualmente qualquer dado necessári
 `Sistema > Docker > Configurar Docker` executa estas etapas:
 
 1. Valida o executável `zen-browser` e o diretório `~/.config/zen`.
-2. Instala Docker, Compose, Buildx, Lazydocker e Kind.
+2. Instala Docker, Compose, Buildx e Lazydocker.
 3. Instala `util-linux` e `xdg-utils`, necessários ao fluxo.
 4. Adiciona o usuário atual ao grupo `docker`.
 5. Habilita e inicia `docker.service`.
@@ -272,6 +272,9 @@ O arquivo `configs/mise/mise.toml` instala:
 - Railway CLI
 - Firebase CLI
 - Azure CLI
+- k9s
+- kind
+- kubectl
 - Java Temurin 8, 11, 17 e 21, com Java 21 como padrão
 - Gradle
 - Maven
@@ -350,6 +353,7 @@ Abra um novo terminal para carregar a configuração do Fish e a ativação do M
 - rate-mirrors
 - CMake
 - git-delta
+- Ventoy
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 

@@ -4,6 +4,9 @@ gcloud = { version = "latest" }
 railway = { version = "latest" }
 firebase = { version = "latest" }
 azure-cli = { version = "latest" }
+k9s = { version = "latest" }
+kind = { version = "latest" }
+kubectl = { version = "latest" }
 
 java = ["temurin-21", "temurin-17", "temurin-11", "temurin-8"]
 gradle = { version = "latest" }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestDockerPackages(t *testing.T) {
-	want := []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "kind", "util-linux", "xdg-utils"}
+	want := []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "util-linux", "xdg-utils"}
 	if packages := dockerRequiredPackages(); !slices.Equal(packages, want) {
 		t.Fatalf("pacotes inesperados: %v", packages)
 	}

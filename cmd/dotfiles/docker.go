@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var dockerPackages = []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "kind"}
+var dockerPackages = []string{"docker", "docker-compose", "lazydocker", "docker-buildx"}
 var dockerDependencies = []string{"util-linux", "xdg-utils"}
 
 func dockerRequiredPackages() []string {

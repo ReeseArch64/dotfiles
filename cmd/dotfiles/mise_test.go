@@ -56,6 +56,22 @@ func TestMiseConfigIncludesCloudCLIs(t *testing.T) {
 	}
 }
 
+func TestMiseConfigIncludesKubernetesCLIs(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "..", "configs", "mise", "mise.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`k9s = { version = "latest" }`,
+		`kind = { version = "latest" }`,
+		`kubectl = { version = "latest" }`,
+	} {
+		if !strings.Contains(string(content), want) {
+			t.Fatalf("configuração %q ausente em mise.toml", want)
+		}
+	}
+}
+
 func TestMiseConfigIncludesJavaGradleAndMaven(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "configs", "mise", "mise.toml"))
 	if err != nil {
