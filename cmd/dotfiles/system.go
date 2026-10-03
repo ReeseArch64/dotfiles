@@ -81,8 +81,6 @@ func unitStates(names ...string) map[string]unitState {
 
 // ---- sshd_config ----
 
-const hardeningFile = "/etc/ssh/sshd_config.d/10-hardening.conf"
-
 // readSSHDConfig resolve as diretivas globais como o sshd faz: primeira
 // ocorrência vence, Include é expandido no lugar e blocos Match são ignorados.
 // partial indica que algum arquivo não pôde ser lido.
@@ -154,11 +152,6 @@ func authorizedKeys() int {
 	return n
 }
 
-func fileExists(p string) bool {
-	_, err := os.Stat(p)
-	return err == nil
-}
-
 // ---- rede ----
 
 type ifaceAddr struct {
@@ -195,8 +188,6 @@ func lanSubnet() string {
 	}
 	return "192.168.1.0/24"
 }
-
-func remoteSession() bool { return os.Getenv("SSH_CONNECTION") != "" }
 
 // ---- UFW ----
 

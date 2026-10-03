@@ -3,11 +3,11 @@ package main
 // Telas de SSH e Firewall: status lido nativamente e ações que viram jobs.
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -41,7 +41,6 @@ type sshStatus struct {
 	service, socket unitState
 	cfg             map[string]string
 	partial         bool
-	hardened        bool
 	keys            int
 	addrs           []ifaceAddr
 }
@@ -50,14 +49,13 @@ func loadSSHStatus() sshStatus {
 	units := unitStates("sshd.service", "sshd.socket")
 	cfg, partial := readSSHDConfig()
 	return sshStatus{
-		missing:  missingPkgs("openssh"),
-		service:  units["sshd.service"],
-		socket:   units["sshd.socket"],
-		cfg:      cfg,
-		partial:  partial,
-		hardened: fileExists(hardeningFile),
-		keys:     authorizedKeys(),
-		addrs:    lanAddrs(),
+		missing: missingPkgs("openssh"),
+		service: units["sshd.service"],
+		socket:  units["sshd.socket"],
+		cfg:     cfg,
+		partial: partial,
+		keys:    authorizedKeys(),
+		addrs:   lanAddrs(),
 	}
 }
 
@@ -120,72 +118,27 @@ func yesNo(v string) string {
 }
 
 func (m model) sshItems() []item {
-	s := m.ssh
-	enable := func(title, unit, other string) job {
-		steps := ensurePkgs("openssh")
-		steps = append(steps,
-			sudoStep("Desabilitar "+other, true, "systemctl", "disable", "--now", other),
-			sudoStep("Habilitar e iniciar "+unit, false, "systemctl", "enable", "--now", unit))
-		return job{title: title, steps: withSudo(steps...), result: sshResult}
-	}
-
-	its := []item{
-		{title: "Configurar cliente", desc: "Validar identidades e copiar configs/ssh/config para ~/.ssh/config",
-			job: func() job { return sshClientConfigJob(m.dotfiles) }},
-		{title: "Ativar permanente", desc: "sshd.service sempre rodando e habilitado no boot",
-			job: func() job { return enable("Ativar SSH permanente", "sshd.service", "sshd.socket") }},
-		{title: "Ativar via socket", desc: "sshd.socket: o daemon só sobe quando chega uma conexão",
-			job: func() job { return enable("Ativar SSH via socket", "sshd.socket", "sshd.service") }},
-		{title: "Ativar temporário", desc: "Só para esta sessão: não persiste após reboot",
-			job: func() job {
-				steps := append(ensurePkgs("openssh"), sudoStep("Iniciar sshd.service", false, "systemctl", "start", "sshd.service"))
-				return job{title: "Ativar SSH temporário", steps: withSudo(steps...), result: sshResult}
-			}},
-		{title: "Parar SSH", desc: "Para e desabilita sshd.service e sshd.socket",
-			job: func() job {
-				return job{title: "Parar SSH", steps: withSudo(
-					sudoStep("Parar e desabilitar sshd.socket", true, "systemctl", "disable", "--now", "sshd.socket"),
-					sudoStep("Parar e desabilitar sshd.service", true, "systemctl", "disable", "--now", "sshd.service"),
-				)}
-			}},
-	}
-
-	if s.hardened {
-		its = append(its, item{title: "Remover hardening", desc: "Volta a permitir login por senha (remove 10-hardening.conf)",
-			job: func() job {
-				return job{title: "Remover hardening", steps: withSudo(
-					sudoStep("Remover "+hardeningFile, false, "rm", "-f", hardeningFile),
-					sudoStep("Validar configuração (sshd -t)", false, "sshd", "-t"),
-					sudoStep("Recarregar sshd", false, "systemctl", "try-reload-or-restart", "sshd.service"),
-				)}
-			}})
-	} else {
-		its = append(its, item{title: "Aplicar hardening", desc: "Só login por chave: desativa senha e login de root",
-			job: func() job { return hardenJob() }})
-	}
-	return its
+	return []item{{
+		title: "Configurar SSH",
+		desc:  "Copia o cliente, libera a LAN e ativa o servidor no boot",
+		job: func() job {
+			return configureSSHJob(m.dotfiles, m.ssh.port(), lanSubnet())
+		},
+	}}
 }
 
-func hardenJob() job {
-	const conf = "# Gerado pelo dotfiles CLI\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n"
-	return job{title: "Aplicar hardening", steps: withSudo(
-		nativeStep("Conferir ~/.ssh/authorized_keys", func() error {
-			if authorizedKeys() == 0 {
-				return errors.New("nenhuma chave em ~/.ssh/authorized_keys: adicione uma antes para não perder o acesso")
-			}
-			return nil
-		}),
-		step{label: "Gravar " + hardeningFile, run: func() (string, error) { return sudoWrite(hardeningFile, conf) }},
-		step{label: "Validar configuração (sshd -t)", run: func() (string, error) {
-			out, err := sudoRun("sshd", "-t")
-			if err != nil {
-				sudoRun("rm", "-f", hardeningFile)
-				out += "\nConfiguração inválida: " + hardeningFile + " foi removido."
-			}
-			return out, err
-		}},
-		sudoStep("Recarregar sshd", false, "systemctl", "try-reload-or-restart", "sshd.service"),
-	)}
+func configureSSHJob(dotfiles, port, lan string) job {
+	home, _ := os.UserHomeDir()
+	steps := []step{nativeStep("Validar chaves e copiar ~/.ssh/config", func() error {
+		return installSSHClientConfig(dotfiles, home, time.Now())
+	})}
+	setup := ensurePkgs("openssh")
+	setup = append(setup, configureFirewallSteps(port, lan)...)
+	setup = append(setup,
+		sudoStep("Desabilitar sshd.socket", true, "systemctl", "disable", "--now", "sshd.socket"),
+		sudoStep("Habilitar e iniciar sshd.service", false, "systemctl", "enable", "--now", "sshd.service"))
+	steps = append(steps, withSudo(setup...)...)
+	return job{title: "Configurar SSH", steps: steps, result: sshResult}
 }
 
 // sshResult mostra como conectar e avisa se o firewall está barrando a porta.
@@ -204,7 +157,7 @@ func sshResult() string {
 	fw := loadFWStatus(s.port())
 	if fw.active() && fw.rulesErr == nil && !fw.sshAllowed() {
 		lines = append(lines, "", lipgloss.NewStyle().Foreground(colWarn).Render(
-			"⚠ O firewall está ativo e não libera a porta "+s.port()+". Use Firewall › Liberar SSH."))
+			"⚠ O firewall está ativo e não libera a porta "+s.port()+". Execute Configurar Firewall."))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -321,92 +274,30 @@ func describeRule(r ufwRule) string {
 }
 
 func (m model) fwItems() []item {
-	f := m.fw
-	port := f.port
-	var its []item
-
-	if f.active() {
-		its = append(its, item{title: "Desativar firewall", desc: "Desliga o UFW (as regras ficam salvas)",
-			job: func() job {
-				return job{title: "Desativar firewall", steps: withSudo(sudoStep("ufw disable", false, "ufw", "disable"))}
-			}})
-	} else {
-		its = append(its, item{title: "Ativar firewall", desc: "Bloqueia entrada, libera saída e liga no boot",
-			job: func() job { return enableFirewallJob(port) }})
-	}
-
-	its = append(its,
-		item{title: "Liberar SSH", desc: fmt.Sprintf("Porta %s/tcp aberta para qualquer origem", port),
-			job: func() job {
-				return fwRuleJob("Liberar SSH", sudoStep("Liberar "+port+"/tcp", false, "ufw", "allow", port+"/tcp", "comment", "SSH"))
-			}},
-		item{title: "Liberar SSH só na LAN", desc: fmt.Sprintf("Porta %s/tcp só para %s", port, f.lan),
-			job: func() job {
-				return fwRuleJob("Liberar SSH só na LAN", sudoStep("Liberar "+port+"/tcp para "+f.lan, false,
-					"ufw", "allow", "from", f.lan, "to", "any", "port", port, "proto", "tcp", "comment", "SSH LAN"))
-			}},
-		item{title: "Fechar SSH", desc: fmt.Sprintf("Remove as regras que liberam a porta %s", port),
-			job: func() job { return closeSSHJob(f) }},
-	)
-	return its
-}
-
-func fwRuleJob(title string, rule step) job {
-	steps := append(ensurePkgs("ufw", "iptables-nft"), rule, sudoStep("Recarregar UFW", true, "ufw", "reload"))
-	return job{title: title, steps: withSudo(steps...)}
-}
-
-func enableFirewallJob(port string) job {
-	steps := ensurePkgs("ufw", "iptables-nft")
-	steps = append(steps,
-		sudoStep("Entrada: bloquear por padrão", false, "ufw", "default", "deny", "incoming"),
-		sudoStep("Saída: permitir por padrão", false, "ufw", "default", "allow", "outgoing"))
-	// Numa sessão remota, liberar o SSH antes de ativar evita perder o acesso.
-	if remoteSession() {
-		steps = append(steps, sudoStep("Liberar "+port+"/tcp (sessão SSH atual)", false, "ufw", "allow", port+"/tcp", "comment", "SSH"))
-	}
-	steps = append(steps,
-		sudoStep("Habilitar ufw.service no boot", false, "systemctl", "enable", "--now", "ufw.service"),
-		sudoStep("Ativar UFW", false, "ufw", "--force", "enable"))
-	return job{title: "Ativar firewall", steps: withSudo(steps...), result: func() string {
-		fw := loadFWStatus(port)
-		if loadSSHStatus().service.isActive() && fw.rulesErr == nil && !fw.sshAllowed() {
-			return lipgloss.NewStyle().Foreground(colWarn).Render("⚠ O sshd está rodando mas a porta " + port + " está fechada. Use Liberar SSH.")
-		}
-		return ""
+	return []item{{
+		title: "Configurar Firewall",
+		desc:  fmt.Sprintf("Ativa o UFW e libera SSH na LAN %s", m.fw.lan),
+		job: func() job {
+			return configureFirewallJob(m.fw.port, m.fw.lan)
+		},
 	}}
 }
 
-// closeSSHJob gera um `ufw delete` exato para cada regra que libera a porta.
-func closeSSHJob(f fwStatus) job {
-	var steps []step
-	seen := map[string]bool{}
-	for _, r := range f.v4Rules() {
-		if !r.allowsPort(f.port) {
-			continue
-		}
-		args := []string{"ufw", "delete", "allow"}
-		spec := f.port
-		if r.proto != "any" {
-			spec += "/" + r.proto
-		}
-		if r.anySource() {
-			args = append(args, spec)
-		} else {
-			args = append(args, "from", r.src, "to", "any", "port", f.port)
-			if r.proto != "any" {
-				args = append(args, "proto", r.proto)
-			}
-		}
-		key := strings.Join(args, " ")
-		if !seen[key] {
-			seen[key] = true
-			steps = append(steps, sudoStep("Remover "+describeRule(r), false, args...))
-		}
+func configureFirewallSteps(port, lan string) []step {
+	steps := ensurePkgs("ufw", "iptables-nft")
+	return append(steps,
+		sudoStep("Entrada: bloquear por padrão", false, "ufw", "default", "deny", "incoming"),
+		sudoStep("Saída: permitir por padrão", false, "ufw", "default", "allow", "outgoing"),
+		sudoStep("Remover liberação global de "+port+"/tcp", true, "ufw", "--force", "delete", "allow", port+"/tcp"),
+		sudoStep("Liberar "+port+"/tcp para "+lan, false,
+			"ufw", "allow", "from", lan, "to", "any", "port", port, "proto", "tcp", "comment", "SSH LAN"),
+		sudoStep("Habilitar ufw.service no boot", false, "systemctl", "enable", "--now", "ufw.service"),
+		sudoStep("Ativar UFW", false, "ufw", "--force", "enable"))
+}
+
+func configureFirewallJob(port, lan string) job {
+	return job{
+		title: "Configurar Firewall",
+		steps: withSudo(configureFirewallSteps(port, lan)...),
 	}
-	if len(steps) == 0 {
-		return job{title: "Fechar SSH", steps: []step{nativeStep("Nenhuma regra libera a porta "+f.port, func() error { return nil })}}
-	}
-	steps = append(steps, sudoStep("Recarregar UFW", true, "ufw", "reload"))
-	return job{title: "Fechar SSH", steps: withSudo(steps...)}
 }

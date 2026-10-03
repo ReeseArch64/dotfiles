@@ -109,8 +109,8 @@ func (m model) items() []item {
 		}
 	case screenSystem:
 		return []item{
-			{title: "SSH", desc: "Servidor OpenSSH: permanente, socket, temporário, hardening", goTo: screenSSH},
-			{title: "Firewall", desc: "UFW: ativar, liberar ou fechar a porta do SSH", goTo: screenFirewall},
+			{title: "SSH", desc: "Configurar cliente, servidor permanente e acesso pela LAN", goTo: screenSSH},
+			{title: "Firewall", desc: "Ativar o UFW e liberar o SSH somente na LAN", goTo: screenFirewall},
 			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
 			{title: "Drivers", desc: "Instalar base-devel, Vulkan, glxinfo e headers do Linux", job: driversJob},
 		}

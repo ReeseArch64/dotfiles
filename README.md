@@ -15,7 +15,9 @@ A CLI organiza as ações em quatro áreas:
 | Desktop | Niri, Noctalia, Ghostty, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
 
-As ações de Pacman e Shelly instalam somente os pacotes ausentes.
+As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
+
+Quando o Shelly falha, a CLI cria `~/.aur`, clona o pacote do AUR e executa `makepkg -si`. Depois, ela confirma a instalação com `pacman -Q`.
 
 Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache pode evitar prompts, e credenciais expiradas podem exigir nova autenticação.
 
@@ -139,18 +141,17 @@ Membros do grupo `docker` controlam o daemon com privilégios equivalentes a ace
 
 ### SSH
 
-O menu `Sistema > SSH` mostra o serviço, o socket, a porta, o hardening e os endereços locais.
+O menu `Sistema > SSH` oferece somente a ação `Configurar SSH`.
 
-As ações de servidor instalam `openssh` via Pacman quando necessário.
+A ação executa a configuração completa:
 
-As ações disponíveis são:
-
-- Configurar o cliente SSH.
-- Ativar `sshd.service` permanentemente.
-- Ativar `sshd.socket` sob demanda.
-- Iniciar o serviço somente na sessão atual.
-- Parar e desabilitar o serviço e o socket.
-- Aplicar ou remover o hardening.
+1. Valida as identidades e copia `configs/ssh/config` para `~/.ssh/config`.
+2. Instala `openssh`, `ufw` e `iptables-nft` quando necessário.
+3. Define as políticas padrão do UFW.
+4. Libera a porta do SSH somente para a rede local.
+5. Ativa o UFW permanentemente.
+6. Desabilita `sshd.socket`.
+7. Habilita e inicia `sshd.service` permanentemente.
 
 A configuração do cliente exige estes arquivos regulares em `~/.ssh`:
 
@@ -165,22 +166,11 @@ A ação copia `configs/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao d
 
 Uma configuração diferente recebe o sufixo `.backup-AAAAMMDD-HHMMSS`.
 
-O hardening desativa senhas, autenticação interativa e login de root. Ele exige uma chave em `~/.ssh/authorized_keys`.
-
-A CLI valida a configuração com `sshd -t` antes de recarregar o serviço.
-
 ### Firewall
 
-O menu `Sistema > Firewall` instala `ufw` e `iptables-nft` via Pacman quando necessário.
+O menu `Sistema > Firewall` oferece somente a ação `Configurar Firewall`.
 
-Ele mostra as políticas, regras, porta SSH e sub-rede local. O menu permite:
-
-- Ativar ou desativar o UFW.
-- Liberar a porta SSH para qualquer origem.
-- Liberar a porta SSH somente para a rede local.
-- Remover regras que liberam a porta SSH.
-
-A ativação usa `deny incoming` e `allow outgoing`. Em sessões remotas, a CLI libera a porta SSH antes de ativar o firewall.
+A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por padrão. Ela remove a liberação global do SSH, libera a porta somente para a rede local e ativa o UFW permanentemente.
 
 ## Desenvolvimento
 
@@ -441,21 +431,11 @@ Sem essa variável, a CLI resolve o repositório pelo executável. Se isso falha
 
 ## Solução de problemas
 
-### Falha em pacote AUR pelo Shelly
+### Falha na instalação pelo Shelly e AUR
 
-Instale manualmente para obter a mensagem completa:
+Quando o Shelly falha, a CLI tenta instalar o mesmo pacote a partir de `~/.aur/<nome-do-pacote>`.
 
-```bash
-shelly install aur nome-do-pacote
-```
-
-`AUR operation failed` é uma mensagem geral. Consulte as linhas anteriores e o bloco `Technical details` para encontrar a causa.
-
-Para pacotes oficiais, use:
-
-```bash
-shelly install standard nome-do-pacote
-```
+Se o fallback também falhar, consulte a saída do `git clone`, do `makepkg -si` e da verificação `pacman -Q` exibida no terminal.
 
 ### Comando `dotfiles` não encontrado
 
@@ -481,9 +461,8 @@ Essa remoção não desfaz serviços, pacotes, regras de firewall ou configuraç
 
 - Nunca versione arquivos `*.asc`, chaves SSH privadas ou credenciais.
 - Revise cada ação antes de selecioná-la. A autorização do `sudo` cobre os passos privilegiados seguintes.
-- Configure uma chave autorizada antes de ativar o hardening SSH.
 - Confirme a porta SSH antes de ativar o firewall remotamente.
-- Revise pacotes do AUR e extensões do Pi antes da instalação.
+- Revise os arquivos PKGBUILD em `~/.aur` e as extensões do Pi antes da instalação.
 
 ## Licença
 

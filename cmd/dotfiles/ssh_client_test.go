@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -111,11 +112,54 @@ func TestInstallSSHClientConfigIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestSSHMenuStartsWithClientConfiguration(t *testing.T) {
+func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
 	model := newModel(t.TempDir())
 	model.screen = screenSSH
+	model.ssh.cfg = map[string]string{"port": "2222"}
 	items := model.items()
-	if len(items) == 0 || items[0].title != "Configurar cliente" {
-		t.Fatalf("primeira ação SSH inesperada: %v", itemTitles(items))
+	if titles := itemTitles(items); len(items) != 1 || titles[0] != "Configurar SSH" {
+		t.Fatalf("ações SSH inesperadas: %v", titles)
 	}
+	labels := jobStepLabels(configureSSHJob(model.dotfiles, "2222", "192.168.1.0/24"))
+	for _, want := range []string{
+		"Validar chaves e copiar ~/.ssh/config",
+		"Liberar 2222/tcp para 192.168.1.0/24",
+		"Desabilitar sshd.socket",
+		"Habilitar e iniciar sshd.service",
+	} {
+		if !slices.Contains(labels, want) {
+			t.Fatalf("passo SSH %q ausente: %v", want, labels)
+		}
+	}
+}
+
+func TestFirewallMenuHasSingleLANConfigurationAction(t *testing.T) {
+	model := newModel(t.TempDir())
+	model.screen = screenFirewall
+	model.fw = fwStatus{port: "2222", lan: "10.20.30.0/24"}
+	items := model.items()
+	if titles := itemTitles(items); len(items) != 1 || titles[0] != "Configurar Firewall" {
+		t.Fatalf("ações do firewall inesperadas: %v", titles)
+	}
+	labels := jobStepLabels(items[0].job())
+	for _, want := range []string{
+		"Entrada: bloquear por padrão",
+		"Saída: permitir por padrão",
+		"Remover liberação global de 2222/tcp",
+		"Liberar 2222/tcp para 10.20.30.0/24",
+		"Habilitar ufw.service no boot",
+		"Ativar UFW",
+	} {
+		if !slices.Contains(labels, want) {
+			t.Fatalf("passo do firewall %q ausente: %v", want, labels)
+		}
+	}
+}
+
+func jobStepLabels(current job) []string {
+	labels := make([]string, len(current.steps))
+	for i, current := range current.steps {
+		labels[i] = current.label
+	}
+	return labels
 }

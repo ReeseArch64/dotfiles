@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 var requiredSSHIdentityFiles = []string{
@@ -74,17 +72,4 @@ func installSSHClientConfig(dotfiles, home string, now time.Time) error {
 		return fmt.Errorf("copiar configuração SSH: %w", err)
 	}
 	return nil
-}
-
-func sshClientConfigJob(dotfiles string) job {
-	home, _ := os.UserHomeDir()
-	return job{
-		title: "Configurar cliente SSH",
-		steps: []step{nativeStep("Validar chaves e copiar ~/.ssh/config", func() error {
-			return installSSHClientConfig(dotfiles, home, time.Now())
-		})},
-		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render("Configuração copiada para ~/.ssh/config")
-		},
-	}
 }

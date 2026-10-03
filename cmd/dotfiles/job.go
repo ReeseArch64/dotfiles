@@ -151,17 +151,6 @@ func sudoStep(label string, soft bool, args ...string) step {
 	}}
 }
 
-// sudoWrite grava content em path como root (via tee, sem shell).
-func sudoWrite(path, content string) (string, error) {
-	c := exec.Command("sudo", "-n", "tee", path)
-	c.Stdin = strings.NewReader(content)
-	out, err := c.CombinedOutput()
-	if err != nil {
-		return string(out), err
-	}
-	return "", nil
-}
-
 func nativeStep(label string, fn func() error) step {
 	return step{label: label, run: func() (string, error) { return "", fn() }}
 }
@@ -189,7 +178,10 @@ func withSudo(steps ...step) []step {
 	return append([]step{auth}, steps...)
 }
 
-// ensurePkgs instala via pacman (interativo, para confirmar conflitos) só o que falta.
+func pacmanSyncStep() step {
+	return terminalStep("Atualizar bases do Pacman", "sudo", "pacman", "-Syy")
+}
+
 func pacmanInstallStep(pkgs ...string) step {
 	return terminalStep("Instalar "+strings.Join(pkgs, ", "),
 		append([]string{"sudo", "pacman", "-S", "--needed"}, pkgs...)...)
@@ -200,12 +192,31 @@ func ensurePkgs(pkgs ...string) []step {
 	if len(missing) == 0 {
 		return nil
 	}
-	return []step{pacmanInstallStep(missing...)}
+	return []step{pacmanSyncStep(), pacmanInstallStep(missing...)}
 }
 
-func shellyInstallStep(source string, pkgs ...string) step {
-	return terminalStep("Instalar "+strings.Join(pkgs, ", ")+" via Shelly",
-		append([]string{"shelly", "install", source}, pkgs...)...)
+const shellyFallbackScript = `source=$1
+package=$2
+if shelly install "$source" "$package" && pacman -Q "$package"; then
+    exit 0
+fi
+aur_root="$HOME/.aur"
+mkdir -p "$aur_root"
+cd "$aur_root" || exit 1
+if [ ! -d "$package/.git" ]; then
+    if [ -e "$package" ]; then
+        printf 'Diretório AUR inválido: %s\n' "$aur_root/$package" >&2
+        exit 1
+    fi
+    git clone "https://aur.archlinux.org/$package.git" || exit 1
+fi
+cd "$package" || exit 1
+makepkg -si || exit 1
+pacman -Q "$package"`
+
+func shellyInstallStep(source, pkg string) step {
+	return terminalStep("Instalar "+pkg+" via Shelly",
+		"bash", "-c", shellyFallbackScript, "dotfiles-shelly-fallback", source, pkg)
 }
 
 func ensureShellyPkgs(source string, pkgs ...string) []step {
@@ -213,5 +224,9 @@ func ensureShellyPkgs(source string, pkgs ...string) []step {
 	if len(missing) == 0 {
 		return nil
 	}
-	return []step{shellyInstallStep(source, missing...)}
+	var steps []step
+	for _, pkg := range missing {
+		steps = append(steps, pacmanSyncStep(), shellyInstallStep(source, pkg))
+	}
+	return steps
 }
