@@ -25,7 +25,7 @@ type gpgStatus struct {
 }
 
 func loadGPGStatus(dotfiles string) gpgStatus {
-	paths, err := gpgImportPathsFromEnv(filepath.Join(dotfiles, ".env"))
+	paths, err := loadGPGImportPaths(dotfiles)
 	signingKey, _ := readGitSigningKey(configPath(dotfiles, "git", ".gitconfig"))
 	return gpgStatus{
 		gnupgInstalled: len(missingPkgs("gnupg")) == 0,
@@ -72,27 +72,10 @@ func (m model) gpgItems() []item {
 	}
 }
 
-func gpgImportPathsFromEnv(path string) (gpgImportPaths, error) {
-	values, err := envValues(path)
-	if err != nil {
-		return gpgImportPaths{}, err
-	}
+func loadGPGImportPaths(dotfiles string) (gpgImportPaths, error) {
 	paths := gpgImportPaths{
-		public:  expandHome(values["GPG_PUBLIC_IMPORT"]),
-		private: expandHome(values["GPG_PRIVATE_IMPORT"]),
-	}
-	var missing []string
-	if paths.public == "" {
-		missing = append(missing, "GPG_PUBLIC_IMPORT")
-	}
-	if paths.private == "" {
-		missing = append(missing, "GPG_PRIVATE_IMPORT")
-	}
-	if len(missing) > 0 {
-		return gpgImportPaths{}, errors.New("variáveis ausentes no .env: " + strings.Join(missing, ", "))
-	}
-	if paths.public == paths.private {
-		return gpgImportPaths{}, errors.New("as chaves pública e privada devem ser arquivos diferentes")
+		public:  filepath.Join(dotfiles, "minha_chave_publica.asc"),
+		private: filepath.Join(dotfiles, "minha_chave_privada.asc"),
 	}
 	keys := []struct {
 		label, path, header string
@@ -205,7 +188,7 @@ func gpgImportSteps(dotfiles string, paths gpgImportPaths, pathErr error, packag
 }
 
 func gpgImportJob(dotfiles string) job {
-	paths, pathErr := gpgImportPathsFromEnv(filepath.Join(dotfiles, ".env"))
+	paths, pathErr := loadGPGImportPaths(dotfiles)
 	steps := gpgImportSteps(dotfiles, paths, pathErr, ensurePkgs("gnupg"))
 	return job{
 		title: "Importar chaves GPG",

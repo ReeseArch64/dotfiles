@@ -68,20 +68,13 @@ git clone https://github.com/ReeseArch64/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ```
 
-Crie o arquivo de ambiente:
+A identidade do Git fica definida diretamente em `configs/git/.gitconfig`.
 
-```bash
-cp .env.example .env
-```
+Para importar chaves GPG, coloque estes arquivos na raiz do repositório:
 
-Preencha sua identidade e os caminhos das chaves GPG:
-
-```dotenv
-GIT_USER_EMAIL=seu-email@example.com
-GIT_USERNAME=seu-usuario
-GIT_USER_NAME=Seu Nome
-GPG_PUBLIC_IMPORT=~/.dotfiles/minha_chave_publica.asc
-GPG_PRIVATE_IMPORT=~/.dotfiles/minha_chave_privada.asc
+```text
+~/.dotfiles/minha_chave_publica.asc
+~/.dotfiles/minha_chave_privada.asc
 ```
 
 Compile a CLI e crie o comando em `~/.local/bin`:
@@ -195,12 +188,9 @@ A ativação usa `deny incoming` e `allow outgoing`. Em sessões remotas, a CLI 
 
 `Desenvolvimento > Git > Configurar Git`:
 
-1. Lê a identidade do arquivo `.env`.
-2. Instala `git` via Pacman.
-3. Instala `lazygit` via Shelly.
-4. Gera `configs/git/.gitconfig` de forma atômica.
-5. Preserva o `user.signingkey` existente em `configs/git/.gitconfig`.
-6. Aplica os arquivos globais.
+1. Instala `git` via Pacman.
+2. Instala `lazygit` via Shelly.
+3. Aplica os arquivos globais.
 
 | Destino | Origem | Formato |
 | --- | --- | --- |
@@ -234,7 +224,7 @@ A ação:
 4. Obtém o fingerprint da chave privada.
 5. Atualiza `user.signingkey` no repositório e em `~/.gitconfig`.
 
-A CLI não copia as chaves. O `.gitignore` exclui `.env` e arquivos `*.asc`.
+A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 
 ### Mise
 
@@ -425,7 +415,6 @@ Os pacotes do Pi executam código com as permissões do usuário. Revise as orig
 │   ├── obsidian/
 │   ├── pi/
 │   └── ssh/
-├── .env.example
 ├── go.mod
 ├── go.sum
 └── Makefile
@@ -490,7 +479,7 @@ Essa remoção não desfaz serviços, pacotes, regras de firewall ou configuraç
 
 ## Segurança
 
-- Nunca versione `.env`, arquivos `*.asc`, chaves SSH privadas ou credenciais.
+- Nunca versione arquivos `*.asc`, chaves SSH privadas ou credenciais.
 - Revise cada ação antes de selecioná-la. A autorização do `sudo` cobre os passos privilegiados seguintes.
 - Configure uma chave autorizada antes de ativar o hardening SSH.
 - Confirme a porta SSH antes de ativar o firewall remotamente.

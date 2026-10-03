@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -14,7 +13,6 @@ import (
 type gitStatus struct {
 	missing []string
 	links   []gitLink
-	envOK   bool
 }
 
 type gitLink struct {
@@ -39,12 +37,11 @@ func loadGitStatus(dotfiles string) gitStatus {
 			ok:    ok,
 		})
 	}
-	_, envErr := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
-	return gitStatus{missing: missingPkgs("git", "lazygit"), links: links, envOK: envErr == nil}
+	return gitStatus{missing: missingPkgs("git", "lazygit"), links: links}
 }
 
 func (g gitStatus) readyForGPG() bool {
-	if !g.envOK || len(g.missing) > 0 {
+	if len(g.missing) > 0 {
 		return false
 	}
 	for _, link := range g.links {
@@ -68,11 +65,6 @@ func (g gitStatus) card(width int) string {
 		}
 		rows = append(rows, cardRow{color, "Pacote", value})
 	}
-	envColor, envValue := colOK, ".env pronto"
-	if !g.envOK {
-		envColor, envValue = colErr, ".env ausente ou incompleto"
-	}
-	rows = append(rows, cardRow{envColor, "Identidade", envValue})
 	for i, l := range g.links {
 		color, val := colOK, l.label+" ✔"
 		if !l.ok {
@@ -91,7 +83,7 @@ func (m model) gitItems() []item {
 	return []item{
 		{
 			title: "Configurar Git",
-			desc:  "Usa o .env, instala ferramentas e configura os arquivos do Git",
+			desc:  "Instala ferramentas e aplica os arquivos globais do Git",
 			job:   func() job { return gitJob(m.dotfiles) },
 		},
 	}
@@ -110,70 +102,6 @@ func gitLinkDefs(dotfiles, home string) []struct {
 		{"~/.gitignore", configPath(dotfiles, "git", ".gitignore"), filepath.Join(home, ".gitignore"), false},
 		{"~/.config/git/config", configPath(dotfiles, "git", "config"), filepath.Join(home, ".config", "git", "config"), false},
 	}
-}
-
-type gitIdentity struct {
-	email, username, name string
-}
-
-func gitIdentityFromEnv(path string) (gitIdentity, error) {
-	values, err := envValues(path)
-	if err != nil {
-		return gitIdentity{}, err
-	}
-	identity := gitIdentity{
-		email:    values["GIT_USER_EMAIL"],
-		username: values["GIT_USERNAME"],
-		name:     values["GIT_USER_NAME"],
-	}
-	var missing []string
-	if identity.email == "" {
-		missing = append(missing, "GIT_USER_EMAIL")
-	}
-	if identity.username == "" {
-		missing = append(missing, "GIT_USERNAME")
-	}
-	if identity.name == "" {
-		missing = append(missing, "GIT_USER_NAME")
-	}
-	if len(missing) > 0 {
-		return gitIdentity{}, errors.New("variáveis ausentes no .env: " + strings.Join(missing, ", "))
-	}
-	return identity, nil
-}
-
-func writeGitConfig(dotfiles string) error {
-	identity, err := gitIdentityFromEnv(filepath.Join(dotfiles, ".env"))
-	if err != nil {
-		return err
-	}
-	path := configPath(dotfiles, "git", ".gitconfig")
-	signingKey, _ := readGitSigningKey(path)
-	signingValue := ""
-	if signingKey != "" {
-		signingValue = " " + signingKey
-	}
-	content := fmt.Sprintf("[user]\n    signingkey =%s\n    email = %s\n    username = %s\n    name = %s\n",
-		signingValue, strconv.Quote(identity.email), strconv.Quote(identity.username), strconv.Quote(identity.name))
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".gitconfig-*")
-	if err != nil {
-		return fmt.Errorf("criar arquivo temporário: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName)
-	if _, err = tmp.WriteString(content); err == nil {
-		err = tmp.Chmod(0644)
-	}
-	if closeErr := tmp.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return fmt.Errorf("gravar %s: %w", path, err)
-	}
-	if err := os.Rename(tmpName, path); err != nil {
-		return fmt.Errorf("substituir %s: %w", path, err)
-	}
-	return nil
 }
 
 func readGitSigningKey(path string) (string, error) {
@@ -249,8 +177,7 @@ func gitJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	defs := gitLinkDefs(dotfiles, home)
 
-	steps := []step{nativeStep("Gerar configs/git/.gitconfig com .env", func() error { return writeGitConfig(dotfiles) })}
-	steps = append(steps, ensurePkgs("git")...)
+	steps := ensurePkgs("git")
 	steps = append(steps, ensureShellyPkgs("standard", "lazygit")...)
 	steps = append(steps, nativeStep("Criar ~/.config/git/", func() error {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)
