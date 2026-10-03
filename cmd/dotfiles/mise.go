@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 func installMiseConfig(dotfiles, home string) error {
@@ -58,16 +56,4 @@ func miseSetupSteps(dotfiles string) []step {
 		}),
 	)
 	return steps
-}
-
-func miseJob(dotfiles string) job {
-	steps := miseSetupSteps(dotfiles)
-	return job{
-		title: "Configurar mise",
-		steps: steps,
-		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render(
-				"Configuração ativa. Abra um novo terminal para usar as ferramentas diretamente.")
-		},
-	}
 }

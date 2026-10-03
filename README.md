@@ -11,7 +11,7 @@ A CLI organiza as ações em quatro áreas:
 | Área | Ações |
 | --- | --- |
 | Sistema | SSH, Firewall, Docker e Drivers |
-| Desenvolvimento | Git, GPG, Mise, JavaScript, Flutter, IDEs e ferramentas de terminal |
+| Desenvolvimento | Git, GPG, ambiente de desenvolvimento, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
 
@@ -216,22 +216,25 @@ A ação:
 
 A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 
-### Mise
+### Ambiente de Desenvolvimento
 
-`Desenvolvimento > Mise`:
+`Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
-- Instala `mise` via Shelly.
-- Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
-- Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
+1. Instala o `mise` via Shelly.
+2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
+3. Cria `~/.config/fish/conf.d/dotfiles-mise.fish`.
+4. Instala todas as ferramentas declaradas no `mise.toml`.
+5. Instala `rustup` via Pacman.
+6. Instala e seleciona a toolchain Rust estável.
+7. Valida `rustc --version` e `cargo --version`.
+8. Executa `npm login`.
 
-Abra um novo terminal para carregar a ativação do Fish.
-
-O arquivo `configs/mise/mise.toml` declara:
+O arquivo `configs/mise/mise.toml` instala:
 
 - AWS CLI
 - Java Temurin
 - Flutter
-- Node.js
+- Node.js e npm
 - Bun
 - pnpm
 - Deno
@@ -240,23 +243,7 @@ O arquivo `configs/mise/mise.toml` declara:
 - Go
 - uv
 
-A ação Mise configura o gerenciador. Os ambientes JavaScript e Flutter possuem ações próprias de instalação.
-
-### JavaScript
-
-`Desenvolvimento > Ambiente JavaScript` configura o Mise e instala:
-
-- Node.js
-- npm, incluído com Node.js
-- Bun
-- Deno
-- pnpm
-
-Ao final, a CLI executa `npm login`.
-
-### Flutter
-
-`Desenvolvimento > Ambiente Flutter` configura o Mise e instala a versão declarada em `configs/mise/mise.toml`.
+Abra um novo terminal para carregar a ativação do Mise no Fish.
 
 ### IDEs
 
