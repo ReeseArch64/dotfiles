@@ -1,0 +1,71 @@
+{
+	"all": {
+		"ClassModuleCache": {
+			"AccountDetailsButtons": "484555",
+			"AppMount": "300923",
+			"AppOuter": "349805",
+			"Avatar": "185864",
+			"Button": "211182",
+			"ChannelTextAreaButton": "257100",
+			"ChatWindow": "999900",
+			"Flex": "859510",
+			"FlowerStar": "719639",
+			"GifFavoriteButton": "47299",
+			"GuildFolder": "327580",
+			"GuildIcon": "570001",
+			"GuildItem": "260727",
+			"GuildsWrapper": "987566",
+			"Input": "151167",
+			"ItemLayerContainer": "38112",
+			"Layers": "913420",
+			"Margins": "221851",
+			"Menu": "798819",
+			"MessageBody": "318626",
+			"MessageToolbarExtras": "798743",
+			"MessageToolbarItems": "738745",
+			"MessagesPopoutTabBar": "113164",
+			"MessagesWrap": "33176",
+			"Modal": "268814",
+			"ModalNew": "592551",
+			"ModalSub": "978843",
+			"NameTag": "646810",
+			"Notice": "934966",
+			"NoticePlatform": "971656",
+			"PeoplesNowPlayingMember": "942813",
+			"Scroller": "6095",
+			"Select": "980148",
+			"SettingsItems": "715965",
+			"Slider": "9761",
+			"Text": "607226",
+			"Tooltip": "233680",
+			"TooltipGuild": "785332",
+			"UserHeaderUsername": "956495",
+			"UserPopoutBody": "211450",
+			"UserSummaryItem": "76145"
+		},
+		"ModuleIdCache": {
+			"DiscordTag": "297413",
+			"EmojiPickerListRow": "267889",
+			"Menu": "980707",
+			"UnreadDMs": "112943"
+		},
+		"changeLogs": {
+			"BDFDB": "4.5.7",
+			"ReadAllNotificationsButton": "1.8.5"
+		},
+		"choices": {
+			"toastPosition": "right"
+		},
+		"general": {
+			"shareData": true,
+			"showToasts": true,
+			"checkForUpdates": false,
+			"showSupportBadges": false,
+			"useChromium": false
+		},
+		"hashes": {
+			"0BDFDB.data.json": "abf4f6ceeb265f24f5d3e70520a65a9148c40b06",
+			"0BDFDB.raw.css": "1410ee461b2c28dcd8775dc6d32e575a93e84c04"
+		}
+	}
+}
