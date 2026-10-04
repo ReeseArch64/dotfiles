@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var preinstalledPackages = []string{"firefox", "alacritty", "meld", "micro"}
+var preinstalledPackages = []string{"firefox", "alacritty", "meld"}
 
 const removePreinstalledPackagesScript = `packages=()
 for package in "$@"; do
@@ -37,8 +37,6 @@ func preinstalledApplicationDirectories(home string) []string {
 		filepath.Join(home, ".config", "meld"),
 		filepath.Join(home, ".local", "share", "meld"),
 		filepath.Join(home, ".cache", "meld"),
-		filepath.Join(home, ".config", "micro"),
-		filepath.Join(home, ".cache", "micro"),
 	}
 }
 
@@ -76,7 +74,7 @@ func cleanupJob() job {
 func (m model) cleanupItems() []item {
 	return []item{{
 		title: "Remover aplicativos",
-		desc:  "Desinstalar Firefox, Alacritty, Meld e Micro e apagar seus dados",
+		desc:  "Desinstalar Firefox, Alacritty e Meld e apagar seus dados",
 		job:   cleanupJob,
 	}}
 }

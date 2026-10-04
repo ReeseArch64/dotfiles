@@ -25,7 +25,7 @@ func TestCleanupJobRefreshesPacmanBeforeRemoval(t *testing.T) {
 	if got := jobStepLabels(configured); !slices.Equal(got, []string{
 		"Verificar instalação do Ghostty",
 		"Atualizar bases do Pacman",
-		"Desinstalar firefox, alacritty, meld, micro",
+		"Desinstalar firefox, alacritty, meld",
 		"Remover dados dos aplicativos",
 	}) {
 		t.Fatalf("passos inesperados: %v", got)
@@ -45,7 +45,7 @@ func TestRemovePreinstalledPackagesSkipsAbsentPackages(t *testing.T) {
 		t.Fatal(err)
 	}
 	logPath := filepath.Join(t.TempDir(), "commands.log")
-	writeTestExecutable(t, bin, "pacman", `[ "$1" = "-Q" ] && { [ "$2" = "alacritty" ] || [ "$2" = "micro" ]; }`)
+	writeTestExecutable(t, bin, "pacman", `[ "$1" = "-Q" ] && [ "$2" = "alacritty" ]`)
 	writeTestExecutable(t, bin, "sudo", `printf '%s\n' "$*" > "$COMMAND_LOG"`)
 	t.Setenv("COMMAND_LOG", logPath)
 	t.Setenv("TERM", "xterm-256color")
@@ -59,7 +59,7 @@ func TestRemovePreinstalledPackagesSkipsAbsentPackages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := strings.TrimSpace(string(content)), "pacman -Rns alacritty micro"; got != want {
+	if got, want := strings.TrimSpace(string(content)), "pacman -Rns alacritty"; got != want {
 		t.Fatalf("comando inesperado: %q", got)
 	}
 }
@@ -74,9 +74,15 @@ func TestRemovePreinstalledApplicationDirectories(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	keep := filepath.Join(home, ".config", "ghostty")
-	if err := os.MkdirAll(keep, 0755); err != nil {
-		t.Fatal(err)
+	keptDirectories := []string{
+		filepath.Join(home, ".config", "ghostty"),
+		filepath.Join(home, ".config", "micro"),
+		filepath.Join(home, ".cache", "micro"),
+	}
+	for _, path := range keptDirectories {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	if err := removePreinstalledApplicationDirectories(home); err != nil {
@@ -87,7 +93,9 @@ func TestRemovePreinstalledApplicationDirectories(t *testing.T) {
 			t.Fatalf("diretório não removido: %s", path)
 		}
 	}
-	if info, err := os.Stat(keep); err != nil || !info.IsDir() {
-		t.Fatalf("configuração do Ghostty foi alterada: info=%v err=%v", info, err)
+	for _, path := range keptDirectories {
+		if info, err := os.Stat(path); err != nil || !info.IsDir() {
+			t.Fatalf("diretório preservado foi alterado em %s: info=%v err=%v", path, info, err)
+		}
 	}
 }
