@@ -19,6 +19,7 @@ func terminalToolsJobFor(dotfiles, home string, lookPath func(string) (string, e
 	steps := ensureShellyPkgs("standard", terminalToolPackages...)
 	steps = append(steps, ensureShellyPkgs("aur", terminalToolAurPackages...)...)
 	steps = append(steps, ensurePkgs(terminalToolPacmanPackages...)...)
+	steps = append(steps, fastfetchConfigStep(dotfiles, home))
 	steps = append(steps, btopConfigStep(dotfiles, home))
 	if _, err := lookPath("lvim"); err != nil {
 		steps = append(steps, lunarVimInstallStep())

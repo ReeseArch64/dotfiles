@@ -44,16 +44,24 @@ func TestTerminalToolsJobInstallsMissingLunarVim(t *testing.T) {
 	}
 }
 
-func TestTerminalToolsJobConfiguresBtop(t *testing.T) {
+func TestTerminalToolsJobConfiguresFastfetchAndBtop(t *testing.T) {
 	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "/home/user/.local/bin/lvim", nil
 	})
+	want := map[string]bool{
+		"Copiar configuração para ~/.config/fastfetch": false,
+		"Copiar configuração para ~/.config/btop":      false,
+	}
 	for _, current := range configured.steps {
-		if current.label == "Copiar configuração para ~/.config/btop" {
-			return
+		if _, ok := want[current.label]; ok {
+			want[current.label] = true
 		}
 	}
-	t.Fatal("configuração do btop ausente")
+	for label, found := range want {
+		if !found {
+			t.Fatalf("etapa ausente: %s", label)
+		}
+	}
 }
 
 func TestTerminalToolsJobKeepsExistingLunarVim(t *testing.T) {

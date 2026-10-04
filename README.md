@@ -373,7 +373,9 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
-A ação também copia `configs/btop/` para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
+A ação copia `configs/fastfetch/config.json` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório.
+
+Ela também copia `configs/btop/` para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
 
 ## Desktop
 
