@@ -1,12 +1,58 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 )
+
+func TestAzureLoginFailureDoesNotBlockDevelopment(t *testing.T) {
+	continued := false
+	steps := cloudLoginSteps(t.TempDir())
+	azure := steps[len(steps)-1]
+	r := newJobRun(job{steps: []step{azure, nativeStep("Continuar configuração", func() error {
+		continued = true
+		return nil
+	})}})
+	r.cur = 0
+	r.states[0] = stepRunning
+	command := r.handle(stepDoneMsg{err: errors.New("a conta Azure ainda não tem assinatura")})
+	if r.failed || r.done || command == nil || r.states[0] != stepIgnored {
+		t.Fatalf("falha do Azure interrompeu o fluxo: failed=%v done=%v states=%v", r.failed, r.done, r.states)
+	}
+	message, ok := command().(stepDoneMsg)
+	if !ok || message.err != nil || !continued {
+		t.Fatalf("próxima etapa não executou: %#v continued=%v", message, continued)
+	}
+}
+
+func TestAzureOptionalLoginFailsWithoutPrompt(t *testing.T) {
+	home := t.TempDir()
+	bin := filepath.Join(home, ".local", "share", "mise", "shims")
+	if err := os.MkdirAll(bin, 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeTestExecutable(t, bin, "az", `printf 'sem assinatura\n' >&2; exit 1`)
+	t.Setenv("TERM", "xterm-256color")
+	t.Setenv("PATH", "/usr/bin:/bin")
+	azure := cloudLoginSteps(home)[4]
+	if !azure.optional {
+		t.Fatal("login Azure precisa ser opcional")
+	}
+	out, err := azure.cmd().CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "sem assinatura") || !strings.Contains(string(out), "continuando a configuração") {
+		t.Fatalf("resultado inesperado: err=%v out=%s", err, out)
+	}
+	if strings.Contains(string(out), "Pressione qualquer tecla") {
+		t.Fatal("login opcional aguardou tecla após falhar")
+	}
+	if cloudLoginSteps(home)[0].optional {
+		t.Fatal("outros logins não devem ficar opcionais")
+	}
+}
 
 func TestCloudAndNpmLoginCheckExistingSessions(t *testing.T) {
 	home := t.TempDir()

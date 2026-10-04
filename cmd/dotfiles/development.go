@@ -54,6 +54,12 @@ func miseToolLoginStep(home, label, command string, args ...string) step {
 	return terminalStep(label, append(argv, args...)...)
 }
 
+func optionalMiseToolLoginStep(home, label, command string, args ...string) step {
+	path := filepath.Join(home, ".local", "share", "mise", "shims") + ":" + os.Getenv("PATH")
+	argv := []string{"env", "PATH=" + path, command}
+	return optionalTerminalStep(label, append(argv, args...)...)
+}
+
 func cloudLoginSteps(home string) []step {
 	return []step{
 		skipWhen(miseToolLoginStep(home, "Autenticar na AWS", "aws", "login"), func() bool {
@@ -64,7 +70,7 @@ func cloudLoginSteps(home string) []step {
 		}),
 		skipWhen(miseToolLoginStep(home, "Autenticar no Railway", "railway", "login"), func() bool { return miseToolAuthenticated(home, "railway", "whoami") }),
 		skipWhen(miseToolLoginStep(home, "Autenticar no Firebase", "firebase", "login"), func() bool { return firebaseAuthenticated(home) }),
-		skipWhen(miseToolLoginStep(home, "Autenticar no Azure", "az", "login"), func() bool { return miseToolAuthenticated(home, "az", "account", "show", "--output", "json") }),
+		skipWhen(optionalMiseToolLoginStep(home, "Autenticar no Azure", "az", "login"), func() bool { return miseToolAuthenticated(home, "az", "account", "show", "--output", "json") }),
 	}
 }
 

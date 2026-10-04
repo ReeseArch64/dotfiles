@@ -15,10 +15,11 @@ import (
 )
 
 type step struct {
-	label string
-	run   func() (string, error) // passo em background
-	cmd   func() *exec.Cmd       // passo interativo
-	skip  func() bool
+	label    string
+	run      func() (string, error) // passo em background
+	cmd      func() *exec.Cmd       // passo interativo
+	skip     func() bool
+	optional bool
 }
 
 type job struct {
@@ -34,6 +35,7 @@ const (
 	stepRunning
 	stepOK
 	stepSkipped
+	stepIgnored
 	stepFailed
 )
 
@@ -84,6 +86,11 @@ func (r *jobRun) startStep() tea.Cmd {
 }
 
 func (r *jobRun) handle(msg stepDoneMsg) tea.Cmd {
+	if msg.err != nil && r.steps[r.cur].optional {
+		r.states[r.cur] = stepIgnored
+		r.cur++
+		return r.startStep()
+	}
 	if msg.err != nil {
 		r.states[r.cur] = stepFailed
 		r.failed, r.done = true, true
@@ -116,6 +123,8 @@ func (r *jobRun) view(width int, elapsed time.Duration) string {
 			icon, label = lipgloss.NewStyle().Foreground(colOK).Render("✔"), txt.Render(s.label)
 		case stepSkipped:
 			icon, label = dim.Render("−"), dim.Render(s.label+" (já configurado)")
+		case stepIgnored:
+			icon, label = lipgloss.NewStyle().Foreground(colWarn).Render("!"), dim.Render(s.label+" (falhou, ignorado)")
 		case stepFailed:
 			icon, label = lipgloss.NewStyle().Foreground(colErr).Render("✘"), lipgloss.NewStyle().Foreground(colErr).Render(s.label)
 		}
@@ -167,9 +176,23 @@ func nativeStep(label string, fn func() error) step {
 
 // terminalStep entrega o terminal a um comando, com cabeçalho e pausa em caso de erro.
 func terminalStep(label string, argv ...string) step {
-	const wrapper = `clear
+	return terminalStepWithPause(label, true, argv...)
+}
+
+func optionalTerminalStep(label string, argv ...string) step {
+	current := terminalStepWithPause(label, false, argv...)
+	current.optional = true
+	return current
+}
+
+func terminalStepWithPause(label string, pause bool, argv ...string) step {
+	failure := `read -rsn1 -p $'\n\e[2mPressione qualquer tecla para voltar…\e[0m'`
+	if !pause {
+		failure = `printf '\nLogin opcional não concluído; continuando a configuração.\n'`
+	}
+	wrapper := `clear
 printf '\n  \e[1;35m━━ %s ━━\e[0m\n\n' "$STEP"
-"$@" || { code=$?; read -rsn1 -p $'\n\e[2mPressione qualquer tecla para voltar…\e[0m'; exit $code; }`
+"$@" || { code=$?; ` + failure + `; exit $code; }`
 	return step{label: label, cmd: func() *exec.Cmd {
 		c := exec.Command("bash", append([]string{"-c", wrapper, "dotfiles"}, argv...)...)
 		c.Env = append(c.Environ(), "STEP="+label)

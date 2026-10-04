@@ -255,7 +255,7 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
 3. Marca a configuração do Mise como confiável.
 4. Instala todas as ferramentas declaradas no `mise.toml`.
-5. Autentica AWS, Google Cloud, Railway, Firebase e Azure.
+5. Autentica AWS, Google Cloud, Railway e Firebase. Tenta autenticar no Azure, mas continua se o login falhar.
 6. Instala Fish, `rustup` e o toolkit `tk` para Python via Pacman.
 7. Copia `configs/fish/config.fish` para `~/.config/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
