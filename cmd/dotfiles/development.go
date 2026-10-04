@@ -130,8 +130,8 @@ func developmentEnvironmentSteps(dotfiles, home string, packageSteps []step) []s
 	steps = append(steps, fishConfigStep(dotfiles, home))
 	return append(steps,
 		skipWhen(rustupToolchainStep(), func() bool {
-			out, err := exec.Command("rustup", "toolchain", "list").Output()
-			return err == nil && strings.Contains(string(out), "stable-")
+			out, err := exec.Command("rustup", "default").Output()
+			return err == nil && strings.HasPrefix(strings.TrimSpace(string(out)), "stable-") && verifyRustTools(home) == nil
 		}),
 		nativeStep("Verificar rustc e cargo", func() error {
 			return verifyRustTools(home)

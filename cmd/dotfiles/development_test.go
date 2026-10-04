@@ -75,10 +75,36 @@ func TestCloudAndNpmLoginCheckExistingSessions(t *testing.T) {
 	}
 }
 
+func TestInstalledRustWithoutDefaultStillConfiguresToolchain(t *testing.T) {
+	bin := t.TempDir()
+	writeTestExecutable(t, bin, "rustup", `case "$*" in
+  "toolchain list") printf 'stable-x86_64-unknown-linux-gnu\n' ;;
+  "default") printf 'no default toolchain configured\n'; exit 1 ;;
+esac`)
+	writeTestExecutable(t, bin, "rustc", `printf 'error: rustup could not choose a version of rustc to run\n' >&2; exit 1`)
+	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
+	home := t.TempDir()
+	if err := verifyRustTools(home); err == nil || !strings.Contains(err.Error(), "rustup could not choose") {
+		t.Fatalf("falha original não reproduzida: %v", err)
+	}
+	for _, current := range developmentEnvironmentSteps(t.TempDir(), home, nil) {
+		if current.label == "Instalar toolchain Rust estável" {
+			if current.skip() {
+				t.Fatal("toolchain instalada sem default não pode ser ignorada")
+			}
+			return
+		}
+	}
+	t.Fatal("etapa da toolchain ausente")
+}
+
 func TestDevelopmentSkipsInstalledMiseToolsAndRust(t *testing.T) {
 	bin := t.TempDir()
 	writeTestExecutable(t, bin, "mise", `exit 0`)
 	writeTestExecutable(t, bin, "rustup", `printf 'stable-x86_64-unknown-linux-gnu (default)\n'`)
+	for _, name := range []string{"rustc", "cargo"} {
+		writeTestExecutable(t, bin, name, `printf '1.0.0\n'`)
+	}
 	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
 	steps := developmentEnvironmentSteps(t.TempDir(), t.TempDir(), nil)
 	for _, current := range steps {
