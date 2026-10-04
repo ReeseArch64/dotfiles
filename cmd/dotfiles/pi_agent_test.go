@@ -125,6 +125,32 @@ func TestPiAgentJobUpdatesPackagesInConfiguredAgentDir(t *testing.T) {
 	}
 }
 
+func TestPiAgentJobUsesExistingLocalBinaryAndSkipsPackages(t *testing.T) {
+	dotfiles, home := preparePiAgentTest(t)
+	bin := filepath.Join(piAgentDir(home), "bin")
+	if err := os.MkdirAll(bin, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(bin, "pi"), []byte("#!/bin/sh\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, source := range requiredPiPackages {
+		if err := os.MkdirAll(piPackagePath(piAgentDir(home), source), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	configured := piAgentJobFor(dotfiles, home, func(string) (string, error) { return "", errors.New("ausente") })
+	if len(configured.steps) != 3 || !configured.steps[2].skip() {
+		t.Fatalf("instalação repetida: %v", jobStepLabels(configured))
+	}
+	if err := os.RemoveAll(piPackagePath(piAgentDir(home), requiredPiPackages[0])); err != nil {
+		t.Fatal(err)
+	}
+	if configured.steps[2].skip() {
+		t.Fatal("pacote ausente ignorado")
+	}
+}
+
 func TestPiAgentJobInstallsPiWhenMissing(t *testing.T) {
 	dotfiles, home := preparePiAgentTest(t)
 	configured := piAgentJobFor(dotfiles, home, func(string) (string, error) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -117,16 +118,60 @@ func validateDockerLoginBrowser(home string, lookPath func(string) (string, erro
 	return nil
 }
 
+func dockerHasCredentials(home string) bool {
+	content, err := os.ReadFile(filepath.Join(home, ".docker", "config.json"))
+	if err != nil {
+		return false
+	}
+	var config struct {
+		Auths map[string]struct {
+			Auth          string `json:"auth"`
+			IdentityToken string `json:"identitytoken"`
+		} `json:"auths"`
+		CredsStore  string            `json:"credsStore"`
+		CredHelpers map[string]string `json:"credHelpers"`
+	}
+	if json.Unmarshal(content, &config) != nil {
+		return false
+	}
+	for registry, auth := range config.Auths {
+		if (registry == "https://index.docker.io/v1/" || registry == "docker.io" || registry == "https://registry-1.docker.io") && (auth.Auth != "" || auth.IdentityToken != "") {
+			return true
+		}
+	}
+	stores := map[string]bool{}
+	if config.CredsStore != "" {
+		stores[config.CredsStore] = true
+	}
+	for _, store := range config.CredHelpers {
+		stores[store] = true
+	}
+	for store := range stores {
+		out, err := exec.Command("docker-credential-"+store, "list").Output()
+		if err == nil {
+			var credentials map[string]string
+			if json.Unmarshal(out, &credentials) == nil {
+				for registry := range credentials {
+					if registry == "https://index.docker.io/v1/" || registry == "docker.io" || registry == "https://registry-1.docker.io" {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func dockerJobForUser(username, home string, packageSteps []step, lookPath func(string) (string, error)) job {
-	steps := []step{nativeStep("Validar Zen Browser para Docker login", func() error {
+	steps := []step{skipWhen(nativeStep("Validar Zen Browser para Docker login", func() error {
 		return validateDockerLoginBrowser(home, lookPath)
-	})}
+	}), func() bool { return dockerHasCredentials(home) })}
 	steps = append(steps, packageSteps...)
 	steps = append(steps,
 		terminalStep("Adicionar "+username+" ao grupo docker", "sudo", "usermod", "-aG", "docker", username),
 		terminalStep("Habilitar e iniciar docker.service", "sudo", "systemctl", "enable", "--now", "docker.service"),
 		terminalStep("Definir Zen Browser como padrão", "xdg-settings", "set", "default-web-browser", "zen.desktop"),
-		terminalStep("Autenticar no Docker", "newgrp", "docker", "-c", "docker login"),
+		skipWhen(terminalStep("Autenticar no Docker", "newgrp", "docker", "-c", "docker login"), func() bool { return dockerHasCredentials(home) }),
 	)
 	return job{
 		title: "Configurar Docker",

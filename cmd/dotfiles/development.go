@@ -1,10 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
 )
 
 var developmentPacmanPackages = []string{"fish", "rustup", "tk"}
@@ -18,6 +24,30 @@ func developmentToolsInstallStep(dotfiles string) step {
 	)
 }
 
+func miseToolOutput(home, name string, args ...string) ([]byte, error) {
+	path := filepath.Join(home, ".local", "share", "mise", "shims") + ":" + os.Getenv("PATH")
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "env", append([]string{"PATH=" + path, name}, args...)...)
+	return cmd.Output()
+}
+
+func miseToolAuthenticated(home, name string, args ...string) bool {
+	out, err := miseToolOutput(home, name, args...)
+	return err == nil && len(bytes.TrimSpace(out)) > 0
+}
+
+func firebaseAuthenticated(home string) bool {
+	out, err := miseToolOutput(home, "firebase", "login:list", "--json")
+	if err != nil {
+		return false
+	}
+	var status struct {
+		Result []json.RawMessage `json:"result"`
+	}
+	return json.Unmarshal(out, &status) == nil && len(status.Result) > 0
+}
+
 func miseToolLoginStep(home, label, command string, args ...string) step {
 	path := filepath.Join(home, ".local", "share", "mise", "shims") + ":" + os.Getenv("PATH")
 	argv := []string{"env", "PATH=" + path, command}
@@ -26,16 +56,20 @@ func miseToolLoginStep(home, label, command string, args ...string) step {
 
 func cloudLoginSteps(home string) []step {
 	return []step{
-		miseToolLoginStep(home, "Autenticar na AWS", "aws", "login"),
-		miseToolLoginStep(home, "Autenticar no Google Cloud", "gcloud", "auth", "login"),
-		miseToolLoginStep(home, "Autenticar no Railway", "railway", "login"),
-		miseToolLoginStep(home, "Autenticar no Firebase", "firebase", "login"),
-		miseToolLoginStep(home, "Autenticar no Azure", "az", "login"),
+		skipWhen(miseToolLoginStep(home, "Autenticar na AWS", "aws", "login"), func() bool {
+			return miseToolAuthenticated(home, "aws", "sts", "get-caller-identity", "--output", "text")
+		}),
+		skipWhen(miseToolLoginStep(home, "Autenticar no Google Cloud", "gcloud", "auth", "login"), func() bool {
+			return miseToolAuthenticated(home, "gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)")
+		}),
+		skipWhen(miseToolLoginStep(home, "Autenticar no Railway", "railway", "login"), func() bool { return miseToolAuthenticated(home, "railway", "whoami") }),
+		skipWhen(miseToolLoginStep(home, "Autenticar no Firebase", "firebase", "login"), func() bool { return firebaseAuthenticated(home) }),
+		skipWhen(miseToolLoginStep(home, "Autenticar no Azure", "az", "login"), func() bool { return miseToolAuthenticated(home, "az", "account", "show", "--output", "json") }),
 	}
 }
 
 func npmLoginStep(home string) step {
-	return miseToolLoginStep(home, "Autenticar no npm", "npm", "login")
+	return skipWhen(miseToolLoginStep(home, "Autenticar no npm", "npm", "login"), func() bool { return miseToolAuthenticated(home, "npm", "whoami") })
 }
 
 func rustupToolchainStep() step {
@@ -48,7 +82,10 @@ func betterStackInstallStep() step {
 
 func betterStackLoginStep(home string) step {
 	path := filepath.Join(home, ".local", "bin") + ":" + os.Getenv("PATH")
-	return terminalStep("Autenticar no Better Stack", "env", "PATH="+path, "bs", "auth", "init")
+	return skipWhen(terminalStep("Autenticar no Better Stack", "env", "PATH="+path, "bs", "auth", "init"), func() bool {
+		config, err := os.ReadFile(filepath.Join(home, ".config", "bs", "config.toml"))
+		return err == nil && regexp.MustCompile(`(?m)^uptime_token\s*=\s*"[^"]+"`).Match(config)
+	})
 }
 
 func rustToolPath(home, name string) (string, error) {
@@ -78,16 +115,24 @@ func verifyRustTools(home string) error {
 
 func developmentEnvironmentSteps(dotfiles, home string, packageSteps []step) []step {
 	steps := miseSetupSteps(dotfiles)
-	steps = append(steps, developmentToolsInstallStep(dotfiles))
+	steps = append(steps, skipWhen(developmentToolsInstallStep(dotfiles), func() bool {
+		out, err := exec.Command("mise", "--cd", dotfiles, "ls", "--missing", "--current", "--no-header").Output()
+		return err == nil && len(bytes.TrimSpace(out)) == 0
+	}))
 	steps = append(steps, cloudLoginSteps(home)...)
 	steps = append(steps, packageSteps...)
 	steps = append(steps, fishConfigStep(dotfiles, home))
 	return append(steps,
-		rustupToolchainStep(),
+		skipWhen(rustupToolchainStep(), func() bool {
+			out, err := exec.Command("rustup", "toolchain", "list").Output()
+			return err == nil && strings.Contains(string(out), "stable-")
+		}),
 		nativeStep("Verificar rustc e cargo", func() error {
 			return verifyRustTools(home)
 		}),
-		betterStackInstallStep(),
+		skipWhen(betterStackInstallStep(), func() bool {
+			return executableFile(filepath.Join(home, ".local", "bin", "bs")) || commandSucceeds(nil, "bs", "--version")
+		}),
 		betterStackLoginStep(home),
 		npmLoginStep(home),
 	)

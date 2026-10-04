@@ -20,6 +20,28 @@ func commandTail(t *testing.T, current step, length int) []string {
 	return args[len(args)-length:]
 }
 
+func TestJobSkipsConfiguredStepAtExecutionTime(t *testing.T) {
+	configured := false
+	called := false
+	r := newJobRun(job{steps: []step{skipWhen(nativeStep("login", func() error {
+		called = true
+		return nil
+	}), func() bool { return configured })}})
+	configured = true
+	if command := r.startStep(); command != nil || !r.done || called || r.states[0] != stepSkipped {
+		t.Fatalf("passo não foi ignorado: done=%v called=%v states=%v", r.done, called, r.states)
+	}
+	configured = false
+	r = newJobRun(r.job)
+	message := r.startStep()()
+	if _, ok := message.(stepDoneMsg); !ok {
+		t.Fatalf("mensagem inesperada: %T", message)
+	}
+	if !called || r.states[0] != stepRunning {
+		t.Fatal("passo ausente não foi executado")
+	}
+}
+
 func TestPacmanSyncStepRefreshesAllDatabases(t *testing.T) {
 	current := pacmanSyncStep()
 	want := []string{"sudo", "pacman", "-Syy"}
@@ -81,8 +103,8 @@ mkdir -p "$repo/.git"`)
 	t.Setenv("TERM", "xterm-256color")
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	if err := shellyInstallStep("aur", "sample-aur-package").cmd().Run(); err != nil {
-		t.Fatal(err)
+	if out, err := shellyInstallStep("aur", "sample-aur-package").cmd().CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
 	}
 	if info, err := os.Stat(filepath.Join(home, ".aur", "sample-aur-package", ".git")); err != nil || !info.IsDir() {
 		t.Fatalf("clone AUR ausente: info=%v err=%v", info, err)

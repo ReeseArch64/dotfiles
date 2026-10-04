@@ -8,6 +8,85 @@ import (
 	"testing"
 )
 
+func TestCloudAndNpmLoginCheckExistingSessions(t *testing.T) {
+	home := t.TempDir()
+	bin := filepath.Join(home, ".local", "share", "mise", "shims")
+	if err := os.MkdirAll(bin, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"aws", "gcloud", "railway", "az", "npm"} {
+		writeTestExecutable(t, bin, name, `[ "$*" = "login" ] && exit 9; printf 'account\n'`)
+	}
+	writeTestExecutable(t, bin, "firebase", `printf '{"result":[{"email":"test@example.com"}]}'`)
+	for _, current := range append(cloudLoginSteps(home), npmLoginStep(home)) {
+		if !current.skip() {
+			t.Fatalf("sessão existente não detectada: %s", current.label)
+		}
+	}
+	writeTestExecutable(t, bin, "npm", `exit 1`)
+	if npmLoginStep(home).skip() {
+		t.Fatal("sessão npm ausente foi ignorada")
+	}
+}
+
+func TestDevelopmentSkipsInstalledMiseToolsAndRust(t *testing.T) {
+	bin := t.TempDir()
+	writeTestExecutable(t, bin, "mise", `exit 0`)
+	writeTestExecutable(t, bin, "rustup", `printf 'stable-x86_64-unknown-linux-gnu (default)\n'`)
+	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
+	steps := developmentEnvironmentSteps(t.TempDir(), t.TempDir(), nil)
+	for _, current := range steps {
+		if current.label == "Instalar ferramentas configuradas via mise" || current.label == "Instalar toolchain Rust estável" {
+			if !current.skip() {
+				t.Fatalf("instalação existente não ignorada: %s", current.label)
+			}
+		}
+	}
+	writeTestExecutable(t, bin, "mise", `printf 'node 22\n'`)
+	writeTestExecutable(t, bin, "rustup", `exit 1`)
+	for _, current := range steps {
+		if current.label == "Instalar ferramentas configuradas via mise" || current.label == "Instalar toolchain Rust estável" {
+			if current.skip() {
+				t.Fatalf("instalação ausente ignorada: %s", current.label)
+			}
+		}
+	}
+}
+
+func TestBetterStackSkipsInstallerAndConfiguredLogin(t *testing.T) {
+	home := t.TempDir()
+	binary := filepath.Join(home, ".local", "bin", "bs")
+	if err := os.MkdirAll(filepath.Dir(binary), 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeTestExecutable(t, filepath.Dir(binary), "bs", `exit 0`)
+	steps := developmentEnvironmentSteps(t.TempDir(), home, nil)
+	for _, current := range steps {
+		if current.label == "Instalar Better Stack CLI" && !current.skip() {
+			t.Fatal("CLI instalada novamente")
+		}
+	}
+	if err := os.Remove(binary); err != nil {
+		t.Fatal(err)
+	}
+	config := filepath.Join(home, ".config", "bs", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(config), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(config, []byte("[auth]\nuptime_token = \"secret\"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if !betterStackLoginStep(home).skip() {
+		t.Fatal("configuração existente não detectada")
+	}
+	if err := os.WriteFile(config, []byte("[auth]\nuptime_token = \"\"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if betterStackLoginStep(home).skip() {
+		t.Fatal("token vazio não deve ignorar login")
+	}
+}
+
 func TestDevelopmentPacmanPackagesIncludeFishRustupAndTk(t *testing.T) {
 	want := []string{"fish", "rustup", "tk"}
 	if !slices.Equal(developmentPacmanPackages, want) {

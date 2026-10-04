@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -72,6 +73,19 @@ func installBetterDiscordConfig(dotfiles, home string) error {
 	return copyDirectory(source, destination)
 }
 
+func betterDiscordInstalled() bool {
+	out, err := exec.Command("betterdiscordctl", "status").Output()
+	if err != nil || !strings.Contains(string(out), "Discord \"index.js\" injected: yes") {
+		return false
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.HasPrefix(line, "BetterDiscord asar installed:") && strings.HasSuffix(strings.TrimSpace(line), "yes") {
+			return true
+		}
+	}
+	return false
+}
+
 func discordJobFor(dotfiles, home string, pacmanSteps, aurSteps []step, openStep step) job {
 	steps := append([]step{}, pacmanSteps...)
 	steps = append(steps, aurSteps...)
@@ -80,7 +94,7 @@ func discordJobFor(dotfiles, home string, pacmanSteps, aurSteps []step, openStep
 		nativeStep("Criar link do módulo Discord", func() error {
 			return linkDiscordCore(home)
 		}),
-		terminalStep("Instalar BetterDiscord", "betterdiscordctl", "install"),
+		skipWhen(terminalStep("Instalar BetterDiscord", "betterdiscordctl", "install"), betterDiscordInstalled),
 		nativeStep("Substituir arquivos do BetterDiscord", func() error {
 			return installBetterDiscordConfig(dotfiles, home)
 		}),

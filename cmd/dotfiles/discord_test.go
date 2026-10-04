@@ -8,6 +8,19 @@ import (
 	"time"
 )
 
+func TestBetterDiscordSkipsInstalledPatch(t *testing.T) {
+	bin := t.TempDir()
+	writeTestExecutable(t, bin, "betterdiscordctl", `printf 'BetterDiscord asar installed: (symbolic link) yes\nDiscord "index.js" injected: yes\n'`)
+	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
+	if !betterDiscordInstalled() {
+		t.Fatal("patch existente não detectado")
+	}
+	writeTestExecutable(t, bin, "betterdiscordctl", `printf 'BetterDiscord asar installed: no\nDiscord "index.js" injected: no\n'`)
+	if betterDiscordInstalled() {
+		t.Fatal("patch ausente foi ignorado")
+	}
+}
+
 func TestDiscordJobRunsInstallationInRequiredOrder(t *testing.T) {
 	pacmanStep := nativeStep("Instalar discord via Pacman", func() error { return nil })
 	aurStep := nativeStep("Instalar betterdiscordctl via AUR", func() error { return nil })

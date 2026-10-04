@@ -9,6 +9,29 @@ import (
 	"testing"
 )
 
+func TestDockerCredentialsSkipLoginAndBrowserRequirement(t *testing.T) {
+	home := t.TempDir()
+	if dockerHasCredentials(home) {
+		t.Fatal("credencial inexistente")
+	}
+	if err := os.MkdirAll(filepath.Join(home, ".docker"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".docker", "config.json"), []byte(`{"auths":{"private.example.com":{"auth":"secret"}}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if dockerHasCredentials(home) {
+		t.Fatal("credenciais de outro registro não autenticam no Docker Hub")
+	}
+	if err := os.WriteFile(filepath.Join(home, ".docker", "config.json"), []byte(`{"auths":{"https://index.docker.io/v1/":{"auth":"secret"}}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	steps := dockerJobForUser("dev", home, nil, func(string) (string, error) { return "", errors.New("ausente") }).steps
+	if !steps[0].skip() || !steps[len(steps)-1].skip() {
+		t.Fatal("login existente não foi ignorado")
+	}
+}
+
 func TestDockerPackages(t *testing.T) {
 	want := []string{"docker", "docker-compose", "lazydocker", "docker-buildx", "util-linux", "xdg-utils"}
 	if packages := dockerRequiredPackages(); !slices.Equal(packages, want) {

@@ -22,6 +22,24 @@ func TestGitShellyPackagesIncludeGlab(t *testing.T) {
 	}
 }
 
+func TestGitJobSkipsExistingAuthAndRetriesMissingAuth(t *testing.T) {
+	bin := t.TempDir()
+	log := filepath.Join(t.TempDir(), "auth.log")
+	writeTestExecutable(t, bin, "gh", `printf 'gh %s\n' "$*" >> "$AUTH_LOG"`)
+	writeTestExecutable(t, bin, "glab", `printf 'glab %s\n' "$*" >> "$AUTH_LOG"; exit 1`)
+	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
+	t.Setenv("AUTH_LOG", log)
+	t.Setenv("HOME", t.TempDir())
+	steps := gitJob(t.TempDir()).steps
+	if !steps[len(steps)-2].skip() || steps[len(steps)-1].skip() {
+		t.Fatal("status de autenticação Git incorreto")
+	}
+	content, err := os.ReadFile(log)
+	if err != nil || !strings.Contains(string(content), "gh auth status") || !strings.Contains(string(content), "glab auth status") {
+		t.Fatalf("verificações ausentes: %s: %v", content, err)
+	}
+}
+
 func TestGitHubLoginStepUsesSSH(t *testing.T) {
 	current := githubLoginStep()
 	want := []string{"gh", "auth", "login", "--git-protocol", "ssh"}

@@ -5,6 +5,7 @@ package main
 // recebem o terminal via tea.ExecProcess.
 
 import (
+	"context"
 	"os/exec"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ type step struct {
 	label string
 	run   func() (string, error) // passo em background
 	cmd   func() *exec.Cmd       // passo interativo
+	skip  func() bool
 }
 
 type job struct {
@@ -31,6 +33,7 @@ const (
 	stepPending stepState = iota
 	stepRunning
 	stepOK
+	stepSkipped
 	stepFailed
 )
 
@@ -64,8 +67,13 @@ func (r *jobRun) startStep() tea.Cmd {
 		}
 		return func() tea.Msg { return jobResultMsg(r.result()) }
 	}
-	r.states[r.cur] = stepRunning
 	s := r.steps[r.cur]
+	if s.skip != nil && s.skip() {
+		r.states[r.cur] = stepSkipped
+		r.cur++
+		return r.startStep()
+	}
+	r.states[r.cur] = stepRunning
 	if s.cmd != nil {
 		return tea.ExecProcess(s.cmd(), func(err error) tea.Msg { return stepDoneMsg{"", err} })
 	}
@@ -106,6 +114,8 @@ func (r *jobRun) view(width int, elapsed time.Duration) string {
 			icon, label = renderGradientText(frame, elapsed, true), renderGradientText(s.label, elapsed, true)
 		case stepOK:
 			icon, label = lipgloss.NewStyle().Foreground(colOK).Render("✔"), txt.Render(s.label)
+		case stepSkipped:
+			icon, label = dim.Render("−"), dim.Render(s.label+" (já configurado)")
 		case stepFailed:
 			icon, label = lipgloss.NewStyle().Foreground(colErr).Render("✘"), lipgloss.NewStyle().Foreground(colErr).Render(s.label)
 		}
@@ -165,6 +175,21 @@ printf '\n  \e[1;35m━━ %s ━━\e[0m\n\n' "$STEP"
 		c.Env = append(c.Environ(), "STEP="+label)
 		return c
 	}}
+}
+
+func skipWhen(current step, check func() bool) step {
+	current.skip = check
+	return current
+}
+
+func commandSucceeds(env []string, name string, args ...string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, name, args...)
+	if env != nil {
+		cmd.Env = env
+	}
+	return cmd.Run() == nil
 }
 
 func sudoCached() bool { return exec.Command("sudo", "-n", "true").Run() == nil }

@@ -222,8 +222,8 @@ func gitJob(dotfiles string) job {
 		nativeStep("Validar SSH para GitHub e GitLab", func() error {
 			return validateGitSSH(dotfiles, home)
 		}),
-		githubLoginStep(),
-		glabLoginStep(),
+		skipWhen(githubLoginStep(), func() bool { return commandSucceeds(nil, "gh", "auth", "status") }),
+		skipWhen(glabLoginStep(), func() bool { return commandSucceeds(nil, "glab", "auth", "status") }),
 	)
 
 	return job{

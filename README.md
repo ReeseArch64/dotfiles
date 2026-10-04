@@ -17,6 +17,8 @@ A CLI organiza as ações em quatro áreas:
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
+A CLI também ignora instaladores de ferramentas já disponíveis e autenticações detectadas. Ela confere o estado imediatamente antes de cada etapa, inclusive após instalar ferramentas na mesma execução. Se uma verificação não confirmar a sessão, o login será solicitado novamente. Credenciais locais do Docker e do Better Stack não comprovam que os tokens ainda são válidos.
+
 Quando o Shelly falha, a CLI cria `~/.aur`, clona o pacote do AUR e executa `makepkg -si`. Depois, ela confirma a instalação com `pacman -Q`.
 
 Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache pode evitar prompts, e credenciais expiradas podem exigir nova autenticação.
@@ -208,8 +210,8 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 2. Instala `lazygit` e `glab` via Shelly.
 3. Aplica os arquivos globais.
 4. Exige que as chaves e o arquivo `~/.ssh/config` já estejam configurados.
-5. Executa `gh auth login --git-protocol ssh`.
-6. Executa `glab auth login --git-protocol ssh`.
+5. Executa `gh auth login --git-protocol ssh` quando o GitHub não está autenticado.
+6. Executa `glab auth login --git-protocol ssh` quando o GitLab não está autenticado.
 
 | Destino | Origem | Formato |
 | --- | --- | --- |

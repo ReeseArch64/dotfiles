@@ -234,6 +234,8 @@ func piAgentJobFor(dotfiles, home string, lookPath func(string) (string, error))
 	})}
 	if pathErr != nil {
 		piPath = filepath.Join(agentDir, "bin", "pi")
+	}
+	if pathErr != nil && !executableFile(piPath) {
 		steps = append(steps, terminalStep("Instalar Pi Agent (não iniciar ao final)", "env", "PI_CODING_AGENT_DIR="+agentDir,
 			"sh", "-c", "curl -fsSL https://pi.dev/install.sh | sh"))
 	}
@@ -241,8 +243,10 @@ func piAgentJobFor(dotfiles, home string, lookPath func(string) (string, error))
 		nativeStep("Copiar settings e tema", func() error {
 			return installPiConfig(dotfiles, home, time.Now())
 		}),
-		terminalStep("Instalar e atualizar pacotes do Pi", "env", "PI_CODING_AGENT_DIR="+agentDir,
-			piPath, "update", "--extensions"),
+		skipWhen(terminalStep("Instalar pacotes do Pi", "env", "PI_CODING_AGENT_DIR="+agentDir,
+			piPath, "update", "--extensions"), func() bool {
+			return loadPiAgentStatusForHome(dotfiles, home, lookPath).installed == len(requiredPiPackages)
+		}),
 	)
 	return job{
 		title: "Configurar Pi Agent",
