@@ -295,7 +295,7 @@ firebase login
 az login
 ```
 
-A cópia substitui o `config.fish` atual. Ela também remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada.
+A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada. Também remove `~/.bashrc`, `~/.bash_logout`, `~/.bash_profile` e `~/.zshrc`.
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 

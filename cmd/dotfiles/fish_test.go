@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestInstallFishConfigCopiesFileAndRemovesLegacyActivation(t *testing.T) {
+func TestInstallFishConfigCopiesFileAndRemovesObsoleteShellFiles(t *testing.T) {
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "fish", "config.fish")
@@ -23,6 +23,15 @@ func TestInstallFishConfigCopiesFileAndRemovesLegacyActivation(t *testing.T) {
 	if err := os.WriteFile(legacy, []byte("old\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	for _, name := range obsoleteShellFiles {
+		if err := os.WriteFile(filepath.Join(home, name), []byte("old\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	preserved := filepath.Join(home, ".profile")
+	if err := os.WriteFile(preserved, []byte("keep\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := installFishConfig(dotfiles, home); err != nil {
 		t.Fatal(err)
@@ -35,8 +44,17 @@ func TestInstallFishConfigCopiesFileAndRemovesLegacyActivation(t *testing.T) {
 	if string(content) != "mise activate fish | source\n" {
 		t.Fatalf("configuração inesperada: %q", content)
 	}
-	if _, err := os.Lstat(legacy); !os.IsNotExist(err) {
-		t.Fatalf("ativação antiga não foi removida: %v", err)
+	removed := append([]string{legacy}, obsoleteShellFiles...)
+	for _, path := range removed {
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(home, path)
+		}
+		if _, err := os.Lstat(path); !os.IsNotExist(err) {
+			t.Fatalf("arquivo obsoleto não foi removido em %s: %v", path, err)
+		}
+	}
+	if content, err := os.ReadFile(preserved); err != nil || string(content) != "keep\n" {
+		t.Fatalf("arquivo não relacionado foi alterado: conteúdo=%q erro=%v", content, err)
 	}
 }
 

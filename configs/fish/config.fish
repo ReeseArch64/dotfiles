@@ -1,9 +1,6 @@
 # CachyOS Config
 source /usr/share/cachyos-fish-config/cachyos-config.fish
 
-# Hermes Agent
-fish_add_path "$HOME/.local/bin"
-
 # Mise
 mise activate fish | source
 
