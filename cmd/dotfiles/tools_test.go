@@ -2,9 +2,64 @@ package main
 
 import (
 	"errors"
+	"os"
 	"slices"
+	"strings"
 	"testing"
 )
+
+func TestMprocsFailureDoesNotBlockOtherTerminalTools(t *testing.T) {
+	bin := t.TempDir()
+	writeTestExecutable(t, bin, "pacman", `[ "$1" = "-Q" ] && [ "$2" != "mprocs" ]`)
+	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
+	configured := terminalToolsJobFor(t.TempDir(), t.TempDir(), func(string) (string, error) { return "/usr/bin/lvim", nil })
+	var index int = -1
+	for i, current := range configured.steps {
+		if current.label == "Instalar mprocs via Shelly" {
+			index = i
+			break
+		}
+	}
+	if index < 1 || index+1 >= len(configured.steps) {
+		t.Fatalf("passo mprocs ausente ou sem continuação: %v", jobStepLabels(configured))
+	}
+	r := newJobRun(configured)
+	r.cur = index
+	r.states[index] = stepRunning
+	if r.handle(stepDoneMsg{err: errors.New("makepkg falhou")}) == nil && !r.done {
+		t.Fatal("próximo passo não executou")
+	}
+	if r.failed || r.states[index] != stepIgnored || r.cur <= index {
+		t.Fatalf("falha do mprocs bloqueou instalação: failed=%v states=%v cur=%d", r.failed, r.states, r.cur)
+	}
+	if configured.steps[index-1].label != "Atualizar bases do Pacman" || !configured.steps[index-1].optional {
+		t.Fatal("atualização exclusiva do mprocs também precisa ser opcional")
+	}
+	if configured.steps[index+1].optional {
+		t.Fatal("outras ferramentas não podem ficar opcionais")
+	}
+}
+
+func TestMprocsOptionalInstallerReturnsFailureWithoutWaiting(t *testing.T) {
+	bin := t.TempDir()
+	writeTestExecutable(t, bin, "pacman", `exit 1`)
+	writeTestExecutable(t, bin, "shelly", `exit 1`)
+	writeTestExecutable(t, bin, "git", `exit 1`)
+	t.Setenv("PATH", bin+":/usr/bin:/bin")
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("TERM", "xterm-256color")
+	steps := optionalMprocsSteps()
+	if len(steps) != 2 || !steps[0].optional || !steps[1].optional {
+		t.Fatalf("etapas opcionais incorretas: %v", jobStepLabels(job{steps: steps}))
+	}
+	if got := commandTail(t, steps[1], 6); !slices.Equal(got, []string{"bash", "-c", shellyFallbackScript, "dotfiles-shelly-fallback", "aur", "mprocs"}) {
+		t.Fatalf("instalação mprocs inesperada: %v", got)
+	}
+	out, err := steps[1].cmd().CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "Etapa opcional falhou; continuando a configuração") || strings.Contains(string(out), "Pressione qualquer tecla") {
+		t.Fatalf("falha não foi ignorada sem prompt: err=%v out=%s", err, out)
+	}
+}
 
 func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 	wantShelly := []string{"neovim", "scc"}

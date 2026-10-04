@@ -340,7 +340,7 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 - Neovim
 - scc
 - viddy, compilado pelo pacote AUR
-- mprocs, compilado pelo pacote AUR
+- mprocs, compilado pelo pacote AUR; se a instalação falhar, a CLI avisa e continua as demais ferramentas
 - Posting, compilado pelo pacote AUR
 - usql-bin, instalado pelo pacote AUR
 - proton-pass-cli-bin, instalado pelo pacote AUR

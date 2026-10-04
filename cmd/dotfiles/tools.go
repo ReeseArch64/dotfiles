@@ -15,9 +15,25 @@ func lunarVimInstallStep() step {
 	return terminalStep("Instalar LunarVim", "bash", "-c", lunarVimInstallCommand)
 }
 
+func optionalMprocsSteps() []step {
+	if len(missingPkgs("mprocs")) == 0 {
+		return nil
+	}
+	return []step{
+		optionalTerminalStep("Atualizar bases do Pacman", "sudo", "pacman", "-Syy"),
+		optionalTerminalStep("Instalar mprocs via Shelly", "bash", "-c", shellyFallbackScript, "dotfiles-shelly-fallback", "aur", "mprocs"),
+	}
+}
+
 func terminalToolsJobFor(dotfiles, home string, lookPath func(string) (string, error)) job {
 	steps := ensureShellyPkgs("standard", terminalToolPackages...)
-	steps = append(steps, ensureShellyPkgs("aur", terminalToolAurPackages...)...)
+	for _, pkg := range terminalToolAurPackages {
+		if pkg == "mprocs" {
+			steps = append(steps, optionalMprocsSteps()...)
+		} else {
+			steps = append(steps, ensureShellyPkgs("aur", pkg)...)
+		}
+	}
 	steps = append(steps, ensurePkgs(terminalToolPacmanPackages...)...)
 	steps = append(steps, fastfetchConfigStep(dotfiles, home))
 	steps = append(steps, btopConfigStep(dotfiles, home))

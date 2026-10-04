@@ -188,7 +188,7 @@ func optionalTerminalStep(label string, argv ...string) step {
 func terminalStepWithPause(label string, pause bool, argv ...string) step {
 	failure := `read -rsn1 -p $'\n\e[2mPressione qualquer tecla para voltar…\e[0m'`
 	if !pause {
-		failure = `printf '\nLogin opcional não concluído; continuando a configuração.\n'`
+		failure = `printf '\nEtapa opcional falhou; continuando a configuração.\n'`
 	}
 	wrapper := `clear
 printf '\n  \e[1;35m━━ %s ━━\e[0m\n\n' "$STEP"
