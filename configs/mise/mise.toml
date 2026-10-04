@@ -15,6 +15,8 @@ maven = { version = "latest" }
 flutter = { version = "latest" }
 
 node = { version = "latest" }
+"npm:cf" = { version = "latest" }
+wrangler = { version = "latest" }
 bun = { version = "latest" }
 pnpm = { version = "latest" }
 deno = { version = "latest" }

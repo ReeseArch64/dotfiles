@@ -255,7 +255,7 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
 3. Marca a configuração do Mise como confiável.
 4. Instala todas as ferramentas declaradas no `mise.toml`.
-5. Autentica AWS, Google Cloud, Railway e Firebase. Tenta autenticar no Azure, mas continua se o login falhar.
+5. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
 6. Instala Fish, `rustup` e o toolkit `tk` para Python via Pacman.
 7. Copia `configs/fish/config.fish` para `~/.config/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
@@ -271,6 +271,8 @@ O arquivo `configs/mise/mise.toml` instala:
 - Railway CLI
 - Firebase CLI
 - Azure CLI
+- Cloudflare CLI (`cf`, pacote npm `cf`)
+- Cloudflare Wrangler
 - k9s
 - kind
 - kubectl
@@ -287,15 +289,18 @@ O arquivo `configs/mise/mise.toml` instala:
 - Go
 - uv
 
-Após a instalação pelo Mise, a ação executa estes fluxos interativos:
+Após a instalação pelo Mise, a ação executa estes fluxos interativos quando não há autenticação ativa:
 
 ```text
 aws login
 gcloud auth login
 railway login
 firebase login
+cf auth login
 az login
 ```
+
+O Wrangler fica disponível como `wrangler`. Ele não exige login separado nesta ação.
 
 A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada. Também remove `~/.bashrc`, `~/.bash_logout`, `~/.bash_profile` e `~/.zshrc`.
 

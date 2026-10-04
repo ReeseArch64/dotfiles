@@ -38,7 +38,7 @@ func TestAzureOptionalLoginFailsWithoutPrompt(t *testing.T) {
 	writeTestExecutable(t, bin, "az", `printf 'sem assinatura\n' >&2; exit 1`)
 	t.Setenv("TERM", "xterm-256color")
 	t.Setenv("PATH", "/usr/bin:/bin")
-	azure := cloudLoginSteps(home)[4]
+	azure := cloudLoginSteps(home)[5]
 	if !azure.optional {
 		t.Fatal("login Azure precisa ser opcional")
 	}
@@ -54,16 +54,51 @@ func TestAzureOptionalLoginFailsWithoutPrompt(t *testing.T) {
 	}
 }
 
+func TestCloudflareLoginUsesMiseShimAndChecksExistingSession(t *testing.T) {
+	home := t.TempDir()
+	bin := filepath.Join(home, ".local", "share", "mise", "shims")
+	if err := os.MkdirAll(bin, 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeTestExecutable(t, bin, "cf", `printf '{"authenticated":true,"email":"test@example.com"}\n'`)
+	steps := cloudLoginSteps(home)
+	var login step
+	for _, current := range steps {
+		if current.label == "Autenticar na Cloudflare" {
+			login = current
+			break
+		}
+	}
+	if login.cmd == nil || login.skip == nil {
+		t.Fatal("login Cloudflare ausente")
+	}
+	if got := commandTail(t, login, 5); !slices.Equal(got, []string{"env", "PATH=" + bin + ":" + os.Getenv("PATH"), "cf", "auth", "login"}) {
+		t.Fatalf("comando Cloudflare inesperado: %v", got)
+	}
+	if !login.skip() {
+		t.Fatal("autenticação existente ignorada")
+	}
+	writeTestExecutable(t, bin, "cf", `printf '{"authenticated":false,"error":"Not logged in"}\n'`)
+	if login.skip() {
+		t.Fatal("Cloudflare retornou sucesso sem estar autenticada")
+	}
+	writeTestExecutable(t, bin, "cf", `exit 1`)
+	if login.skip() {
+		t.Fatal("login necessário ignorado")
+	}
+}
+
 func TestCloudAndNpmLoginCheckExistingSessions(t *testing.T) {
 	home := t.TempDir()
 	bin := filepath.Join(home, ".local", "share", "mise", "shims")
 	if err := os.MkdirAll(bin, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"aws", "gcloud", "railway", "az", "npm"} {
+	for _, name := range []string{"aws", "gcloud", "railway", "cf", "az", "npm"} {
 		writeTestExecutable(t, bin, name, `[ "$*" = "login" ] && exit 9; printf 'account\n'`)
 	}
 	writeTestExecutable(t, bin, "firebase", `printf '{"result":[{"email":"test@example.com"}]}'`)
+	writeTestExecutable(t, bin, "cf", `printf '{"authenticated":true}'`)
 	for _, current := range append(cloudLoginSteps(home), npmLoginStep(home)) {
 		if !current.skip() {
 			t.Fatalf("sessão existente não detectada: %s", current.label)
@@ -185,6 +220,7 @@ func TestCloudLoginStepsUseMiseShims(t *testing.T) {
 		{"Autenticar no Google Cloud", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "gcloud", "auth", "login"}},
 		{"Autenticar no Railway", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "railway", "login"}},
 		{"Autenticar no Firebase", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "firebase", "login"}},
+		{"Autenticar na Cloudflare", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "cf", "auth", "login"}},
 		{"Autenticar no Azure", []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "az", "login"}},
 	}
 	if len(steps) != len(want) {
@@ -274,6 +310,7 @@ func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 		"Autenticar no Google Cloud",
 		"Autenticar no Railway",
 		"Autenticar no Firebase",
+		"Autenticar na Cloudflare",
 		"Autenticar no Azure",
 		"Instalar fish, rustup, tk",
 		"Copiar configuração para ~/.config/fish/config.fish",

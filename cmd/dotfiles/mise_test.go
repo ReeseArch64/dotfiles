@@ -49,6 +49,8 @@ func TestMiseConfigIncludesCloudCLIs(t *testing.T) {
 		`railway = { version = "latest" }`,
 		`firebase = { version = "latest" }`,
 		`azure-cli = { version = "latest" }`,
+		`"npm:cf" = { version = "latest" }`,
+		`wrangler = { version = "latest" }`,
 	} {
 		if !strings.Contains(string(content), want) {
 			t.Fatalf("configuração %q ausente em mise.toml", want)

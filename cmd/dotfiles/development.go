@@ -37,6 +37,17 @@ func miseToolAuthenticated(home, name string, args ...string) bool {
 	return err == nil && len(bytes.TrimSpace(out)) > 0
 }
 
+func cloudflareAuthenticated(home string) bool {
+	out, err := miseToolOutput(home, "cf", "auth", "whoami")
+	if err != nil {
+		return false
+	}
+	var status struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	return json.Unmarshal(out, &status) == nil && status.Authenticated
+}
+
 func firebaseAuthenticated(home string) bool {
 	out, err := miseToolOutput(home, "firebase", "login:list", "--json")
 	if err != nil {
@@ -70,6 +81,9 @@ func cloudLoginSteps(home string) []step {
 		}),
 		skipWhen(miseToolLoginStep(home, "Autenticar no Railway", "railway", "login"), func() bool { return miseToolAuthenticated(home, "railway", "whoami") }),
 		skipWhen(miseToolLoginStep(home, "Autenticar no Firebase", "firebase", "login"), func() bool { return firebaseAuthenticated(home) }),
+		skipWhen(miseToolLoginStep(home, "Autenticar na Cloudflare", "cf", "auth", "login"), func() bool {
+			return cloudflareAuthenticated(home)
+		}),
 		skipWhen(optionalMiseToolLoginStep(home, "Autenticar no Azure", "az", "login"), func() bool { return miseToolAuthenticated(home, "az", "account", "show", "--output", "json") }),
 	}
 }
