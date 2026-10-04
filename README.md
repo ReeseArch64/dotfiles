@@ -462,7 +462,7 @@ Quando o destino é diferente, a CLI o renomeia com o sufixo `.backup-AAAAMMDD-H
 
 A configuração inclui o repositório `nothingrotf/pi-extensions` e seus pacotes `ask`, `compact`, `fast-mode`, `filetools`, `goal`, `hud`, `inline-skill`, `loop`, `session-history`, `subagent`, `tgrep`, `todo` e `pstack`.
 
-Ela também inclui `@gotgenes/pi-anthropic-auth` e `pi-antigravity`. A atualização pode alterar pacotes que já estão instalados.
+Ela também inclui `@gotgenes/pi-anthropic-auth`, `pi-antigravity` e `pi-multi-account`. A atualização pode alterar pacotes que já estão instalados.
 
 Após a configuração:
 

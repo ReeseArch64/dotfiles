@@ -31,6 +31,7 @@ var requiredPiPackages = []string{
 	"git/github.com/nothingrotf/pi-extensions/packages/pstack",
 	"npm:@gotgenes/pi-anthropic-auth",
 	"npm:pi-antigravity",
+	"npm:pi-multi-account",
 }
 
 type piAgentStatus struct {
