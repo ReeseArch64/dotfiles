@@ -501,7 +501,9 @@ Os pacotes do Pi executam código com as permissões do usuário. Revise as orig
 
 `Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/zen-backup.tar`.
 
-Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois de criar o arquivo. O diretório `/mnt/backups` deve existir e permitir gravação pelo usuário atual.
+Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois de criar o arquivo.
+
+Antes do backup, a CLI verifica `/mnt/backups`. Quando necessário, ela usa `sudo install` para criar o diretório, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
 
 A ação cria um arquivo temporário antes de substituir o backup anterior. Em caso de falha, ela preserva o arquivo existente. O backup recebe permissão `0600` porque contém dados do navegador e do chaveiro.
 

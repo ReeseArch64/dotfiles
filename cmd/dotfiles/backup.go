@@ -9,11 +9,32 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
 const backupDestination = "/mnt/backups"
+
+func backupDestinationReady(destination string, uid, gid int) bool {
+	info, err := os.Stat(destination)
+	if err != nil || !info.IsDir() || info.Mode().Perm() != 0700 {
+		return false
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	return ok && int(stat.Uid) == uid && int(stat.Gid) == gid
+}
+
+func backupDestinationSetupArgs(destination string, uid, gid int) []string {
+	return []string{"install", "-d", "-m", "0700", "-o", strconv.Itoa(uid), "-g", strconv.Itoa(gid), destination}
+}
+
+func backupDestinationSetupSteps(destination string, uid, gid int) []step {
+	if backupDestinationReady(destination, uid, gid) {
+		return nil
+	}
+	return withSudo(sudoStep("Preparar "+destination, false, backupDestinationSetupArgs(destination, uid, gid)...))
+}
 
 func runBrowserBackup(ctx context.Context) error {
 	home, err := os.UserHomeDir()
@@ -114,14 +135,21 @@ func isZenName(name string) bool {
 	return false
 }
 
-func browserBackupJob() job {
+func browserBackupJobFor(setup []step, run func() error) job {
+	steps := append([]step{}, setup...)
+	steps = append(steps, nativeStep("Criar zen-backup.tar", run))
 	return job{
 		title: "Backup do Navegador",
-		steps: []step{nativeStep("Criar zen-backup.tar", func() error {
-			return runBrowserBackup(context.Background())
-		})},
+		steps: steps,
 		result: func() string {
 			return lipgloss.NewStyle().Foreground(colOK).Render("Backup salvo em /mnt/backups/zen-backup.tar.")
 		},
 	}
+}
+
+func browserBackupJob() job {
+	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
+	return browserBackupJobFor(setup, func() error {
+		return runBrowserBackup(context.Background())
+	})
 }
