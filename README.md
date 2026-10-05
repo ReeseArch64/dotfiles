@@ -14,7 +14,7 @@ A CLI organiza as ações em cinco áreas:
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
-| Backup | Backup do navegador |
+| Backup | Backup do navegador e projetos locais |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -506,6 +506,23 @@ Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois
 Antes do backup, a CLI verifica `/mnt/backups`. Quando necessário, ela usa `sudo install` para criar o diretório, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
 
 A ação cria um arquivo temporário antes de substituir o backup anterior. Em caso de falha, ela preserva o arquivo existente. O backup recebe permissão `0600` porque contém dados do navegador e do chaveiro.
+
+### Backup de projetos locais
+
+`Backup > Backup de Projetos Locais` percorre toda a árvore de `/mnt/workspaces/reesearch64` e identifica diretórios que contêm `.git`.
+
+Para cada projeto, a CLI executa nesta ordem:
+
+```text
+git push origin
+git push backup
+```
+
+O remoto `origin` deve apontar para o GitHub. O remoto `backup` deve apontar para o GitLab. Se o envio ao GitHub falhar, a CLI não envia esse projeto ao GitLab. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
+
+Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também cria `/mnt/workspaces/reesearch64` e o link simbólico `~/.projects`, que aponta para `/mnt/workspaces`.
+
+A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
 
 ## Estrutura do repositório
 

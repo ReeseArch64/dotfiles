@@ -29,7 +29,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Ferramentas de terminal"},
 		screenDesktop:     {"Niri", "Noctalia", "Ghostty", "Zen Browser", "Thunderbird", "Discord", "Obsidian", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent"},
-		screenBackup:      {"Backup do Navegador"},
+		screenBackup:      {"Backup do Navegador", "Backup de Projetos Locais"},
 		screenCleanup:     {"Remover aplicativos"},
 	}
 	for category, want := range categories {

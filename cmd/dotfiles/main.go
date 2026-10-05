@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.14.1"
+const version = "0.15.0"
 
 type screen int
 
@@ -148,6 +148,7 @@ func (m model) items() []item {
 	case screenBackup:
 		return []item{
 			{title: "Backup do Navegador", desc: "Salvar Zen em /mnt/backups/zen-backup.tar", job: browserBackupJob},
+			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub e depois ao GitLab", job: projectsBackupJob},
 		}
 	case screenPiAgent:
 		return m.piAgentItems()
