@@ -364,6 +364,7 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 - zoxide
 - starship
 - btop
+- Chafa, usado pelo Fastfetch para renderizar o logo PNG
 - yq
 - jq
 - fd
