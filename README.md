@@ -340,8 +340,8 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 - Neovim
 - scc
 - viddy, compilado pelo pacote AUR
-- mprocs, compilado pelo pacote AUR; se a instalação falhar, a CLI avisa e continua as demais ferramentas
-- Posting, compilado pelo pacote AUR
+- mprocs, fornecido pelo modo de compatibilidade do Dekit e instalado pelo script oficial
+- Posting, instalado pelo `uv` com Python 3.13
 - usql-bin, instalado pelo pacote AUR
 - proton-pass-cli-bin, instalado pelo pacote AUR
 
@@ -377,6 +377,7 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 - bat
 - wget
 - curl
+- uv
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 

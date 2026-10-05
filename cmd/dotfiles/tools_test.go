@@ -3,61 +3,74 @@ package main
 import (
 	"errors"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 )
 
-func TestMprocsFailureDoesNotBlockOtherTerminalTools(t *testing.T) {
-	bin := t.TempDir()
-	writeTestExecutable(t, bin, "pacman", `[ "$1" = "-Q" ] && [ "$2" != "mprocs" ]`)
-	t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
-	configured := terminalToolsJobFor(t.TempDir(), t.TempDir(), func(string) (string, error) { return "/usr/bin/lvim", nil })
-	var index int = -1
+func TestTerminalToolsUseSupportedMprocsAndPostingInstallers(t *testing.T) {
+	configured := terminalToolsJobFor(t.TempDir(), t.TempDir(), func(name string) (string, error) {
+		if name == "lvim" {
+			return "/usr/bin/lvim", nil
+		}
+		return "", errors.New("ausente")
+	})
+	labels := jobStepLabels(configured)
+	mprocsIndex := slices.Index(labels, "Instalar mprocs via Dekit")
+	postingIndex := slices.Index(labels, "Instalar Posting via uv")
+	uvIndex := -1
 	for i, current := range configured.steps {
-		if current.label == "Instalar mprocs via Shelly" {
-			index = i
+		if current.cmd != nil && slices.Contains(current.cmd().Args, "pacman") && slices.Contains(current.cmd().Args, "uv") {
+			uvIndex = i
 			break
 		}
 	}
-	if index < 1 || index+1 >= len(configured.steps) {
-		t.Fatalf("passo mprocs ausente ou sem continuação: %v", jobStepLabels(configured))
+	if mprocsIndex < 0 || postingIndex < 0 || uvIndex < 0 {
+		t.Fatalf("instaladores ausentes: %v", labels)
 	}
-	r := newJobRun(configured)
-	r.cur = index
-	r.states[index] = stepRunning
-	if r.handle(stepDoneMsg{err: errors.New("makepkg falhou")}) == nil && !r.done {
-		t.Fatal("próximo passo não executou")
+	if uvIndex >= mprocsIndex || uvIndex >= postingIndex {
+		t.Fatalf("uv precisa ser instalado antes das ferramentas: %v", labels)
 	}
-	if r.failed || r.states[index] != stepIgnored || r.cur <= index {
-		t.Fatalf("falha do mprocs bloqueou instalação: failed=%v states=%v cur=%d", r.failed, r.states, r.cur)
+	if got := commandTail(t, configured.steps[mprocsIndex], 3); !slices.Equal(got, []string{"bash", "-c", mprocsInstallCommand}) {
+		t.Fatalf("instalação mprocs inesperada: %v", got)
 	}
-	if configured.steps[index-1].label != "Atualizar bases do Pacman" || !configured.steps[index-1].optional {
-		t.Fatal("atualização exclusiva do mprocs também precisa ser opcional")
-	}
-	if configured.steps[index+1].optional {
-		t.Fatal("outras ferramentas não podem ficar opcionais")
+	wantPosting := []string{"uv", "tool", "install", "--python", "3.13", "posting"}
+	if got := commandTail(t, configured.steps[postingIndex], len(wantPosting)); !slices.Equal(got, wantPosting) {
+		t.Fatalf("instalação Posting inesperada: %v", got)
 	}
 }
 
-func TestMprocsOptionalInstallerReturnsFailureWithoutWaiting(t *testing.T) {
+func TestMprocsInstallerCreatesCompatibleCommand(t *testing.T) {
+	home := t.TempDir()
 	bin := t.TempDir()
-	writeTestExecutable(t, bin, "pacman", `exit 1`)
-	writeTestExecutable(t, bin, "shelly", `exit 1`)
-	writeTestExecutable(t, bin, "git", `exit 1`)
-	t.Setenv("PATH", bin+":/usr/bin:/bin")
-	t.Setenv("HOME", t.TempDir())
+	writeTestExecutable(t, bin, "curl", `cat <<'SCRIPT'
+#!/bin/sh
+mkdir -p "$HOME/.local/bin"
+printf '%s\n' '#!/bin/sh' 'printf "%s\\n" "$*" > "$HOME/dekit-args"' > "$HOME/.local/bin/dekit"
+chmod 755 "$HOME/.local/bin/dekit"
+SCRIPT`)
+	t.Setenv("HOME", home)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+"/usr/bin:/bin")
 	t.Setenv("TERM", "xterm-256color")
-	steps := optionalMprocsSteps()
-	if len(steps) != 2 || !steps[0].optional || !steps[1].optional {
-		t.Fatalf("etapas opcionais incorretas: %v", jobStepLabels(job{steps: steps}))
+	current := terminalStep("Instalar mprocs via Dekit", "bash", "-c", mprocsInstallCommand)
+	if out, err := current.cmd().CombinedOutput(); err != nil {
+		t.Fatalf("instalação falhou: %v: %s", err, out)
 	}
-	if got := commandTail(t, steps[1], 6); !slices.Equal(got, []string{"bash", "-c", shellyFallbackScript, "dotfiles-shelly-fallback", "aur", "mprocs"}) {
-		t.Fatalf("instalação mprocs inesperada: %v", got)
+	command := filepath.Join(home, ".local", "bin", "mprocs")
+	if out, err := os.ReadFile(command); err != nil || !strings.Contains(string(out), `dekit" mprocs "$@"`) {
+		t.Fatalf("comando compatível ausente: err=%v conteúdo=%q", err, out)
 	}
-	out, err := steps[1].cmd().CombinedOutput()
-	if err == nil || !strings.Contains(string(out), "Etapa opcional falhou; continuando a configuração") || strings.Contains(string(out), "Pressione qualquer tecla") {
-		t.Fatalf("falha não foi ignorada sem prompt: err=%v out=%s", err, out)
+	if out, err := os.ReadFile(filepath.Join(home, "dekit-args")); err == nil {
+		t.Fatalf("Dekit executado durante instalação: %q", out)
+	}
+	if out, err := exec.Command(command, "--version").CombinedOutput(); err != nil {
+		t.Fatalf("mprocs falhou: %v: %s", err, out)
+	}
+	args, err := os.ReadFile(filepath.Join(home, "dekit-args"))
+	if err != nil || strings.TrimSpace(string(args)) != "mprocs --version" {
+		t.Fatalf("argumentos incompatíveis: err=%v args=%q", err, args)
 	}
 }
 
@@ -66,11 +79,11 @@ func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 	if !slices.Equal(terminalToolPackages, wantShelly) {
 		t.Fatalf("pacotes Shelly inesperados: %v", terminalToolPackages)
 	}
-	wantAur := []string{"viddy", "mprocs", "posting", "usql-bin", "proton-pass-cli-bin"}
+	wantAur := []string{"viddy", "usql-bin", "proton-pass-cli-bin"}
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
 		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
 	}
-	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "git-delta", "ventoy", "eza", "bat", "wget", "curl"}
+	wantPacman := []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "git-delta", "ventoy", "eza", "bat", "wget", "curl", "uv"}
 	if !slices.Equal(terminalToolPacmanPackages, wantPacman) {
 		t.Fatalf("pacotes Pacman inesperados: %v", terminalToolPacmanPackages)
 	}
