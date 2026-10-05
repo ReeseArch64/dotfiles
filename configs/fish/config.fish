@@ -2,6 +2,9 @@
 source /usr/share/cachyos-fish-config/conf.d/done.fish
 
 # Fastfetch
+function fish_greeting
+end
+
 fastfetch --config $HOME/.config/fastfetch/config.json --logo-type chafa --logo "$HOME/.face"
 
 # Mise
