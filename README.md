@@ -6,7 +6,7 @@ O repositório fornece uma CLI interativa para instalar ferramentas, configurar 
 
 ## Visão geral
 
-A CLI organiza as ações em quatro áreas:
+A CLI organiza as ações em cinco áreas:
 
 | Área | Ações |
 | --- | --- |
@@ -14,6 +14,7 @@ A CLI organiza as ações em quatro áreas:
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent |
+| Backup | Backup do navegador |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -32,6 +33,7 @@ Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache p
 - [Desenvolvimento](#desenvolvimento)
 - [Desktop](#desktop)
 - [Pi Agent](#pi-agent)
+- [Backup](#backup)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Desenvolvimento da CLI](#desenvolvimento-da-cli)
 - [Solução de problemas](#solução-de-problemas)
@@ -491,6 +493,14 @@ Nunca versione estes arquivos:
 ```
 
 Os pacotes do Pi executam código com as permissões do usuário. Revise as origens antes de atualizar extensões.
+
+## Backup
+
+`Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/zen-backup.tar`.
+
+Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois de criar o arquivo. O diretório `/mnt/backups` deve existir e permitir gravação pelo usuário atual.
+
+A ação cria um arquivo temporário antes de substituir o backup anterior. Em caso de falha, ela preserva o arquivo existente. O backup recebe permissão `0600` porque contém dados do navegador e do chaveiro.
 
 ## Estrutura do repositório
 

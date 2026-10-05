@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.12.1"
+const version = "0.13.0"
 
 type screen int
 
@@ -24,6 +24,7 @@ const (
 	screenDevelopment
 	screenDesktop
 	screenAIAgents
+	screenBackup
 	screenPiAgent
 	screenSSH
 	screenFirewall
@@ -41,6 +42,7 @@ var screenTitles = map[screen]string{
 	screenDevelopment: "Desenvolvimento",
 	screenDesktop:     "Desktop",
 	screenAIAgents:    "Agentes de IA",
+	screenBackup:      "Backup",
 	screenPiAgent:     "Pi Agent",
 	screenSSH:         "SSH",
 	screenFirewall:    "Firewall",
@@ -107,6 +109,7 @@ func (m model) items() []item {
 			{title: "Desenvolvimento", desc: "Git, ambientes e IDEs", goTo: screenDevelopment},
 			{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
 			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
+			{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups", goTo: screenBackup},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
@@ -141,6 +144,10 @@ func (m model) items() []item {
 	case screenAIAgents:
 		return []item{
 			{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent},
+		}
+	case screenBackup:
+		return []item{
+			{title: "Backup do Navegador", desc: "Salvar Zen em /mnt/backups/zen-backup.tar", job: browserBackupJob},
 		}
 	case screenPiAgent:
 		return m.piAgentItems()

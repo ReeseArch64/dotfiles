@@ -13,13 +13,10 @@ func itemTitles(items []item) []string {
 	return titles
 }
 
-func TestMainMenuHasAtMostFiveOptions(t *testing.T) {
+func TestMainMenuOptions(t *testing.T) {
 	model := newModel(t.TempDir())
 	items := model.items()
-	if len(items) > 5 {
-		t.Fatalf("menu principal possui %d opções", len(items))
-	}
-	want := []string{"Sistema", "Desenvolvimento", "Desktop", "Agentes de IA", "Sair"}
+	want := []string{"Sistema", "Desenvolvimento", "Desktop", "Agentes de IA", "Backup", "Sair"}
 	if titles := itemTitles(items); !slices.Equal(titles, want) {
 		t.Fatalf("opções inesperadas: %v", titles)
 	}
@@ -32,6 +29,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Ferramentas de terminal"},
 		screenDesktop:     {"Niri", "Noctalia", "Ghostty", "Zen Browser", "Thunderbird", "Discord", "Obsidian", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent"},
+		screenBackup:      {"Backup do Navegador"},
 		screenCleanup:     {"Remover aplicativos"},
 	}
 	for category, want := range categories {
@@ -44,7 +42,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 
 func TestMainMenuCategoriesOpenSubmenus(t *testing.T) {
 	model := newModel(t.TempDir())
-	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenAIAgents}
+	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenAIAgents, screenBackup}
 	for i, destination := range want {
 		item := model.items()[i]
 		if item.goTo != destination || item.job != nil || item.quit {
