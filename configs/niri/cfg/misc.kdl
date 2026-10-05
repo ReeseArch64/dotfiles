@@ -12,7 +12,7 @@ environment {
 }
 
 cursor {
-    xcursor-theme "capitaine-cursors"
+    xcursor-theme "FrierenBLZ"
     xcursor-size 24
 }
 

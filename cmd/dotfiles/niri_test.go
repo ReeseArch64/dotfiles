@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 )
@@ -112,6 +113,48 @@ func TestInstallNiriMigratesExistingSymlink(t *testing.T) {
 	backup := destination + ".backup-20250102-030405"
 	if info, err := os.Lstat(backup); err != nil || info.Mode()&os.ModeSymlink == 0 {
 		t.Fatalf("backup do symlink ausente: info=%v err=%v", info, err)
+	}
+}
+
+func TestInstallNiriCursorCopiesThemeToIcons(t *testing.T) {
+	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
+	home := filepath.Join(t.TempDir(), "home")
+	source := configPath(dotfiles, "cursor", "FrierenBLZ")
+	if err := os.MkdirAll(filepath.Join(source, "cursors"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "index.theme"), []byte("[Icon Theme]\nName=FrierenBLZ\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "cursors", "default"), []byte("cursor"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := installNiriCursor(dotfiles, home, time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{
+		"index.theme":     "[Icon Theme]\nName=FrierenBLZ\n",
+		"cursors/default": "cursor",
+	} {
+		content, err := os.ReadFile(filepath.Join(home, ".icons", "FrierenBLZ", filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != want {
+			t.Fatalf("conteúdo inesperado em %s: %q", name, content)
+		}
+	}
+}
+
+func TestNiriJobCopiesConfigurationAndCursor(t *testing.T) {
+	configured := niriJobFor("/tmp/dotfiles", "/tmp/home", func() time.Time { return time.Time{} })
+	want := []string{
+		"Copiar configuração para ~/.config/niri",
+		"Copiar cursor FrierenBLZ para ~/.icons",
+	}
+	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
+		t.Fatalf("passos inesperados: %v", labels)
 	}
 }
 

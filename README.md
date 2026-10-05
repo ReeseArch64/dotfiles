@@ -392,7 +392,9 @@ Ela também copia `configs/btop/` para `~/.config/btop`. Uma configuração dife
 
 ### Niri
 
-`Desktop > Niri` copia `configs/niri/` para `~/.config/niri`.
+`Desktop > Niri` copia `configs/niri/` para `~/.config/niri` e `configs/cursor/FrierenBLZ/` para `~/.icons/FrierenBLZ`.
+
+Quando o cursor de destino é diferente, a CLI preserva a versão anterior com um sufixo de backup datado.
 
 ### Noctalia
 
@@ -459,7 +461,7 @@ A ação substitui o destino existente. Faça uma cópia manual quando quiser pr
 
 ### Backups de diretórios
 
-Niri, Ghostty, Obsidian, wallpapers e btop usam cópias regulares.
+Niri, o cursor FrierenBLZ, Ghostty, Obsidian, wallpapers e btop usam cópias regulares.
 
 Quando o destino é diferente, a CLI o renomeia com o sufixo `.backup-AAAAMMDD-HHMMSS`. Conteúdo idêntico não gera outro backup.
 
@@ -513,6 +515,7 @@ A ação cria um arquivo temporário antes de substituir o backup anterior. Em c
 ├── cmd/dotfiles/          # Código e testes da CLI
 ├── configs/
 │   ├── btop/
+│   ├── cursor/
 │   ├── ghostty/
 │   ├── git/
 │   ├── mise/

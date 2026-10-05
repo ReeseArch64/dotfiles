@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.13.1"
+const version = "0.14.0"
 
 type screen int
 
@@ -131,7 +131,7 @@ func (m model) items() []item {
 		}
 	case screenDesktop:
 		return []item{
-			{title: "Niri", desc: "Copiar a configuração para ~/.config/niri", job: func() job { return niriJob(m.dotfiles) }},
+			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.dotfiles) }},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 			{title: "Ghostty", desc: "Instalar o terminal e copiar sua configuração", job: func() job { return ghosttyJob(m.dotfiles) }},
 			{title: "Zen Browser", desc: "Instalar o navegador e restaurar o backup local", job: func() job { return zenBrowserJob(m.dotfiles) }},
