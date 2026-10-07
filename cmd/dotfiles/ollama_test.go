@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -95,6 +96,44 @@ func TestOllamaROCmInstalled(t *testing.T) {
 	}
 }
 
+func TestOllamaROCmVersionedRuntime(t *testing.T) {
+	for _, directory := range []string{"rocm", "rocm_v6", "rocm_v7_2"} {
+		t.Run(directory, func(t *testing.T) {
+			root := t.TempDir()
+			binary := filepath.Join(root, "bin", "ollama")
+			library := filepath.Join(root, "lib", "ollama", directory, "libhipblas.so.3.2.70201")
+			for _, dir := range []string{filepath.Dir(binary), filepath.Dir(library)} {
+				if err := os.MkdirAll(dir, 0755); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := os.WriteFile(binary, nil, 0755); err != nil {
+				t.Fatal(err)
+			}
+			lookPath := func(string) (string, error) { return binary, nil }
+			configured := ollamaJobFor("/dotfiles", nil, lookPath)
+			if _, err := configured.steps[2].run(); err == nil {
+				t.Fatal("diretório ROCm vazio aceito")
+			}
+			if err := os.WriteFile(library, nil, 0644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := configured.steps[2].run(); err != nil {
+				t.Fatalf("runtime instalado em %s rejeitado: %v", directory, err)
+			}
+			if err := os.Remove(library); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink("missing-library", library); err != nil {
+				t.Fatal(err)
+			}
+			if ollamaROCmInstalled(lookPath) {
+				t.Fatal("link de biblioteca quebrado aceito")
+			}
+		})
+	}
+}
+
 func TestOllamaInstallerPropagatesCurlFailure(t *testing.T) {
 	bin := t.TempDir()
 	if err := os.WriteFile(filepath.Join(bin, "curl"), []byte("#!/bin/sh\nexit 22\n"), 0755); err != nil {
@@ -117,6 +156,8 @@ func TestOllamaJobCommandsAndMissingRuntime(t *testing.T) {
 	}
 	want := [][]string{
 		{"bash", "-o", "pipefail", "-c", ollamaInstallScript},
+		{"mountpoint", "-q", "/mnt/storage"},
+		{"sudo", "install", "-d", "-o", "ollama", "-g", "ollama", "-m", "0750", "/mnt/storage/ollama", "/mnt/storage/ollama/models"},
 		{"sudo", "usermod", "-aG", "render,video", "ollama"},
 		{"sudo", "install", "-Dm644", "/dotfiles/configs/ollama/amd.conf", "/etc/systemd/system/ollama.service.d/amd.conf"},
 		{"sudo", "systemctl", "daemon-reload"},
@@ -141,12 +182,97 @@ func TestOllamaJobCommandsAndMissingRuntime(t *testing.T) {
 	}
 }
 
+func TestOllamaModelsDirectoriesPreserveDataAndCorrectPermissions(t *testing.T) {
+	configured := ollamaJobFor("/dotfiles", nil, exec.LookPath)
+	var args []string
+	for _, current := range configured.steps {
+		if current.cmd == nil {
+			continue
+		}
+		command := current.cmd().Args[4:]
+		if len(command) > 2 && slices.Equal(command[:3], []string{"sudo", "install", "-d"}) {
+			args = append([]string{}, command[2:]...)
+			break
+		}
+	}
+	if len(args) != 9 {
+		t.Fatalf("criação dos diretórios não encontrada: %v", args)
+	}
+	root := t.TempDir()
+	parent := filepath.Join(root, "ollama")
+	models := filepath.Join(parent, "models")
+	args[2], args[4] = strconv.Itoa(os.Getuid()), strconv.Itoa(os.Getgid())
+	args[7], args[8] = parent, models
+	create := func() {
+		t.Helper()
+		if out, err := exec.Command("install", args...).CombinedOutput(); err != nil {
+			t.Fatalf("criar diretórios: %v: %s", err, out)
+		}
+		for _, path := range []string{parent, models} {
+			info, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !info.IsDir() || info.Mode().Perm() != 0750 {
+				t.Fatalf("permissões incorretas em %s: %v", path, info.Mode())
+			}
+		}
+	}
+	create()
+	model := filepath.Join(models, "existing-model")
+	if err := os.WriteFile(model, []byte("model data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{parent, models} {
+		if err := os.Chmod(path, 0777); err != nil {
+			t.Fatal(err)
+		}
+	}
+	create()
+	content, err := os.ReadFile(model)
+	if err != nil || string(content) != "model data" {
+		t.Fatalf("modelo existente alterado: %q, %v", content, err)
+	}
+	info, err := os.Stat(model)
+	if err != nil || info.Mode().Perm() != 0600 {
+		t.Fatalf("permissões do modelo existente alteradas: %v, %v", info, err)
+	}
+}
+
+func TestOllamaMissingStorageMountStopsJob(t *testing.T) {
+	bin := t.TempDir()
+	writeTestExecutable(t, bin, "mountpoint", "exit 1")
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	configured := ollamaJobFor("/dotfiles", nil, exec.LookPath)
+	for i, current := range configured.steps {
+		if current.cmd == nil || current.cmd().Args[4] != "mountpoint" {
+			continue
+		}
+		command := current.cmd().Args[4:]
+		err := exec.Command(command[0], command[1:]...).Run()
+		if err == nil {
+			t.Fatal("montagem ausente aceita")
+		}
+		run := newJobRun(configured)
+		run.cur = i
+		run.states[i] = stepRunning
+		if next := run.handle(stepDoneMsg{err: err}); next != nil || !run.failed || !run.done {
+			t.Fatal("configuração continuou sem o disco de modelos")
+		}
+		if run.states[i+1] != stepPending {
+			t.Fatal("diretórios criados apesar da montagem ausente")
+		}
+		return
+	}
+	t.Fatal("verificação da montagem não encontrada")
+}
+
 func TestOllamaServiceConfiguration(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", "configs", "ollama", "amd.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"[Service]", "SupplementaryGroups=render video", "Environment=\"OLLAMA_HOST=127.0.0.1:11434\""} {
+	for _, required := range []string{"[Unit]", "RequiresMountsFor=/mnt/storage/ollama/models", "ConditionPathIsMountPoint=/mnt/storage", "[Service]", "SupplementaryGroups=render video", "Environment=\"OLLAMA_HOST=127.0.0.1:11434\"", "Environment=\"OLLAMA_MODELS=/mnt/storage/ollama/models\""} {
 		if !strings.Contains(string(content), required) {
 			t.Fatalf("configuração ausente: %s", required)
 		}

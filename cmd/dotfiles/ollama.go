@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var ollamaDependencies = []string{"curl", "pciutils", "tar", "zstd"}
+var ollamaDependencies = []string{"curl", "pciutils", "tar", "zstd", "util-linux"}
 
 const ollamaInstallScript = "curl -fsSL https://ollama.com/install.sh | sh"
 
@@ -48,7 +48,7 @@ func ollamaROCmInstalled(lookPath func(string) (string, error)) bool {
 	if err != nil {
 		return false
 	}
-	libraries, _ := filepath.Glob(filepath.Join(filepath.Dir(filepath.Dir(binary)), "lib", "ollama", "rocm", "libhipblas.so*"))
+	libraries, _ := filepath.Glob(filepath.Join(filepath.Dir(filepath.Dir(binary)), "lib", "ollama", "rocm*", "libhipblas.so*"))
 	for _, library := range libraries {
 		if info, err := os.Stat(library); err == nil && info.Mode().IsRegular() {
 			return true
@@ -72,6 +72,9 @@ func ollamaJobFor(dotfiles string, packageSteps []step, lookPath func(string) (s
 			}
 			return nil
 		}),
+		terminalStep("Verificar montagem do disco de modelos", "mountpoint", "-q", "/mnt/storage"),
+		terminalStep("Criar diretórios dos modelos com permissões", "sudo", "install", "-d", "-o", "ollama", "-g", "ollama", "-m", "0750",
+			"/mnt/storage/ollama", "/mnt/storage/ollama/models"),
 		terminalStep("Permitir acesso do serviço à GPU AMD", "sudo", "usermod", "-aG", "render,video", "ollama"),
 		terminalStep("Configurar serviço Ollama para GPU AMD", "sudo", "install", "-Dm644",
 			configPath(dotfiles, "ollama", "amd.conf"), "/etc/systemd/system/ollama.service.d/amd.conf"),
@@ -86,7 +89,7 @@ func ollamaJobFor(dotfiles string, packageSteps []step, lookPath func(string) (s
 		title: "Configurar Ollama (AMD)",
 		steps: steps,
 		result: func() string {
-			return "Ollama configurado com runtime ROCm e API local em 127.0.0.1:11434.\nExecute um modelo e use ollama ps para conferir o uso da GPU."
+			return "Ollama configurado com runtime ROCm e API local em 127.0.0.1:11434.\nModelos em /mnt/storage/ollama/models.\nExecute um modelo e use ollama ps para conferir o uso da GPU."
 		},
 	}
 }

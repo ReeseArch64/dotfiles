@@ -503,15 +503,23 @@ Os pacotes do Pi executam código com as permissões do usuário. Revise as orig
 `Agentes de IA > Ollama` instala e configura o serviço para GPU AMD:
 
 1. Valida o driver `amdgpu` e o dispositivo `/dev/kfd`.
-2. Instala `curl`, `pciutils`, `tar` e `zstd` quando necessário.
+2. Instala `curl`, `pciutils`, `tar`, `zstd` e `util-linux` quando necessário.
 3. Executa `curl -fsSL https://ollama.com/install.sh | sh` com `pipefail` para detectar falhas no download.
 4. Verifica o runtime ROCm baixado pelo instalador oficial.
-5. Adiciona o usuário do serviço `ollama` aos grupos `render` e `video`.
-6. Aplica `configs/ollama/amd.conf` em `/etc/systemd/system/ollama.service.d/amd.conf`.
-7. Habilita o serviço no boot, reinicia o Ollama e verifica a API local.
+5. Verifica se `/mnt/storage` é um ponto de montagem ativo.
+6. Cria `/mnt/storage/ollama` e `/mnt/storage/ollama/models` com `sudo install`, proprietário `ollama:ollama` e permissão `0750`.
+7. Adiciona o usuário do serviço `ollama` aos grupos `render` e `video`.
+8. Aplica `configs/ollama/amd.conf` em `/etc/systemd/system/ollama.service.d/amd.conf`.
+9. Habilita o serviço no boot, reinicia o Ollama e verifica a API local.
 
 A ação ignora o instalador quando encontra o binário, o runtime ROCm e a unidade `ollama.service`.
 O serviço usa `127.0.0.1:11434` e não abre portas no firewall.
+`OLLAMA_MODELS` direciona os novos downloads para `/mnt/storage/ollama/models`.
+A ação reaplica o proprietário e as permissões das duas pastas sem alterar recursivamente os arquivos existentes.
+Modelos no diretório padrão não são migrados automaticamente.
+
+Configure a montagem permanente de `/mnt/storage` antes de executar a ação.
+O serviço exige essa montagem no boot e não inicia quando ela está ausente.
 A configuração não força `HSA_OVERRIDE_GFX_VERSION` nem seleciona uma GPU por índice.
 
 A aceleração depende de uma GPU compatível com [ROCm no Ollama](https://docs.ollama.com/gpu).
