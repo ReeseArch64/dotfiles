@@ -144,6 +144,7 @@ func (m model) items() []item {
 	case screenAIAgents:
 		return []item{
 			{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent},
+			{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.dotfiles) }},
 		}
 	case screenBackup:
 		return []item{

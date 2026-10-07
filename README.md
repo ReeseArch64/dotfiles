@@ -13,7 +13,7 @@ A CLI organiza as ações em cinco áreas:
 | Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
-| Agentes de IA | Pi Agent |
+| Agentes de IA | Pi Agent e Ollama com GPU AMD |
 | Backup | Backup do navegador e projetos locais |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
@@ -33,6 +33,7 @@ Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache p
 - [Desenvolvimento](#desenvolvimento)
 - [Desktop](#desktop)
 - [Pi Agent](#pi-agent)
+- [Ollama](#ollama)
 - [Backup](#backup)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Desenvolvimento da CLI](#desenvolvimento-da-cli)
@@ -63,7 +64,7 @@ Também são necessários:
 
 Algumas ações possuem requisitos próprios. Eles estão descritos nas seções correspondentes.
 
-Pi Agent, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
+Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
 
 ## Instalação rápida
 
@@ -497,6 +498,32 @@ Nunca versione estes arquivos:
 
 Os pacotes do Pi executam código com as permissões do usuário. Revise as origens antes de atualizar extensões.
 
+## Ollama
+
+`Agentes de IA > Ollama` instala e configura o serviço para GPU AMD:
+
+1. Valida o driver `amdgpu` e o dispositivo `/dev/kfd`.
+2. Instala `curl`, `pciutils`, `tar` e `zstd` quando necessário.
+3. Executa `curl -fsSL https://ollama.com/install.sh | sh` com `pipefail` para detectar falhas no download.
+4. Verifica o runtime ROCm baixado pelo instalador oficial.
+5. Adiciona o usuário do serviço `ollama` aos grupos `render` e `video`.
+6. Aplica `configs/ollama/amd.conf` em `/etc/systemd/system/ollama.service.d/amd.conf`.
+7. Habilita o serviço no boot, reinicia o Ollama e verifica a API local.
+
+A ação ignora o instalador quando encontra o binário, o runtime ROCm e a unidade `ollama.service`.
+O serviço usa `127.0.0.1:11434` e não abre portas no firewall.
+A configuração não força `HSA_OVERRIDE_GFX_VERSION` nem seleciona uma GPU por índice.
+
+A aceleração depende de uma GPU compatível com [ROCm no Ollama](https://docs.ollama.com/gpu).
+O módulo não baixa modelos automaticamente.
+
+Para verificar a aceleração:
+
+1. Execute `ollama run llama3.2:1b` para baixar e carregar um modelo.
+2. Em outro terminal, execute `ollama ps`.
+3. Confira a coluna `PROCESSOR` para identificar o uso de GPU ou CPU.
+4. Se o modelo usar somente CPU, consulte `journalctl -u ollama.service -b`.
+
 ## Backup
 
 `Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/zen-backup.tar`.
@@ -541,6 +568,7 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 │   ├── niri/
 │   ├── noctalia/
 │   ├── obsidian/
+│   ├── ollama/
 │   ├── pi/
 │   └── ssh/
 ├── go.mod
