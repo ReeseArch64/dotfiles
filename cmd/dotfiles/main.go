@@ -127,6 +127,7 @@ func (m model) items() []item {
 			{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.dotfiles) }},
 			{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
 			{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
+			{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob},
 			{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.dotfiles) }},
 		}
 	case screenDesktop:
