@@ -37,6 +37,9 @@ func TestInstallNiriCreatesRegularConfigDirectory(t *testing.T) {
 	if string(content) != "new" {
 		t.Fatalf("conteúdo inesperado: %q", content)
 	}
+	if info, err := os.Stat(filepath.Join(home, "Pictures", "Screenshots")); err != nil || !info.IsDir() {
+		t.Fatalf("diretório de screenshots não foi criado: info=%v err=%v", info, err)
+	}
 }
 
 func TestInstallNiriPreservesExistingConfiguration(t *testing.T) {

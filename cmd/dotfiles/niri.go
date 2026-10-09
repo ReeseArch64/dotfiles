@@ -9,6 +9,9 @@ import (
 )
 
 func installNiri(dotfiles, home string, now time.Time) error {
+	if err := os.MkdirAll(filepath.Join(home, "Pictures", "Screenshots"), 0755); err != nil {
+		return err
+	}
 	return copyDirectoryWithBackup(
 		configPath(dotfiles, "niri"),
 		filepath.Join(home, ".config", "niri"),
