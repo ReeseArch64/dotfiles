@@ -23,8 +23,26 @@ window-rule {
 }
 
 window-rule {
+    match app-id="discord"
+    opacity 0.95
+    draw-border-with-background false
+}
+
+window-rule {
+    match app-id="zen"
+    opacity 0.95
+    draw-border-with-background false
+}
+
+window-rule {
     match app-id="md.obsidian.Obsidian"
     opacity 0.95
+}
+
+window-rule {
+    match app-id="dev.zed.Zed"
+    opacity 0.95
+    draw-border-with-background false
 }
 
 window-rule {
