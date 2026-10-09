@@ -452,7 +452,18 @@ O `.gitignore` exclui `zen-backup.tar` e `zen-backup/`. O arquivo contém dados 
 
 `Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`.
 
-A pasta contém imagens para desktop, Android e iPhone.
+A pasta contém dez imagens destinadas a diferentes telas:
+
+- `android.jpg`
+- `browser.jpg`
+- `desktop.jpg`
+- `desktop-ultrawide.jpg`
+- `dual-monitor.jpg`
+- `ipad.jpg`
+- `iphone.jpg`
+- `macbook.jpg`
+- `notebook.jpg`
+- `tablet.jpg`
 
 ### Foto de perfil
 

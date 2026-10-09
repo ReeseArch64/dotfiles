@@ -7,6 +7,19 @@ import (
 	"time"
 )
 
+var wallpaperNames = []string{
+	"android.jpg",
+	"browser.jpg",
+	"desktop-ultrawide.jpg",
+	"desktop.jpg",
+	"dual-monitor.jpg",
+	"ipad.jpg",
+	"iphone.jpg",
+	"macbook.jpg",
+	"notebook.jpg",
+	"tablet.jpg",
+}
+
 func prepareWallpapersTest(t *testing.T) (string, string) {
 	t.Helper()
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
@@ -15,7 +28,7 @@ func prepareWallpapersTest(t *testing.T) (string, string) {
 	if err := os.MkdirAll(source, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"android.jpg", "desktop.jpg", "iphone.jpg"} {
+	for _, name := range wallpaperNames {
 		if err := os.WriteFile(filepath.Join(source, name), []byte("new "+name), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -38,7 +51,7 @@ func TestInstallWallpapersCopiesRegularDirectory(t *testing.T) {
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		t.Fatalf("destino não é diretório regular: %v", info.Mode())
 	}
-	for _, name := range []string{"android.jpg", "desktop.jpg", "iphone.jpg"} {
+	for _, name := range wallpaperNames {
 		content, err := os.ReadFile(filepath.Join(destination, name))
 		if err != nil {
 			t.Fatal(err)
