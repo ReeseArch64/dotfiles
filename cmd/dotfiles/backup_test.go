@@ -9,7 +9,43 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestRestorePointPathIncludesDateAndTime(t *testing.T) {
+	at := time.Date(2026, time.March, 7, 14, 5, 9, 0, time.Local)
+	want := "/.snapshots/ponto-restauracao-2026-03-07_14-05-09"
+	if got := restorePointPath(at); got != want {
+		t.Fatalf("caminho inesperado: %s", got)
+	}
+}
+
+func TestRestorePointUsesStandardWritableBtrfsSnapshot(t *testing.T) {
+	destination := "/.snapshots/ponto-restauracao-2026-03-07_14-05-09"
+	want := []string{"btrfs", "subvolume", "snapshot", "/", destination}
+	if got := restorePointSnapshotArgs(destination); !slices.Equal(got, want) {
+		t.Fatalf("argumentos inesperados: %v", got)
+	}
+}
+
+func TestRestorePointJobCreatesSnapshotAfterPreparingDirectory(t *testing.T) {
+	destination := "/.snapshots/ponto-restauracao-2026-03-07_14-05-09"
+	steps := []step{
+		nativeStep("Preparar /.snapshots", func() error { return nil }),
+		nativeStep("Criar snapshot Btrfs", func() error { return nil }),
+	}
+	configured := restorePointJobFor(destination, steps)
+	if configured.title != "Ponto de Restauração" {
+		t.Fatalf("título inesperado: %s", configured.title)
+	}
+	want := []string{"Preparar /.snapshots", "Criar snapshot Btrfs"}
+	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
+		t.Fatalf("passos inesperados: %v", labels)
+	}
+	if result := configured.result(); !strings.Contains(result, destination) {
+		t.Fatalf("resultado não informa o destino: %q", result)
+	}
+}
 
 func TestBackupBrowserCreatesArchive(t *testing.T) {
 	home := t.TempDir()

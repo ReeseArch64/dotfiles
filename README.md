@@ -14,7 +14,7 @@ A CLI organiza as ações em cinco áreas:
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent e Ollama com GPU AMD |
-| Backup | Backup do navegador, projetos locais e chaves SSH/GPG |
+| Backup | Ponto de restauração Btrfs, navegador, projetos locais e chaves SSH/GPG |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -545,7 +545,13 @@ Para verificar a aceleração:
 
 ## Backup
 
-As opções de backup armazenam os dados locais em `/mnt/backups`. Antes de executar os backups do navegador, SSH ou GPG, a CLI verifica esse diretório. Quando necessário, ela usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
+Os backups de arquivos armazenam os dados locais em `/mnt/backups`. Antes de executar os backups do navegador, SSH ou GPG, a CLI verifica esse diretório. Quando necessário, ela usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
+
+### Ponto de restauração
+
+`Backup > Ponto de Restauração` cria um snapshot Btrfs gravável do subvolume raiz em `/.snapshots`. O nome inclui a data e a hora locais no formato `ponto-restauracao-AAAA-MM-DD_HH-MM-SS`.
+
+A ação cria `/.snapshots` quando necessário e executa `btrfs subvolume snapshot / <destino>` com privilégios de administrador. A raiz e `/.snapshots` precisam pertencer ao mesmo sistema de arquivos Btrfs.
 
 ### Backup do navegador
 

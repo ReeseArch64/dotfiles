@@ -11,11 +11,15 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
-const backupDestination = "/mnt/backups"
+const (
+	backupDestination      = "/mnt/backups"
+	restorePointsDirectory = "/.snapshots"
+)
 
 const (
 	sshBackupDestination = backupDestination + "/ssh"
@@ -40,6 +44,34 @@ func backupDestinationSetupSteps(destination string, uid, gid int) []step {
 		return nil
 	}
 	return withSudo(sudoStep("Preparar "+destination, false, backupDestinationSetupArgs(destination, uid, gid)...))
+}
+
+func restorePointPath(at time.Time) string {
+	name := "ponto-restauracao-" + at.Format("2006-01-02_15-04-05")
+	return filepath.Join(restorePointsDirectory, name)
+}
+
+func restorePointSnapshotArgs(destination string) []string {
+	return []string{"btrfs", "subvolume", "snapshot", "/", destination}
+}
+
+func restorePointJobFor(destination string, steps []step) job {
+	return job{
+		title: "Ponto de Restauração",
+		steps: steps,
+		result: func() string {
+			return lipgloss.NewStyle().Foreground(colOK).Render("Ponto de restauração criado em " + destination + ".")
+		},
+	}
+}
+
+func restorePointJob() job {
+	destination := restorePointPath(time.Now())
+	steps := withSudo(
+		sudoStep("Preparar "+restorePointsDirectory, false, "mkdir", "-p", restorePointsDirectory),
+		sudoStep("Criar snapshot Btrfs", false, restorePointSnapshotArgs(destination)...),
+	)
+	return restorePointJobFor(destination, steps)
 }
 
 func runBrowserBackup(ctx context.Context) error {
