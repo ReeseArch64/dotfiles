@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ const (
 	projectsRoot      = "/mnt/workspaces/reesearch64"
 )
 
-type gitCommand func(context.Context, string, ...string) error
+type gitCommand func(context.Context, string, ...string) (string, error)
 
 func ownedPrivateDirectory(path string, uid, gid int) bool {
 	info, err := os.Stat(path)
@@ -100,7 +101,7 @@ func findProjectRepositories(root string) ([]string, error) {
 	return repositories, nil
 }
 
-func runProjectGit(ctx context.Context, repository string, args ...string) error {
+func runProjectGit(ctx context.Context, repository string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", repository}, args...)...)
 	var output bytes.Buffer
 	cmd.Stdout = &output
@@ -108,11 +109,11 @@ func runProjectGit(ctx context.Context, repository string, args ...string) error
 	if err := cmd.Run(); err != nil {
 		detail := strings.TrimSpace(output.String())
 		if detail != "" {
-			return fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, detail)
+			return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, detail)
 		}
-		return fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
 	}
-	return nil
+	return strings.TrimSpace(output.String()), nil
 }
 
 func backupProjectRepositories(ctx context.Context, root string, run gitCommand) (int, error) {
@@ -126,11 +127,19 @@ func backupProjectRepositories(ctx context.Context, root string, run gitCommand)
 	var failures []error
 	completed := 0
 	for _, repository := range repositories {
-		if err := run(ctx, repository, "push", "origin"); err != nil {
+		remotes, err := run(ctx, repository, "remote")
+		if err != nil {
+			failures = append(failures, fmt.Errorf("%s -> listar remotos: %w", repository, err))
+			continue
+		}
+		if !slices.Contains(strings.Fields(remotes), "backup") {
+			continue
+		}
+		if _, err := run(ctx, repository, "push", "origin"); err != nil {
 			failures = append(failures, fmt.Errorf("%s -> GitHub: %w", repository, err))
 			continue
 		}
-		if err := run(ctx, repository, "push", "backup"); err != nil {
+		if _, err := run(ctx, repository, "push", "backup"); err != nil {
 			failures = append(failures, fmt.Errorf("%s -> GitLab: %w", repository, err))
 			continue
 		}
