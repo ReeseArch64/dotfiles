@@ -17,7 +17,10 @@ import (
 
 const backupDestination = "/mnt/backups"
 
-const sshBackupDestination = backupDestination + "/ssh"
+const (
+	sshBackupDestination = backupDestination + "/ssh"
+	gpgBackupDestination = backupDestination + "/gpg"
+)
 
 func backupDestinationReady(destination string, uid, gid int) bool {
 	info, err := os.Stat(destination)
@@ -205,4 +208,96 @@ func sshKeysBackupJobFor(setup []step, run func() error) job {
 func sshKeysBackupJob() job {
 	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
 	return sshKeysBackupJobFor(setup, runSSHKeysBackup)
+}
+
+type gpgExporter func(context.Context, bool) ([]byte, error)
+
+func exportGPGKey(ctx context.Context, secret bool) ([]byte, error) {
+	args := []string{"--armor", "--export"}
+	kind := "pública"
+	if secret {
+		args = []string{"--armor", "--export-secret-keys"}
+		kind = "privada"
+	}
+	cmd := exec.CommandContext(ctx, "gpg", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	output, err := cmd.Output()
+	if err != nil {
+		detail := strings.TrimSpace(stderr.String())
+		if detail != "" {
+			return nil, fmt.Errorf("exportar chave %s: %w: %s", kind, err, detail)
+		}
+		return nil, fmt.Errorf("exportar chave %s: %w", kind, err)
+	}
+	header := "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+	if secret {
+		header = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+	}
+	if !bytes.Contains(output, []byte(header)) {
+		return nil, fmt.Errorf("nenhuma chave %s encontrada", kind)
+	}
+	return output, nil
+}
+
+func writeBackupFileAtomic(path string, content []byte, mode os.FileMode) error {
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".gpg-backup-*")
+	if err != nil {
+		return fmt.Errorf("criar arquivo temporário: %w", err)
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+	if _, err = temporary.Write(content); err == nil {
+		err = temporary.Chmod(mode)
+	}
+	if closeErr := temporary.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return fmt.Errorf("gravar %s: %w", path, err)
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return fmt.Errorf("substituir %s: %w", path, err)
+	}
+	return nil
+}
+
+func backupGPGKeys(ctx context.Context, destination string, export gpgExporter) error {
+	if err := os.MkdirAll(destination, 0700); err != nil {
+		return fmt.Errorf("criar %s: %w", destination, err)
+	}
+	if err := os.Chmod(destination, 0700); err != nil {
+		return fmt.Errorf("proteger %s: %w", destination, err)
+	}
+	publicKey, err := export(ctx, false)
+	if err != nil {
+		return err
+	}
+	privateKey, err := export(ctx, true)
+	if err != nil {
+		return err
+	}
+	if err := writeBackupFileAtomic(filepath.Join(destination, "minha_chave_publica.asc"), publicKey, 0644); err != nil {
+		return err
+	}
+	return writeBackupFileAtomic(filepath.Join(destination, "minha_chave_privada.asc"), privateKey, 0600)
+}
+
+func gpgBackupJobFor(setup []step, run func() error) job {
+	steps := append([]step{}, setup...)
+	steps = append(steps, nativeStep("Exportar chaves GPG", run))
+	return job{
+		title: "Backup das Chaves GPG",
+		steps: steps,
+		result: func() string {
+			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves GPG salvas em " + gpgBackupDestination + ".")
+		},
+	}
+}
+
+func gpgBackupJob() job {
+	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
+	return gpgBackupJobFor(setup, func() error {
+		return backupGPGKeys(context.Background(), gpgBackupDestination, exportGPGKey)
+	})
 }

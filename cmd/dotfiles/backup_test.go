@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -154,6 +155,70 @@ func TestSSHKeysBackupJobCopiesAfterSetup(t *testing.T) {
 		t.Fatalf("t\u00edtulo inesperado: %s", configured.title)
 	}
 	want := []string{"Preparar /mnt/backups", "Copiar chaves SSH"}
+	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
+		t.Fatalf("passos inesperados: %v", labels)
+	}
+}
+
+func TestBackupGPGKeysExportsPublicAndPrivateKeys(t *testing.T) {
+	destination := filepath.Join(t.TempDir(), "gpg")
+	exporter := func(_ context.Context, secret bool) ([]byte, error) {
+		if secret {
+			return []byte("-----BEGIN PGP PRIVATE KEY BLOCK-----\nprivate\n"), nil
+		}
+		return []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\npublic\n"), nil
+	}
+	if err := backupGPGKeys(context.Background(), destination, exporter); err != nil {
+		t.Fatal(err)
+	}
+	checks := []struct {
+		name string
+		mode os.FileMode
+		text string
+	}{
+		{"minha_chave_publica.asc", 0644, "public"},
+		{"minha_chave_privada.asc", 0600, "private"},
+	}
+	for _, check := range checks {
+		path := filepath.Join(destination, check.name)
+		content, err := os.ReadFile(path)
+		if err != nil || !strings.Contains(string(content), check.text) {
+			t.Fatalf("conteúdo inesperado em %s: %q (%v)", check.name, content, err)
+		}
+		info, err := os.Stat(path)
+		if err != nil || info.Mode().Perm() != check.mode {
+			t.Fatalf("permissão inesperada em %s: %v (%v)", check.name, info.Mode(), err)
+		}
+	}
+	info, err := os.Stat(destination)
+	if err != nil || info.Mode().Perm() != 0700 {
+		t.Fatalf("permissão do diretório: %v (%v)", info.Mode(), err)
+	}
+}
+
+func TestBackupGPGKeysDoesNotWriteWhenExportFails(t *testing.T) {
+	destination := filepath.Join(t.TempDir(), "gpg")
+	exporter := func(_ context.Context, secret bool) ([]byte, error) {
+		if secret {
+			return nil, errors.New("falha privada")
+		}
+		return []byte("public"), nil
+	}
+	if err := backupGPGKeys(context.Background(), destination, exporter); err == nil {
+		t.Fatal("exportação deveria falhar")
+	}
+	if entries, err := os.ReadDir(destination); err != nil || len(entries) != 0 {
+		t.Fatalf("arquivos parciais encontrados: %v (%v)", entries, err)
+	}
+}
+
+func TestGPGBackupJobExportsAfterSetup(t *testing.T) {
+	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
+	configured := gpgBackupJobFor([]step{setup}, func() error { return nil })
+	if configured.title != "Backup das Chaves GPG" {
+		t.Fatalf("título inesperado: %s", configured.title)
+	}
+	want := []string{"Preparar /mnt/backups", "Exportar chaves GPG"}
 	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
 		t.Fatalf("passos inesperados: %v", labels)
 	}

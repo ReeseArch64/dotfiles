@@ -152,6 +152,7 @@ func (m model) items() []item {
 			{title: "Backup do Navegador", desc: "Salvar Zen em /mnt/backups/zen-backup.tar", job: browserBackupJob},
 			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub e depois ao GitLab", job: projectsBackupJob},
 			{title: "Backup das Chaves SSH", desc: "Copiar chaves de ~/.ssh para /mnt/backups/ssh", job: sshKeysBackupJob},
+			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/gpg", job: gpgBackupJob},
 		}
 	case screenPiAgent:
 		return m.piAgentItems()
