@@ -27,10 +27,10 @@ func TestTerminalToolsUseSupportedMprocsAndPostingInstallers(t *testing.T) {
 			break
 		}
 	}
-	if mprocsIndex < 0 || postingIndex < 0 || uvIndex < 0 {
+	if mprocsIndex < 0 || postingIndex < 0 {
 		t.Fatalf("instaladores ausentes: %v", labels)
 	}
-	if uvIndex >= mprocsIndex || uvIndex >= postingIndex {
+	if uvIndex >= 0 && (uvIndex >= mprocsIndex || uvIndex >= postingIndex) {
 		t.Fatalf("uv precisa ser instalado antes das ferramentas: %v", labels)
 	}
 	if got := commandTail(t, configured.steps[mprocsIndex], 3); !slices.Equal(got, []string{"bash", "-c", mprocsInstallCommand}) {

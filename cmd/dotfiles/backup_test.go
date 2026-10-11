@@ -106,6 +106,59 @@ func TestBackupDestinationSetupUsesSudoInstallArguments(t *testing.T) {
 	}
 }
 
+func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
+	sshDir := t.TempDir()
+	destination := filepath.Join(t.TempDir(), "ssh")
+	for _, name := range requiredSSHIdentityFiles {
+		mode := os.FileMode(0600)
+		if strings.HasSuffix(name, ".pub") {
+			mode = 0644
+		}
+		if err := os.WriteFile(filepath.Join(sshDir, name), []byte(name), mode); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := backupSSHKeys(sshDir, destination); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0700 {
+		t.Fatalf("permiss\u00e3o do destino: %v", info.Mode())
+	}
+	for _, name := range requiredSSHIdentityFiles {
+		content, err := os.ReadFile(filepath.Join(destination, name))
+		if err != nil || string(content) != name {
+			t.Fatalf("chave ausente ou alterada: %s (%v)", name, err)
+		}
+	}
+}
+
+func TestBackupSSHKeysFailsWhenKeysMissing(t *testing.T) {
+	sshDir := t.TempDir()
+	destination := filepath.Join(t.TempDir(), "ssh")
+	if err := backupSSHKeys(sshDir, destination); err == nil || !strings.Contains(err.Error(), "chaves ausentes") {
+		t.Fatalf("deveria falhar sem chaves: %v", err)
+	}
+	if _, err := os.Stat(destination); !os.IsNotExist(err) {
+		t.Fatalf("destino inesperado: %v", err)
+	}
+}
+
+func TestSSHKeysBackupJobCopiesAfterSetup(t *testing.T) {
+	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
+	configured := sshKeysBackupJobFor([]step{setup}, func() error { return nil })
+	if configured.title != "Backup das Chaves SSH" {
+		t.Fatalf("t\u00edtulo inesperado: %s", configured.title)
+	}
+	want := []string{"Preparar /mnt/backups", "Copiar chaves SSH"}
+	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
+		t.Fatalf("passos inesperados: %v", labels)
+	}
+}
+
 func TestBrowserBackupJobPreparesDestinationBeforeBackup(t *testing.T) {
 	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
 	configured := browserBackupJobFor([]step{setup}, func() error { return nil })

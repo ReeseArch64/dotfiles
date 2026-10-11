@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +16,8 @@ import (
 )
 
 const backupDestination = "/mnt/backups"
+
+const sshBackupDestination = backupDestination + "/ssh"
 
 func backupDestinationReady(destination string, uid, gid int) bool {
 	info, err := os.Stat(destination)
@@ -152,4 +155,54 @@ func browserBackupJob() job {
 	return browserBackupJobFor(setup, func() error {
 		return runBrowserBackup(context.Background())
 	})
+}
+
+func runSSHKeysBackup() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("localizar diretório pessoal: %w", err)
+	}
+	return backupSSHKeys(filepath.Join(home, ".ssh"), sshBackupDestination)
+}
+
+func backupSSHKeys(sshDir, destination string) error {
+	var missing []string
+	for _, name := range requiredSSHIdentityFiles {
+		info, err := os.Stat(filepath.Join(sshDir, name))
+		if err != nil || !info.Mode().IsRegular() {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		return errors.New("chaves ausentes em " + sshDir + ": " + strings.Join(missing, ", "))
+	}
+	if err := os.MkdirAll(destination, 0700); err != nil {
+		return fmt.Errorf("criar %s: %w", destination, err)
+	}
+	if err := os.Chmod(destination, 0700); err != nil {
+		return fmt.Errorf("proteger %s: %w", destination, err)
+	}
+	for _, name := range requiredSSHIdentityFiles {
+		if err := copyFileAtomic(filepath.Join(sshDir, name), filepath.Join(destination, name)); err != nil {
+			return fmt.Errorf("copiar %s: %w", name, err)
+		}
+	}
+	return nil
+}
+
+func sshKeysBackupJobFor(setup []step, run func() error) job {
+	steps := append([]step{}, setup...)
+	steps = append(steps, nativeStep("Copiar chaves SSH", run))
+	return job{
+		title: "Backup das Chaves SSH",
+		steps: steps,
+		result: func() string {
+			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves SSH salvas em " + sshBackupDestination + ".")
+		},
+	}
+}
+
+func sshKeysBackupJob() job {
+	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
+	return sshKeysBackupJobFor(setup, runSSHKeysBackup)
 }
