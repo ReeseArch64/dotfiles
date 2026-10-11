@@ -2,7 +2,7 @@
 
 Configuração pessoal para CachyOS com Niri e Noctalia Shell.
 
-O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente.
+O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente. As ações são selecionadas automaticamente para Desktop ou Notebook pelo hostname; o MacBook ainda não possui suporte.
 
 ## Visão geral
 
@@ -42,7 +42,15 @@ Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache p
 
 ## Requisitos
 
-A CLI exige este ambiente:
+A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exatamente um destes termos, sem diferenciar maiúsculas de minúsculas:
+
+- `desktop`: disponibiliza todas as ações;
+- `notebook`: disponibiliza somente o conjunto específico para o portátil;
+- `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
+
+Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
+
+Nos perfis Desktop e Notebook, a CLI exige este ambiente:
 
 - CachyOS
 - Niri
@@ -101,6 +109,18 @@ Para compilar e executar sem instalar o comando:
 ```bash
 make run
 ```
+
+### Ações do Notebook
+
+O Notebook recebe:
+
+- Sistema: SSH, Firewall, Docker e remoção de aplicativos pré-instalados;
+- Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI e ferramentas de terminal;
+- Desktop: Niri, Noctalia, Ghostty, Zen Browser, wallpapers e foto de perfil;
+- Agentes de IA: somente Pi Agent;
+- Backup: todas as ações disponíveis.
+
+As demais ações ficam exclusivas do Desktop.
 
 ## Navegação
 

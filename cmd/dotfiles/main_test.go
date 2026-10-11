@@ -40,6 +40,23 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	}
 }
 
+func TestNotebookMenuContainsOnlySelectedActions(t *testing.T) {
+	model := newModelForDevice(t.TempDir(), deviceNotebook)
+	categories := map[screen][]string{
+		screenSystem:      {"SSH", "Firewall", "Docker", "Aplicativos pré-instalados"},
+		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Linear CLI", "Ferramentas de terminal"},
+		screenDesktop:     {"Niri", "Noctalia", "Ghostty", "Zen Browser", "Wallpapers", "Foto de perfil"},
+		screenAIAgents:    {"Pi Agent"},
+		screenBackup:      {"Ponto de Restauração", "Backup do Navegador", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
+	}
+	for category, want := range categories {
+		model.screen = category
+		if titles := itemTitles(model.items()); !slices.Equal(titles, want) {
+			t.Fatalf("submenu %s do Notebook inesperado: %v", screenTitles[category], titles)
+		}
+	}
+}
+
 func TestMainMenuCategoriesOpenSubmenus(t *testing.T) {
 	model := newModel(t.TempDir())
 	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenAIAgents, screenBackup}

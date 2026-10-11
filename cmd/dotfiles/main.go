@@ -78,6 +78,7 @@ type model struct {
 	gpg      gpgStatus
 	noctalia noctaliaStatus
 	piAgent  piAgentStatus
+	device   deviceProfile
 	job      *jobRun
 }
 
@@ -91,6 +92,10 @@ var (
 )
 
 func newModel(dotfiles string) model {
+	return newModelForDevice(dotfiles, deviceDesktop)
+}
+
+func newModelForDevice(dotfiles string, device deviceProfile) model {
 	now := time.Now()
 	return model{
 		dotfiles: dotfiles,
@@ -98,6 +103,7 @@ func newModel(dotfiles string) model {
 		now:      now,
 		width:    80,
 		cursor:   map[screen]int{},
+		device:   device,
 	}
 }
 
@@ -113,40 +119,55 @@ func (m model) items() []item {
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
-		return []item{
+		items := []item{
 			{title: "SSH", desc: "Configurar cliente, servidor permanente e acesso pela LAN", goTo: screenSSH},
 			{title: "Firewall", desc: "Ativar o UFW e liberar o SSH somente na LAN", goTo: screenFirewall},
 			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
-			{title: "Drivers", desc: "Instalar base-devel, Vulkan, glxinfo e headers do Linux", job: driversJob},
-			{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Ghostty", goTo: screenCleanup},
 		}
+		if m.device == deviceDesktop {
+			items = append(items, item{title: "Drivers", desc: "Instalar base-devel, Vulkan, glxinfo e headers do Linux", job: driversJob})
+		}
+		return append(items, item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Ghostty", goTo: screenCleanup})
 	case screenDevelopment:
-		return []item{
+		items := []item{
 			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
 			{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.dotfiles) }},
-			{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
-			{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
-			{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob},
-			{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.dotfiles) }},
 		}
+		if m.device == deviceDesktop {
+			items = append(items,
+				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
+				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
+			)
+		}
+		return append(items,
+			item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob},
+			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.dotfiles) }},
+		)
 	case screenDesktop:
-		return []item{
+		items := []item{
 			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.dotfiles) }},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 			{title: "Ghostty", desc: "Instalar o terminal e copiar sua configuração", job: func() job { return ghosttyJob(m.dotfiles) }},
 			{title: "Zen Browser", desc: "Instalar o navegador e restaurar o backup local", job: func() job { return zenBrowserJob(m.dotfiles) }},
-			{title: "Thunderbird", desc: "Instalar o cliente de e-mail via Pacman", job: thunderbirdJob},
-			{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.dotfiles) }},
-			{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.dotfiles) }},
-			{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
-			{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 		}
+		if m.device == deviceDesktop {
+			items = append(items,
+				item{title: "Thunderbird", desc: "Instalar o cliente de e-mail via Pacman", job: thunderbirdJob},
+				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.dotfiles) }},
+				item{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.dotfiles) }},
+			)
+		}
+		return append(items,
+			item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
+			item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
+		)
 	case screenAIAgents:
-		return []item{
-			{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent},
-			{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.dotfiles) }},
+		items := []item{{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent}}
+		if m.device == deviceDesktop {
+			items = append(items, item{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.dotfiles) }})
 		}
+		return items
 	case screenBackup:
 		return []item{
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
@@ -345,7 +366,7 @@ func (m model) View() string {
 		Width(boxW).
 		Render(header + "\n\n" + body)
 
-	subtitle := lipgloss.NewStyle().Foreground(colDim).Render("CachyOS · Niri · Noctalia Shell · v" + version)
+	subtitle := lipgloss.NewStyle().Foreground(colDim).Render("CachyOS · Niri · Noctalia Shell · " + m.device.String() + " · v" + version)
 
 	help := m.viewHelp(false)
 	if lipgloss.Width(help) > m.width {
@@ -444,12 +465,27 @@ func findDotfiles() string {
 }
 
 func main() {
+	hostname, err := os.Hostname()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "erro: detectar dispositivo:", err)
+		os.Exit(1)
+	}
+	device, err := detectDevice(hostname)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "erro:", err)
+		os.Exit(1)
+	}
+	if device == deviceMacBook {
+		fmt.Fprintln(os.Stderr, "MacBook ainda não é suportado.")
+		return
+	}
+
 	dotfiles := findDotfiles()
 	if err := checkPlatform("/etc/os-release", exec.LookPath); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}
-	p := tea.NewProgram(newModel(dotfiles), tea.WithAltScreen())
+	p := tea.NewProgram(newModelForDevice(dotfiles, device), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
