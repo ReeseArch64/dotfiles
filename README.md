@@ -14,7 +14,7 @@ A CLI organiza as ações em cinco áreas:
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent e Ollama com GPU AMD |
-| Backup | Backup do navegador e projetos locais |
+| Backup | Backup do navegador, projetos locais e chaves SSH/GPG |
 
 As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -545,11 +545,13 @@ Para verificar a aceleração:
 
 ## Backup
 
+As opções de backup armazenam os dados locais em `/mnt/backups`. Antes de executar os backups do navegador, SSH ou GPG, a CLI verifica esse diretório. Quando necessário, ela usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
+
+### Backup do navegador
+
 `Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/zen-backup.tar`.
 
 Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois de criar o arquivo.
-
-Antes do backup, a CLI verifica `/mnt/backups`. Quando necessário, ela usa `sudo install` para criar o diretório, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
 
 A ação cria um arquivo temporário antes de substituir o backup anterior. Em caso de falha, ela preserva o arquivo existente. O backup recebe permissão `0600` porque contém dados do navegador e do chaveiro.
 
@@ -569,6 +571,34 @@ O remoto `origin` deve apontar para o GitHub. O remoto `backup` deve apontar par
 Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também cria `/mnt/workspaces/reesearch64` e o link simbólico `~/.projects`, que aponta para `/mnt/workspaces`.
 
 A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
+
+### Backup das chaves SSH
+
+`Backup > Backup das Chaves SSH` copia estas identidades de `~/.ssh` para `/mnt/backups/ssh`:
+
+```text
+id_github_reesearch64
+id_github_reesearch64.pub
+id_gitlab_reesearch64
+id_gitlab_reesearch64.pub
+```
+
+A CLI valida todos os quatro arquivos antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia.
+
+O diretório `/mnt/backups/ssh` recebe permissão `0700`. Cada arquivo é substituído de forma atômica e mantém a permissão da origem. Proteja as chaves privadas em `~/.ssh` com permissão `0600`.
+
+### Backup das chaves GPG
+
+`Backup > Backup das Chaves GPG` exporta em formato ASCII Armor todas as chaves disponíveis no keyring GPG:
+
+| Conteúdo | Destino | Permissão |
+| --- | --- | --- |
+| Chaves públicas | `/mnt/backups/gpg/minha_chave_publica.asc` | `0644` |
+| Chaves privadas | `/mnt/backups/gpg/minha_chave_privada.asc` | `0600` |
+
+A ação exige o comando `gpg`, normalmente fornecido pelo pacote `gnupg` instalado em `Desenvolvimento > GPG`. O diretório `/mnt/backups/gpg` recebe permissão `0700`.
+
+As duas exportações são concluídas antes da gravação dos arquivos. A CLI rejeita resultados sem os cabeçalhos OpenPGP esperados e usa arquivos temporários para substituir os backups existentes.
 
 ## Estrutura do repositório
 
