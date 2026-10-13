@@ -115,7 +115,7 @@ make run
 O Notebook recebe:
 
 - Sistema: SSH, Firewall, Docker e remoção de aplicativos pré-instalados;
-- Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI e ferramentas de terminal;
+- Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI, Android CLI e ferramentas de terminal;
 - Desktop: Niri, Noctalia, Ghostty, Zen Browser, wallpapers e foto de perfil;
 - Agentes de IA: somente Pi Agent;
 - Backup: todas as ações disponíveis.
@@ -352,7 +352,20 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 `Desenvolvimento > Instalar IDEs` instala:
 
 - `visual-studio-code-bin` via Shelly/AUR
+- `android-studio` via Shelly/AUR
 - `zed` via Shelly
+
+Após instalar o Android Studio, use o SDK Manager para instalar o Android SDK. A instalação da IDE não configura automaticamente `ANDROID_HOME`.
+
+### Android CLI
+
+`Desenvolvimento > Android CLI` executa o instalador:
+
+```bash
+curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+```
+
+O comando é executado com `bash -o pipefail` para detectar também falhas no download.
 
 ### Ferramentas de terminal
 

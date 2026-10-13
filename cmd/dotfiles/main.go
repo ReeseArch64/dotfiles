@@ -137,11 +137,12 @@ func (m model) items() []item {
 		if m.device == deviceDesktop {
 			items = append(items,
 				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
-				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code e Zed via Shelly", job: idesJob},
+				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code, Android Studio e Zed via Shelly", job: idesJob},
 			)
 		}
 		return append(items,
 			item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob},
+			item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob},
 			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.dotfiles) }},
 		)
 	case screenDesktop:
