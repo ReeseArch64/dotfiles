@@ -98,6 +98,11 @@ alias mirror="sudo cachyos-rate-mirrors"
 alias enablenow="sudo systemctl enable --now"
 alias enable="sudo systemctl enable"
 alias start="sudo systemctl start"
+alias restart="sudo systemctl restart"
 alias stop="sudo systemctl stop"
+
+alias megabrain="cd ~/.obsidian/MegaBrain/ && pi"
+
+alias notebook="ssh alsgy@192.168.1.105"
 
 alias pu="pi update --extensions"
