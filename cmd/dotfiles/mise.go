@@ -33,7 +33,7 @@ func installMiseConfig(dotfiles, home string) error {
 
 func miseSetupSteps(dotfiles string) []step {
 	home, _ := os.UserHomeDir()
-	steps := ensureShellyPkgs("standard", "mise")
+	steps := ensureYayPkgs("mise")
 	steps = append(steps,
 		nativeStep("Symlink ~/.config/mise/config.toml", func() error {
 			return installMiseConfig(dotfiles, home)

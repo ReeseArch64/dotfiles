@@ -19,7 +19,7 @@ func installObsidian(dotfiles, home string, now time.Time) error {
 func obsidianJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	destination := filepath.Join(home, ".obsidian")
-	steps := ensureShellyPkgs("aur", "obsidian-bin")
+	steps := ensureYayPkgs("obsidian-bin")
 	steps = append(steps, nativeStep("Copiar configuração para ~/.obsidian", func() error {
 		return installObsidian(dotfiles, home, time.Now())
 	}))

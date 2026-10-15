@@ -15,10 +15,10 @@ func TestGitPacmanPackagesIncludeGitHubCLI(t *testing.T) {
 	}
 }
 
-func TestGitShellyPackagesIncludeGlab(t *testing.T) {
+func TestGitYayPackagesIncludeGlab(t *testing.T) {
 	want := []string{"lazygit", "glab"}
-	if !slices.Equal(gitShellyPackages, want) {
-		t.Fatalf("pacotes Git inesperados: %v", gitShellyPackages)
+	if !slices.Equal(gitYayPackages, want) {
+		t.Fatalf("pacotes Git inesperados: %v", gitYayPackages)
 	}
 }
 

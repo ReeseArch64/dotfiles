@@ -17,8 +17,8 @@ func lunarVimInstallStep() step {
 }
 
 func terminalToolsJobFor(dotfiles, home string, lookPath func(string) (string, error)) job {
-	steps := ensureShellyPkgs("standard", terminalToolPackages...)
-	steps = append(steps, ensureShellyPkgs("aur", terminalToolAurPackages...)...)
+	steps := ensureYayPkgs(terminalToolPackages...)
+	steps = append(steps, ensureYayPkgs(terminalToolAurPackages...)...)
 	steps = append(steps, ensurePkgs(terminalToolPacmanPackages...)...)
 	if _, err := lookPath("mprocs"); err != nil {
 		steps = append(steps, terminalStep("Instalar mprocs via Dekit", "bash", "-c", mprocsInstallCommand))

@@ -137,7 +137,7 @@ func (m model) items() []item {
 		if m.device == deviceDesktop {
 			items = append(items,
 				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
-				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code, Android Studio e Zed via Shelly", job: idesJob},
+				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code, Android Studio e Zed via yay", job: idesJob},
 			)
 		}
 		return append(items,
@@ -157,6 +157,7 @@ func (m model) items() []item {
 				item{title: "Thunderbird", desc: "Instalar o cliente de e-mail via Pacman", job: thunderbirdJob},
 				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.dotfiles) }},
 				item{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.dotfiles) }},
+				item{title: "Turing Smart Screen", desc: "Instalar com Python 3.13, GPU AMD e tema Frieren", job: func() job { return turingScreenJob(m.dotfiles) }},
 			)
 		}
 		return append(items,

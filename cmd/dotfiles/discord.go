@@ -117,7 +117,7 @@ func discordJob(dotfiles string) job {
 		dotfiles,
 		home,
 		ensurePkgs(discordPackage),
-		ensureShellyPkgs("aur", betterDiscordPackage),
+		ensureYayPkgs(betterDiscordPackage),
 		openStep,
 	)
 }

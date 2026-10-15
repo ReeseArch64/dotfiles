@@ -11,7 +11,7 @@ import (
 )
 
 var gitPacmanPackages = []string{"git", "github-cli"}
-var gitShellyPackages = []string{"lazygit", "glab"}
+var gitYayPackages = []string{"lazygit", "glab"}
 
 type gitStatus struct {
 	missing []string
@@ -201,7 +201,7 @@ func gitJob(dotfiles string) job {
 	defs := gitLinkDefs(dotfiles, home)
 
 	steps := ensurePkgs(gitPacmanPackages...)
-	steps = append(steps, ensureShellyPkgs("standard", gitShellyPackages...)...)
+	steps = append(steps, ensureYayPkgs(gitYayPackages...)...)
 	steps = append(steps, nativeStep("Criar ~/.config/git/", func() error {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)
 	}))

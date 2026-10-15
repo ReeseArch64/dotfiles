@@ -86,6 +86,6 @@ func sandboxEnvironmentJob() job {
 	return sandboxEnvironmentJobFor(
 		home,
 		ensurePkgs(sandboxPacmanPackages...),
-		ensureShellyPkgs("aur", sandboxAurPackage),
+		ensureYayPkgs(sandboxAurPackage),
 	)
 }

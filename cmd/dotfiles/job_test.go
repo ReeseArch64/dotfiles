@@ -64,32 +64,32 @@ func TestEnsurePkgsRefreshesBeforeInstall(t *testing.T) {
 	}
 }
 
-func TestEnsureShellyPkgsRefreshesBeforeEachPackageFlow(t *testing.T) {
-	steps := ensureShellyPkgs("aur", "dotfiles-test-one", "dotfiles-test-two")
-	if len(steps) != 4 {
+func TestEnsureYayPkgsRefreshesBeforeEachPackageFlow(t *testing.T) {
+	steps := ensureYayPkgs("dotfiles-test-one", "dotfiles-test-two")
+	if len(steps) != 6 {
 		t.Fatalf("passos inesperados: %v", jobStepLabels(job{steps: steps}))
 	}
 	for i, pkg := range []string{"dotfiles-test-one", "dotfiles-test-two"} {
-		syncStep := steps[i*2]
-		installStep := steps[i*2+1]
+		syncStep := steps[2+i*2]
+		installStep := steps[3+i*2]
 		if got := commandTail(t, syncStep, 3); !slices.Equal(got, []string{"sudo", "pacman", "-Syy"}) {
 			t.Fatalf("sincronização ausente antes de %s: %v", pkg, got)
 		}
-		want := []string{"bash", "-c", shellyFallbackScript, "dotfiles-shelly-fallback", "aur", pkg}
+		want := []string{"bash", "-c", yayFallbackScript, "dotfiles-yay-fallback", pkg}
 		if got := commandTail(t, installStep, len(want)); !slices.Equal(got, want) {
-			t.Fatalf("comando Shelly inesperado para %s: %v", pkg, got)
+			t.Fatalf("comando yay inesperado para %s: %v", pkg, got)
 		}
 	}
 }
 
-func TestShellyInstallStepFallsBackToAurAndVerifiesPackage(t *testing.T) {
+func TestYayInstallStepFallsBackToAurAndVerifiesPackage(t *testing.T) {
 	home := t.TempDir()
 	bin := filepath.Join(t.TempDir(), "bin")
 	if err := os.MkdirAll(bin, 0755); err != nil {
 		t.Fatal(err)
 	}
 	logPath := filepath.Join(t.TempDir(), "commands.log")
-	writeTestExecutable(t, bin, "shelly", `printf 'shelly %s\n' "$*" >> "$COMMAND_LOG"
+	writeTestExecutable(t, bin, "yay", `printf 'yay %s\n' "$*" >> "$COMMAND_LOG"
 exit 1`)
 	writeTestExecutable(t, bin, "git", `printf 'git %s\n' "$*" >> "$COMMAND_LOG"
 repo=${2##*/}
@@ -103,7 +103,7 @@ mkdir -p "$repo/.git"`)
 	t.Setenv("TERM", "xterm-256color")
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	if out, err := shellyInstallStep("aur", "sample-aur-package").cmd().CombinedOutput(); err != nil {
+	if out, err := yayInstallStep("sample-aur-package").cmd().CombinedOutput(); err != nil {
 		t.Fatalf("%v: %s", err, out)
 	}
 	if info, err := os.Stat(filepath.Join(home, ".aur", "sample-aur-package", ".git")); err != nil || !info.IsDir() {
@@ -115,7 +115,7 @@ mkdir -p "$repo/.git"`)
 	}
 	log := string(content)
 	for _, want := range []string{
-		"shelly install aur sample-aur-package",
+		"yay -S --needed sample-aur-package",
 		"git clone https://aur.archlinux.org/sample-aur-package.git",
 		"makepkg -si cwd=" + filepath.Join(home, ".aur", "sample-aur-package"),
 		"pacman -Q sample-aur-package",

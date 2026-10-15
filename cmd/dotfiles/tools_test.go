@@ -75,9 +75,9 @@ SCRIPT`)
 }
 
 func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
-	wantShelly := []string{"neovim", "scc"}
-	if !slices.Equal(terminalToolPackages, wantShelly) {
-		t.Fatalf("pacotes Shelly inesperados: %v", terminalToolPackages)
+	wantYay := []string{"neovim", "scc"}
+	if !slices.Equal(terminalToolPackages, wantYay) {
+		t.Fatalf("pacotes yay inesperados: %v", terminalToolPackages)
 	}
 	wantAur := []string{"viddy", "usql-bin", "proton-pass-cli-bin"}
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
@@ -91,7 +91,7 @@ func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 
 func TestTerminalToolsExcludeUnsupportedViddyBinPackage(t *testing.T) {
 	if slices.Contains(terminalToolAurPackages, "viddy-bin") {
-		t.Fatal("viddy-bin usa uma expansão de array incompatível com o Shelly")
+		t.Fatal("usar o pacote viddy em vez de viddy-bin")
 	}
 }
 

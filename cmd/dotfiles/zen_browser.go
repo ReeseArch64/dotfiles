@@ -332,5 +332,5 @@ func zenBrowserJobFor(dotfiles, home string, packageSteps []step) job {
 
 func zenBrowserJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
-	return zenBrowserJobFor(dotfiles, home, ensureShellyPkgs("aur", zenBrowserAurPackage))
+	return zenBrowserJobFor(dotfiles, home, ensureYayPkgs(zenBrowserAurPackage))
 }

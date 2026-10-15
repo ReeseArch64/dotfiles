@@ -19,7 +19,7 @@ func installGhostty(dotfiles, home string, now time.Time) error {
 func ghosttyJob(dotfiles string) job {
 	home, _ := os.UserHomeDir()
 	destination := filepath.Join(home, ".config", "ghostty")
-	steps := ensureShellyPkgs("standard", "ghostty")
+	steps := ensureYayPkgs("ghostty")
 	steps = append(steps, nativeStep("Copiar configuração para ~/.config/ghostty", func() error {
 		return installGhostty(dotfiles, home, time.Now())
 	}))

@@ -27,7 +27,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	categories := map[screen][]string{
 		screenSystem:      {"SSH", "Firewall", "Docker", "Drivers", "Aplicativos pré-instalados"},
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Linear CLI", "Android CLI", "Ferramentas de terminal"},
-		screenDesktop:     {"Niri", "Noctalia", "Ghostty", "Zen Browser", "Thunderbird", "Discord", "Obsidian", "Wallpapers", "Foto de perfil"},
+		screenDesktop:     {"Niri", "Noctalia", "Ghostty", "Zen Browser", "Thunderbird", "Discord", "Obsidian", "Turing Smart Screen", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent", "Ollama"},
 		screenBackup:      {"Ponto de Restauração", "Backup do Navegador", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
 		screenCleanup:     {"Remover aplicativos"},

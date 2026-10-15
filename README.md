@@ -12,15 +12,15 @@ A CLI organiza as ações em cinco áreas:
 | --- | --- |
 | Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, wallpapers e foto de perfil |
+| Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent e Ollama com GPU AMD |
 | Backup | Ponto de restauração Btrfs, navegador, projetos locais e chaves SSH/GPG |
 
-As ações de Pacman e Shelly instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
+As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
 A CLI também ignora instaladores de ferramentas já disponíveis e autenticações detectadas. Ela confere o estado imediatamente antes de cada etapa, inclusive após instalar ferramentas na mesma execução. Se uma verificação não confirmar a sessão, o login será solicitado novamente. Credenciais locais do Docker e do Better Stack não comprovam que os tokens ainda são válidos.
 
-Quando o Shelly falha, a CLI cria `~/.aur`, clona o pacote do AUR e executa `makepkg -si`. Depois, ela confirma a instalação com `pacman -Q`.
+Quando o yay falha, a CLI cria `~/.aur`, clona o pacote do AUR e executa `makepkg -si`. Depois, ela confirma a instalação com `pacman -Q`.
 
 Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache pode evitar prompts, e credenciais expiradas podem exigir nova autenticação.
 
@@ -66,9 +66,10 @@ Também são necessários:
 - curl
 - Acesso à internet
 - Pacman
-- Shelly
 - sudo
 - systemd
+
+O `yay` é instalado automaticamente, quando necessário, compilando o pacote `yay` do AUR (não `yay-bin`) em `~/.aur/yay` com `makepkg -si`. A CLI instala `git` e `base-devel` via Pacman antes da compilação.
 
 Algumas ações possuem requisitos próprios. Eles estão descritos nas seções correspondentes.
 
@@ -238,7 +239,7 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 `Desenvolvimento > Git > Configurar Git`:
 
 1. Instala `git` e `github-cli` via Pacman.
-2. Instala `lazygit` e `glab` via Shelly.
+2. Instala `lazygit` e `glab` via yay.
 3. Aplica os arquivos globais.
 4. Exige que as chaves e o arquivo `~/.ssh/config` já estejam configurados.
 5. Executa `gh auth login --git-protocol ssh` quando o GitHub não está autenticado.
@@ -282,7 +283,7 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 
 `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
-1. Instala o `mise` via Shelly.
+1. Instala o `mise` via yay.
 2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
 3. Marca a configuração do Mise como confiável.
 4. Instala todas as ferramentas declaradas no `mise.toml`.
@@ -342,7 +343,7 @@ Abra um novo terminal para carregar a configuração do Fish e a ativação do M
 `Desenvolvimento > Ambiente Sandbox` executa estas etapas:
 
 1. Instala `podman`, `podman-compose` e `distrobox` via Pacman.
-2. Instala `podman-tui-bin` via Shelly/AUR.
+2. Instala `podman-tui-bin` via yay/AUR.
 3. Define `container_manager="podman"` em `~/.config/distrobox/distrobox.conf`.
 4. Preserva as outras opções existentes no arquivo do Distrobox.
 5. Executa `distrobox create --name sandbox --image archlinux`.
@@ -359,9 +360,9 @@ Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Dis
 
 `Desenvolvimento > Instalar IDEs` instala:
 
-- `visual-studio-code-bin` via Shelly/AUR
-- `android-studio` via Shelly/AUR
-- `zed` via Shelly
+- `visual-studio-code-bin` via yay/AUR
+- `android-studio` via yay/AUR
+- `zed` via yay
 
 Após instalar o Android Studio, use o SDK Manager para instalar o Android SDK. A instalação da IDE não configura automaticamente `ANDROID_HOME`.
 
@@ -379,7 +380,7 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 
 `Desenvolvimento > Ferramentas de terminal` instala os seguintes grupos.
 
-**Shelly:**
+**yay:**
 
 - Neovim
 - scc
@@ -457,7 +458,7 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 
 ### Ghostty
 
-`Desktop > Ghostty` instala `ghostty` via Shelly e copia `configs/ghostty/` para `~/.config/ghostty`.
+`Desktop > Ghostty` instala `ghostty` via yay e copia `configs/ghostty/` para `~/.config/ghostty`.
 
 ### Zen Browser
 
@@ -471,7 +472,7 @@ mv zen-backup.tar ~/.dotfiles/
 `Desktop > Zen Browser` executa estas etapas:
 
 1. Exige o arquivo regular `~/.dotfiles/zen-backup.tar`.
-2. Instala `zen-browser-bin` via Shelly/AUR.
+2. Instala `zen-browser-bin` via yay/AUR.
 3. Aceita somente `.config/zen`, `.cache/zen` e `.local/share/keyrings` no arquivo.
 4. Descompacta o conteúdo em `~/.dotfiles/zen-backup`.
 5. Substitui os três diretórios correspondentes no diretório pessoal.
@@ -487,7 +488,38 @@ O `.gitignore` exclui `zen-backup.tar` e `zen-backup/`. O arquivo contém dados 
 
 ### Obsidian
 
-`Desktop > Obsidian` instala `obsidian-bin` via Shelly/AUR e copia `configs/obsidian/` para `~/.obsidian`.
+`Desktop > Obsidian` instala `obsidian-bin` via yay/AUR e copia `configs/obsidian/` para `~/.obsidian`.
+
+### Turing Smart Screen (somente Desktop)
+
+`Desktop > Turing Smart Screen` instala `turing-smart-screen-python` com Python 3.13, suporte à GPU AMD (Radeon RX 7600) e tema Frieren. Requer o `mise` instalado; configure primeiro `Desenvolvimento > Ambiente de Desenvolvimento`.
+
+A ação executa etapas separadas:
+
+1. Instala o pacote AUR com `env -u PYTHONHOME -u PYTHONPATH PATH=/usr/bin:/bin /usr/bin/yay -S turing-smart-screen-python`, evitando interferência do Python do mise. Instala o `yay` a partir do código-fonte se necessário.
+2. Executa `mise install python@3.13`, sem alterar o Python global ou do sistema.
+3. Cria `~/.local/share/turing-screen-venv` com `mise exec python@3.13 -- python -m venv`.
+4. Em outro comando, instala `/opt/turing-smart-screen-python/requirements.txt` usando o Python desse venv.
+5. Adiciona o usuário atual ao grupo `turing-smart-screen` criado pelo pacote e recarrega as regras com `sudo udevadm control --reload-rules`.
+6. Instala `base-devel` e `libdrm` via Pacman; instala `setuptools`, `wheel` e `Cython` no venv.
+7. Compila `pyamdgpuinfo` no venv com `pip install --no-build-isolation --no-binary=pyamdgpuinfo pyamdgpuinfo`. Os requisitos dessa versão não instalam essa biblioteca automaticamente no Python 3.13.
+8. Copia `configs/turing-smart-screen-python/themes/frieren/` para `/opt/turing-smart-screen-python/res/themes/frieren/` e substitui `/opt/turing-smart-screen-python/config.yaml` pelo arquivo do repositório, usando `sudo`.
+
+Após concluir, desconecte e reconecte a tela USB, saia da sessão gráfica e entre novamente. Confira o grupo com `id` e, para a tela em `/dev/ttyACM0`, com `/usr/bin/ls -l /dev/ttyACM0`: o dispositivo deve pertencer ao grupo `turing-smart-screen`.
+
+Para iniciar após renovar a sessão:
+
+```bash
+env PATH="$HOME/.local/share/turing-screen-venv/bin:$PATH" /usr/bin/turing-smart-screen main
+```
+
+Para executar temporariamente com o grupo atualizado, sem sair da sessão, use `sg`:
+
+```bash
+sg turing-smart-screen -c 'env PATH="$HOME/.local/share/turing-screen-venv/bin:$PATH" /usr/bin/turing-smart-screen main'
+```
+
+A instalação não inicia o programa automaticamente. A configuração do Niri já contém uma entrada de autostart para esse venv.
 
 ### Wallpapers
 
@@ -693,9 +725,9 @@ Sem essa variável, a CLI resolve o repositório pelo executável. Se isso falha
 
 ## Solução de problemas
 
-### Falha na instalação pelo Shelly e AUR
+### Falha na instalação pelo yay e AUR
 
-Quando o Shelly falha, a CLI tenta instalar o mesmo pacote a partir de `~/.aur/<nome-do-pacote>`.
+Quando o yay falha, a CLI tenta instalar o mesmo pacote a partir de `~/.aur/<nome-do-pacote>`.
 
 Se o fallback também falhar, consulte a saída do `git clone`, do `makepkg -si` e da verificação `pacman -Q` exibida no terminal.
 

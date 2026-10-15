@@ -243,9 +243,29 @@ func ensurePkgs(pkgs ...string) []step {
 	return []step{pacmanSyncStep(), pacmanInstallStep(missing...)}
 }
 
-const shellyFallbackScript = `source=$1
-package=$2
-if shelly install "$source" "$package" && pacman -Q "$package"; then
+const yayBootstrapScript = `set -e
+sudo pacman -S --needed git base-devel
+mkdir -p "$HOME/.aur"
+cd "$HOME/.aur"
+if [ ! -d yay/.git ]; then
+    if [ -e yay ]; then
+        printf 'Diretório AUR inválido: %s\n' "$HOME/.aur/yay" >&2
+        exit 1
+    fi
+    git clone https://aur.archlinux.org/yay.git
+fi
+cd yay
+makepkg -si
+pacman -Q yay
+command -v yay`
+
+func yayInstalled() bool {
+	_, err := exec.LookPath("yay")
+	return err == nil && commandSucceeds(nil, "pacman", "-Q", "yay")
+}
+
+const yayFallbackScript = `package=$1
+if yay -S --needed "$package" && pacman -Q "$package"; then
     exit 0
 fi
 aur_root="$HOME/.aur"
@@ -262,19 +282,26 @@ cd "$package" || exit 1
 makepkg -si || exit 1
 pacman -Q "$package"`
 
-func shellyInstallStep(source, pkg string) step {
-	return terminalStep("Instalar "+pkg+" via Shelly",
-		"bash", "-c", shellyFallbackScript, "dotfiles-shelly-fallback", source, pkg)
+func yayInstallStep(pkg string) step {
+	return terminalStep("Instalar "+pkg+" via yay",
+		"bash", "-c", yayFallbackScript, "dotfiles-yay-fallback", pkg)
 }
 
-func ensureShellyPkgs(source string, pkgs ...string) []step {
+func yaySetupSteps() []step {
+	return []step{
+		skipWhen(pacmanSyncStep(), yayInstalled),
+		skipWhen(terminalStep("Instalar yay manualmente via AUR", "bash", "-c", yayBootstrapScript), yayInstalled),
+	}
+}
+
+func ensureYayPkgs(pkgs ...string) []step {
 	missing := missingPkgs(pkgs...)
 	if len(missing) == 0 {
 		return nil
 	}
-	var steps []step
+	steps := yaySetupSteps()
 	for _, pkg := range missing {
-		steps = append(steps, pacmanSyncStep(), shellyInstallStep(source, pkg))
+		steps = append(steps, pacmanSyncStep(), yayInstallStep(pkg))
 	}
 	return steps
 }
