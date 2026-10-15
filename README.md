@@ -181,10 +181,18 @@ Esse conteúdo não recebe backup. Preserve manualmente qualquer dado necessári
 1. Valida o executável `zen-browser` e o diretório `~/.config/zen`.
 2. Instala Docker, Compose, Buildx e Lazydocker.
 3. Instala `util-linux` e `xdg-utils`, necessários ao fluxo.
-4. Adiciona o usuário atual ao grupo `docker`.
-5. Habilita e inicia `docker.service`.
-6. Define o Zen Browser como navegador padrão.
-7. Executa `docker login` com o grupo atualizado.
+4. Cria `/etc/docker` com `sudo` e grava `/etc/docker/daemon.json` com o conteúdo abaixo, substituindo qualquer configuração existente.
+5. Adiciona o usuário atual ao grupo `docker`.
+6. Habilita e inicia `docker.service`.
+7. Define o Zen Browser como navegador padrão.
+8. Executa `docker login` com o grupo atualizado.
+
+```json
+{
+  "data-root": "/var/lib/docker",
+  "storage-driver": "overlay2"
+}
+```
 
 Abra uma nova sessão após a configuração. A alteração do grupo não alcança terminais que já estavam abertos.
 

@@ -12,6 +12,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const dockerDaemonConfig = `{
+  "data-root": "/var/lib/docker",
+  "storage-driver": "overlay2"
+}`
+
 var dockerPackages = []string{"docker", "docker-compose", "lazydocker", "docker-buildx"}
 var dockerDependencies = []string{"util-linux", "xdg-utils"}
 
@@ -168,6 +173,8 @@ func dockerJobForUser(username, home string, packageSteps []step, lookPath func(
 	}), func() bool { return dockerHasCredentials(home) })}
 	steps = append(steps, packageSteps...)
 	steps = append(steps,
+		terminalStep("Criar /etc/docker", "sudo", "mkdir", "-p", "/etc/docker"),
+		terminalStep("Configurar /etc/docker/daemon.json", "sudo", "sh", "-c", `printf '%s\n' "$1" > "$2"`, "dotfiles", dockerDaemonConfig, "/etc/docker/daemon.json"),
 		terminalStep("Adicionar "+username+" ao grupo docker", "sudo", "usermod", "-aG", "docker", username),
 		terminalStep("Habilitar e iniciar docker.service", "sudo", "systemctl", "enable", "--now", "docker.service"),
 		terminalStep("Definir Zen Browser como padrão", "xdg-settings", "set", "default-web-browser", "zen.desktop"),

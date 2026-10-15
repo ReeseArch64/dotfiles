@@ -71,13 +71,15 @@ func TestValidateDockerLoginBrowserRequiresExecutableAndProfile(t *testing.T) {
 func TestDockerJobValidatesBrowserAndSetsDefaultBeforeLogin(t *testing.T) {
 	home, lookPath := dockerBrowserTest(t)
 	job := dockerJobForUser("dev", home, nil, lookPath)
-	if len(job.steps) != 5 {
+	if len(job.steps) != 7 {
 		t.Fatalf("quantidade inesperada de passos: %d", len(job.steps))
 	}
 	if job.steps[0].run == nil || job.steps[0].label != "Validar Zen Browser para Docker login" {
 		t.Fatalf("validação inicial inesperada: %#v", job.steps[0])
 	}
 	want := [][]string{
+		{"sudo", "mkdir", "-p", "/etc/docker"},
+		{"sudo", "sh", "-c", `printf '%s\n' "$1" > "$2"`, "dotfiles", "{\n  \"data-root\": \"/var/lib/docker\",\n  \"storage-driver\": \"overlay2\"\n}", "/etc/docker/daemon.json"},
 		{"sudo", "usermod", "-aG", "docker", "dev"},
 		{"sudo", "systemctl", "enable", "--now", "docker.service"},
 		{"xdg-settings", "set", "default-web-browser", "zen.desktop"},
@@ -100,7 +102,7 @@ func TestDockerJobValidatesBrowserBeforePackageSteps(t *testing.T) {
 	home, lookPath := dockerBrowserTest(t)
 	install := nativeStep("Instalar pacotes Docker", func() error { return nil })
 	job := dockerJobForUser("dev", home, []step{install}, lookPath)
-	if len(job.steps) != 6 {
+	if len(job.steps) != 8 {
 		t.Fatalf("quantidade inesperada de passos: %d", len(job.steps))
 	}
 	if job.steps[0].label != "Validar Zen Browser para Docker login" || job.steps[1].label != install.label {
