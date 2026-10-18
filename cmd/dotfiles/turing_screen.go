@@ -11,7 +11,7 @@ import (
 const turingScreenPackage = "turing-smart-screen-python"
 const turingScreenRoot = "/opt/turing-smart-screen-python"
 
-func turingScreenJobFor(dotfiles, home, username string, packageSteps []step) job {
+func turingScreenJobFor(setupDir, home, username string, packageSteps []step) job {
 	python := filepath.Join(home, ".local", "share", "turing-screen-venv", "bin", "python")
 	steps := []step{nativeStep("Validar mise, usuário e arquivos do Turing Smart Screen", func() error {
 		if username == "" || username == "root" {
@@ -24,8 +24,8 @@ func turingScreenJobFor(dotfiles, home, username string, packageSteps []step) jo
 			path string
 			dir  bool
 		}{
-			{configPath(dotfiles, turingScreenPackage, "config.yaml"), false},
-			{configPath(dotfiles, turingScreenPackage, "themes", "frieren"), true},
+			{configPath(setupDir, turingScreenPackage, "config.yaml"), false},
+			{configPath(setupDir, turingScreenPackage, "themes", "frieren"), true},
 		} {
 			info, err := os.Stat(entry.path)
 			if err != nil {
@@ -50,8 +50,8 @@ func turingScreenJobFor(dotfiles, home, username string, packageSteps []step) jo
 		terminalStep("Instalar ferramentas Python para GPU AMD", python, "-m", "pip", "install", "setuptools", "wheel", "Cython"),
 		terminalStep("Compilar pyamdgpuinfo no ambiente Python 3.13", python, "-m", "pip", "install", "--no-build-isolation", "--no-binary=pyamdgpuinfo", "pyamdgpuinfo"),
 		terminalStep("Criar diretório do tema Frieren", "sudo", "install", "-d", turingScreenRoot+"/res/themes/frieren"),
-		terminalStep("Copiar tema Frieren para o Turing", "sudo", "cp", "-r", configPath(dotfiles, turingScreenPackage, "themes", "frieren")+"/.", turingScreenRoot+"/res/themes/frieren/"),
-		terminalStep("Copiar config.yaml para o Turing", "sudo", "install", "-m644", configPath(dotfiles, turingScreenPackage, "config.yaml"), turingScreenRoot+"/config.yaml"),
+		terminalStep("Copiar tema Frieren para o Turing", "sudo", "cp", "-r", configPath(setupDir, turingScreenPackage, "themes", "frieren")+"/.", turingScreenRoot+"/res/themes/frieren/"),
+		terminalStep("Copiar config.yaml para o Turing", "sudo", "install", "-m644", configPath(setupDir, turingScreenPackage, "config.yaml"), turingScreenRoot+"/config.yaml"),
 	)
 	return job{
 		title: "Configurar Turing Smart Screen",
@@ -69,7 +69,7 @@ func turingScreenInstallStep() step {
 	return terminalStep("Instalar Turing pelo AUR com Python do sistema", "env", "-u", "PYTHONHOME", "-u", "PYTHONPATH", "PATH=/usr/bin:/bin", "/usr/bin/yay", "-S", turingScreenPackage)
 }
 
-func turingScreenJob(dotfiles string) job {
+func turingScreenJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
 	current, err := user.Current()
 	if err != nil {
@@ -83,5 +83,5 @@ func turingScreenJob(dotfiles string) job {
 			turingScreenInstallStep(),
 		)
 	}
-	return turingScreenJobFor(dotfiles, home, current.Username, steps)
+	return turingScreenJobFor(setupDir, home, current.Username, steps)
 }

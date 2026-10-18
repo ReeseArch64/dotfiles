@@ -62,8 +62,8 @@ func linkDiscordCore(home string) error {
 	return nil
 }
 
-func installBetterDiscordConfig(dotfiles, home string) error {
-	source := configPath(dotfiles, "discord", "BetterDiscord")
+func installBetterDiscordConfig(setupDir, home string) error {
+	source := configPath(setupDir, "discord", "BetterDiscord")
 	destination := filepath.Join(home, ".config", "BetterDiscord")
 	if info, err := os.Stat(source); err != nil {
 		return fmt.Errorf("ler %s: %w", source, err)
@@ -86,7 +86,7 @@ func betterDiscordInstalled() bool {
 	return false
 }
 
-func discordJobFor(dotfiles, home string, pacmanSteps, aurSteps []step, openStep step) job {
+func discordJobFor(setupDir, home string, pacmanSteps, aurSteps []step, openStep step) job {
 	steps := append([]step{}, pacmanSteps...)
 	steps = append(steps, aurSteps...)
 	steps = append(steps,
@@ -96,7 +96,7 @@ func discordJobFor(dotfiles, home string, pacmanSteps, aurSteps []step, openStep
 		}),
 		skipWhen(terminalStep("Instalar BetterDiscord", "betterdiscordctl", "install"), betterDiscordInstalled),
 		nativeStep("Substituir arquivos do BetterDiscord", func() error {
-			return installBetterDiscordConfig(dotfiles, home)
+			return installBetterDiscordConfig(setupDir, home)
 		}),
 	)
 	return job{
@@ -108,13 +108,13 @@ func discordJobFor(dotfiles, home string, pacmanSteps, aurSteps []step, openStep
 	}
 }
 
-func discordJob(dotfiles string) job {
+func discordJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
 	openStep := nativeStep("Abrir Discord e carregar seus módulos", func() error {
 		return openDiscord(home, 60*time.Second)
 	})
 	return discordJobFor(
-		dotfiles,
+		setupDir,
 		home,
 		ensurePkgs(discordPackage),
 		ensureYayPkgs(betterDiscordPackage),

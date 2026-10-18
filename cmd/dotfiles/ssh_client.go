@@ -27,11 +27,11 @@ func missingSSHIdentityFiles(home string) []string {
 	return missing
 }
 
-func installSSHClientConfig(dotfiles, home string, now time.Time) error {
+func installSSHClientConfig(setupDir, home string, now time.Time) error {
 	if missing := missingSSHIdentityFiles(home); len(missing) > 0 {
 		return errors.New("arquivos obrigatórios ausentes em ~/.ssh: " + strings.Join(missing, ", "))
 	}
-	source := configPath(dotfiles, "ssh", "config")
+	source := configPath(setupDir, "ssh", "config")
 	info, err := os.Stat(source)
 	if err != nil {
 		return fmt.Errorf("ler %s: %w", source, err)

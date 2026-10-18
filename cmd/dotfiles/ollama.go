@@ -57,7 +57,7 @@ func ollamaROCmInstalled(lookPath func(string) (string, error)) bool {
 	return false
 }
 
-func ollamaJobFor(dotfiles string, packageSteps []step, lookPath func(string) (string, error)) job {
+func ollamaJobFor(setupDir string, packageSteps []step, lookPath func(string) (string, error)) job {
 	steps := []step{nativeStep("Validar GPU AMD e dispositivo ROCm", func() error {
 		return validateOllamaAMD("/sys", "/dev")
 	})}
@@ -77,7 +77,7 @@ func ollamaJobFor(dotfiles string, packageSteps []step, lookPath func(string) (s
 			"/mnt/storage/ollama", "/mnt/storage/ollama/models"),
 		terminalStep("Permitir acesso do serviço à GPU AMD", "sudo", "usermod", "-aG", "render,video", "ollama"),
 		terminalStep("Configurar serviço Ollama para GPU AMD", "sudo", "install", "-Dm644",
-			configPath(dotfiles, "ollama", "amd.conf"), "/etc/systemd/system/ollama.service.d/amd.conf"),
+			configPath(setupDir, "ollama", "amd.conf"), "/etc/systemd/system/ollama.service.d/amd.conf"),
 		terminalStep("Recarregar unidades systemd", "sudo", "systemctl", "daemon-reload"),
 		terminalStep("Habilitar Ollama no boot", "sudo", "systemctl", "enable", "ollama.service"),
 		terminalStep("Reiniciar Ollama com acesso à GPU", "sudo", "systemctl", "restart", "ollama.service"),
@@ -94,6 +94,6 @@ func ollamaJobFor(dotfiles string, packageSteps []step, lookPath func(string) (s
 	}
 }
 
-func ollamaJob(dotfiles string) job {
-	return ollamaJobFor(dotfiles, ensurePkgs(ollamaDependencies...), exec.LookPath)
+func ollamaJob(setupDir string) job {
+	return ollamaJobFor(setupDir, ensurePkgs(ollamaDependencies...), exec.LookPath)
 }

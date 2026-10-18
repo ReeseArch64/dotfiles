@@ -3,15 +3,15 @@
 # ==============================
 
 Host 192.168.1.100
-  HostName 192.168.1.100
-  User alsgy
-
-Host 192.168.1.104
   HostName 192.168.1.104
   User alsgy
 
-Host 192.168.1.105
+Host 192.168.1.104
   HostName 192.168.1.105
+  User alsgy
+
+Host 192.168.1.105
+  HostName 192.168.1.107
   User alsgy
 
 # ==============================

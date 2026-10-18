@@ -1,0 +1,29 @@
+[tools]
+awscli = { version = "latest", symlink_bins = true }
+gcloud = { version = "latest" }
+railway = { version = "latest" }
+firebase = { version = "latest" }
+azure-cli = { version = "latest" }
+k9s = { version = "latest" }
+kind = { version = "latest" }
+kubectl = { version = "latest" }
+
+java = ["temurin-21", "temurin-17", "temurin-11", "temurin-8"]
+gradle = { version = "latest" }
+maven = { version = "latest" }
+
+flutter = { version = "latest" }
+
+node = { version = "latest" }
+"npm:cf" = { version = "latest" }
+wrangler = { version = "latest" }
+bun = { version = "latest" }
+pnpm = { version = "latest" }
+deno = { version = "latest" }
+
+ruby = { version = "latest" }
+
+python = { version = "latest" }
+uv = { version = "latest" }
+
+go = { version = "latest" }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -158,6 +159,74 @@ func TestNiriJobCopiesConfigurationAndCursor(t *testing.T) {
 	}
 	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
 		t.Fatalf("passos inesperados: %v", labels)
+	}
+}
+
+func TestInstallNiriDeviceProfiles(t *testing.T) {
+	dotfiles, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+		t.Run(device.String(), func(t *testing.T) {
+			home := t.TempDir()
+			now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+			for range 2 {
+				setupDir := setupDirectory(dotfiles, device)
+				if err := installNiri(setupDir, home, now); err != nil {
+					t.Fatal(err)
+				}
+			}
+			destination := filepath.Join(home, ".config", "niri")
+			if !directoriesEqual(configPath(setupDirectory(dotfiles, device), "niri"), destination) {
+				t.Fatal("configuração instalada difere da árvore completa do perfil")
+			}
+			common := configPath(setupDirectory(dotfiles, device), "niri", "cfg", "autostart.kdl")
+			if !regularFileMatches(common, filepath.Join(destination, "cfg", "autostart.kdl")) {
+				t.Fatal("autostart do perfil foi alterado")
+			}
+			content, err := os.ReadFile(filepath.Join(destination, "cfg", "device.kdl"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			hasTuring := strings.Contains(string(content), "spawn-at-startup") && strings.Contains(string(content), "/usr/bin/turing-smart-screen")
+			if hasTuring != (device == deviceDesktop) {
+				t.Fatalf("autostart incorreto para %s: %s", device, content)
+			}
+			display, err := os.ReadFile(filepath.Join(destination, "cfg", "display.kdl"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			isLaptop := device == deviceNotebook
+			if strings.Contains(string(display), `output "eDP-1"`) != isLaptop || strings.Contains(string(display), `output "DP-1"`) == isLaptop || (isLaptop && strings.Count(string(display), `output "`) != 1) {
+				t.Fatalf("outputs incorretos para %s: %s", device, display)
+			}
+			if matches, err := filepath.Glob(destination + ".backup-*"); err != nil || len(matches) != 0 {
+				t.Fatalf("reinstalação criou backups: %v, err=%v", matches, err)
+			}
+		})
+	}
+}
+
+func TestInstallNiriMissingProfilePreservesDestination(t *testing.T) {
+	dotfiles, home := t.TempDir(), t.TempDir()
+	source := configPath(dotfiles, "niri")
+	destination := filepath.Join(home, ".config", "niri")
+	for _, path := range []string{source, destination} {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	original := filepath.Join(destination, "config.kdl")
+	if err := os.WriteFile(original, []byte("original"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := installNiri(setupDirectory(dotfiles, deviceNotebook), home, time.Now()); err == nil {
+		t.Fatal("esperava erro para perfil ausente")
+	}
+	content, err := os.ReadFile(original)
+	if err != nil || string(content) != "original" {
+		t.Fatalf("configuração existente foi alterada: %q, err=%v", content, err)
 	}
 }
 

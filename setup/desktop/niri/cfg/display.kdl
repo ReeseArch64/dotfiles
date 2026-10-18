@@ -1,9 +1,3 @@
-// Notebook 60hz
-output "eDP-1" {
-    mode "1366x768@59.996"
-    scale 1
-}
-
 // Monitor Gaming GIGABYTE MO27Q2A (27'' - Quad HD - 280 Hz - 0,03 ms)
 output "DP-1" {
     mode "1920x1080@179.999" // trocar para "2560x1440@280"

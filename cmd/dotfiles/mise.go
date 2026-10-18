@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 )
 
-func installMiseConfig(dotfiles, home string) error {
-	source, err := filepath.Abs(configPath(dotfiles, "mise", "mise.toml"))
+func installMiseConfig(setupDir, home string) error {
+	source, err := filepath.Abs(configPath(setupDir, "mise", "mise.toml"))
 	if err != nil {
 		return fmt.Errorf("resolver mise.toml: %w", err)
 	}
@@ -31,14 +31,14 @@ func installMiseConfig(dotfiles, home string) error {
 	return nil
 }
 
-func miseSetupSteps(dotfiles string) []step {
+func miseSetupSteps(setupDir string) []step {
 	home, _ := os.UserHomeDir()
 	steps := ensureYayPkgs("mise")
 	steps = append(steps,
 		nativeStep("Symlink ~/.config/mise/config.toml", func() error {
-			return installMiseConfig(dotfiles, home)
+			return installMiseConfig(setupDir, home)
 		}),
-		terminalStep("Confiar na configuração do mise", "mise", "trust", configPath(dotfiles, "mise", "mise.toml")),
+		terminalStep("Confiar na configuração do mise", "mise", "trust", configPath(setupDir, "mise", "mise.toml")),
 	)
 	return steps
 }

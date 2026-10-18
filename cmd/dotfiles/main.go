@@ -64,6 +64,7 @@ type tickMsg time.Time
 
 type model struct {
 	dotfiles string
+	setupDir string
 	start    time.Time
 	now      time.Time
 	width    int
@@ -99,6 +100,7 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 	now := time.Now()
 	return model{
 		dotfiles: dotfiles,
+		setupDir: setupDirectory(dotfiles, device),
 		start:    now,
 		now:      now,
 		width:    80,
@@ -132,7 +134,7 @@ func (m model) items() []item {
 		items := []item{
 			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
 			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
-			{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.dotfiles) }},
+			{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }},
 		}
 		if m.device == deviceDesktop {
 			items = append(items,
@@ -143,21 +145,21 @@ func (m model) items() []item {
 		return append(items,
 			item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob},
 			item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob},
-			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.dotfiles) }},
+			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }},
 		)
 	case screenDesktop:
 		items := []item{
-			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.dotfiles) }},
+			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-			{title: "Ghostty", desc: "Instalar o terminal e copiar sua configuração", job: func() job { return ghosttyJob(m.dotfiles) }},
+			{title: "Ghostty", desc: "Instalar o terminal e copiar sua configuração", job: func() job { return ghosttyJob(m.setupDir) }},
 			{title: "Zen Browser", desc: "Instalar o navegador e restaurar o backup local", job: func() job { return zenBrowserJob(m.dotfiles) }},
 		}
 		if m.device == deviceDesktop {
 			items = append(items,
 				item{title: "Thunderbird", desc: "Instalar o cliente de e-mail via Pacman", job: thunderbirdJob},
-				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.dotfiles) }},
-				item{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.dotfiles) }},
-				item{title: "Turing Smart Screen", desc: "Instalar com Python 3.13, GPU AMD e tema Frieren", job: func() job { return turingScreenJob(m.dotfiles) }},
+				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.setupDir) }},
+				item{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.setupDir) }},
+				item{title: "Turing Smart Screen", desc: "Instalar com Python 3.13, GPU AMD e tema Frieren", job: func() job { return turingScreenJob(m.setupDir) }},
 			)
 		}
 		return append(items,
@@ -167,7 +169,7 @@ func (m model) items() []item {
 	case screenAIAgents:
 		items := []item{{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent}}
 		if m.device == deviceDesktop {
-			items = append(items, item{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.dotfiles) }})
+			items = append(items, item{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }})
 		}
 		return items
 	case screenBackup:
@@ -265,13 +267,13 @@ func (m *model) refresh() {
 	case screenDocker:
 		m.docker = loadDockerStatus()
 	case screenGit:
-		m.git = loadGitStatus(m.dotfiles)
+		m.git = loadGitStatus(m.setupDir)
 	case screenGPG:
-		m.gpg = loadGPGStatus(m.dotfiles)
+		m.gpg = loadGPGStatus(m.dotfiles, m.setupDir)
 	case screenNoctalia:
-		m.noctalia = loadNoctaliaStatus(m.dotfiles)
+		m.noctalia = loadNoctaliaStatus(m.setupDir)
 	case screenPiAgent:
-		m.piAgent = loadPiAgentStatus(m.dotfiles)
+		m.piAgent = loadPiAgentStatus(m.setupDir)
 	}
 }
 
@@ -456,14 +458,25 @@ func findDotfiles() string {
 	}
 	if exe, err := os.Executable(); err == nil {
 		exe, _ = filepath.EvalSymlinks(exe)
-		for d := filepath.Dir(exe); d != "/"; d = filepath.Dir(d) {
-			if _, err := os.Stat(filepath.Join(d, "configs")); err == nil {
-				return d
-			}
+		if root := findSetupRepository(filepath.Dir(exe)); root != "" {
+			return root
 		}
 	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".dotfiles")
+}
+
+func findSetupRepository(directory string) string {
+	for {
+		if info, err := os.Stat(filepath.Join(directory, "setup")); err == nil && info.IsDir() {
+			return directory
+		}
+		parent := filepath.Dir(directory)
+		if parent == directory {
+			return ""
+		}
+		directory = parent
+	}
 }
 
 func main() {

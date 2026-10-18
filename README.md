@@ -84,7 +84,11 @@ git clone https://github.com/ReeseArch64/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ```
 
-A identidade do Git fica definida diretamente em `configs/git/.gitconfig`.
+As configurações são cópias independentes em `setup/desktop/` e `setup/laptop/`, selecionadas pelo hostname (`desktop` e `notebook`, respectivamente). Não há base compartilhada nem sobreposição. Discord, Obsidian, Ollama e Turing Smart Screen são exclusivos de `setup/desktop/` e não estão presentes no laptop. Nos caminhos abaixo, `setup/<perfil>/` representa a pasta selecionada.
+
+Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. A CLI ainda suporta somente Desktop e Notebook.
+
+A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
 Para importar chaves GPG, coloque estes arquivos na raiz do repositório:
 
@@ -205,7 +209,7 @@ O menu `Sistema > SSH` oferece somente a ação `Configurar SSH`.
 
 A ação executa a configuração completa:
 
-1. Valida as identidades e copia `configs/ssh/config` para `~/.ssh/config`.
+1. Valida as identidades e copia `setup/<perfil>/ssh/config` para `~/.ssh/config`.
 2. Instala `openssh`, `ufw` e `iptables-nft` quando necessário.
 3. Define as políticas padrão do UFW.
 4. Libera a porta do SSH somente para a rede local.
@@ -222,7 +226,7 @@ id_gitlab_reesearch64
 id_gitlab_reesearch64.pub
 ```
 
-A ação copia `configs/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
+A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
 
 Uma configuração diferente recebe o sufixo `.backup-AAAAMMDD-HHMMSS`.
 
@@ -247,10 +251,10 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 
 | Destino | Origem | Formato |
 | --- | --- | --- |
-| `~/.gitconfig` | `configs/git/.gitconfig` | Cópia regular |
-| `~/.gitattributes` | `configs/git/.gitattributes` | Link simbólico |
-| `~/.gitignore` | `configs/git/.gitignore` | Link simbólico |
-| `~/.config/git/config` | `configs/git/config` | Link simbólico |
+| `~/.gitconfig` | `setup/<perfil>/git/.gitconfig` | Cópia regular |
+| `~/.gitattributes` | `setup/<perfil>/git/.gitattributes` | Link simbólico |
+| `~/.gitignore` | `setup/<perfil>/git/.gitignore` | Link simbólico |
+| `~/.config/git/config` | `setup/<perfil>/git/config` | Link simbólico |
 
 A ação substitui `~/.gitconfig` e recria os três links simbólicos sem backup automático.
 
@@ -284,19 +288,19 @@ A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
 `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
 1. Instala o `mise` via yay.
-2. Cria o link `~/.config/mise/config.toml` para `configs/mise/mise.toml`.
+2. Cria o link `~/.config/mise/config.toml` para `setup/<perfil>/mise/mise.toml`.
 3. Marca a configuração do Mise como confiável.
 4. Instala todas as ferramentas declaradas no `mise.toml`.
 5. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
 6. Instala Fish, `rustup` e o toolkit `tk` para Python via Pacman.
-7. Copia `configs/fish/config.fish` para `~/.config/fish/config.fish`.
+7. Copia `setup/<perfil>/fish/config.fish` para `~/.config/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
 9. Valida `rustc --version` e `cargo --version`.
 10. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
 11. Executa `bs auth init`.
 12. Executa `npm login`.
 
-O arquivo `configs/mise/mise.toml` instala:
+O arquivo `setup/<perfil>/mise/mise.toml` instala:
 
 - AWS CLI
 - Google Cloud CLI
@@ -427,15 +431,19 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
-A ação copia `configs/fastfetch/config.json` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório.
+A ação copia `setup/<perfil>/fastfetch/config.json` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório.
 
-Ela também copia `configs/btop/` para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
+Ela também copia `setup/<perfil>/btop/` para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
 
 ## Desktop
 
 ### Niri
 
-`Desktop > Niri` copia `configs/niri/` para `~/.config/niri` e `configs/cursor/FrierenBLZ/` para `~/.icons/FrierenBLZ`.
+`Desktop > Niri` copia integralmente `setup/<perfil>/niri/` para `~/.config/niri`. O cursor de `setup/<perfil>/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`.
+
+Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do laptop contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
+
+A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/device.kdl`. O laptop não inicia esse serviço.
 
 Quando o cursor de destino é diferente, a CLI preserva a versão anterior com um sufixo de backup datado.
 
@@ -458,7 +466,7 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 
 ### Ghostty
 
-`Desktop > Ghostty` instala `ghostty` via yay e copia `configs/ghostty/` para `~/.config/ghostty`.
+`Desktop > Ghostty` instala `ghostty` via yay e copia `setup/<perfil>/ghostty/` para `~/.config/ghostty`.
 
 ### Zen Browser
 
@@ -488,7 +496,7 @@ O `.gitignore` exclui `zen-backup.tar` e `zen-backup/`. O arquivo contém dados 
 
 ### Obsidian
 
-`Desktop > Obsidian` instala `obsidian-bin` via yay/AUR e copia `configs/obsidian/` para `~/.obsidian`.
+`Desktop > Obsidian` instala `obsidian-bin` via yay/AUR e copia `setup/desktop/obsidian/` para `~/.obsidian`.
 
 ### Turing Smart Screen (somente Desktop)
 
@@ -503,7 +511,7 @@ A ação executa etapas separadas:
 5. Adiciona o usuário atual ao grupo `turing-smart-screen` criado pelo pacote e recarrega as regras com `sudo udevadm control --reload-rules`.
 6. Instala `base-devel` e `libdrm` via Pacman; instala `setuptools`, `wheel` e `Cython` no venv.
 7. Compila `pyamdgpuinfo` no venv com `pip install --no-build-isolation --no-binary=pyamdgpuinfo pyamdgpuinfo`. Os requisitos dessa versão não instalam essa biblioteca automaticamente no Python 3.13.
-8. Copia `configs/turing-smart-screen-python/themes/frieren/` para `/opt/turing-smart-screen-python/res/themes/frieren/` e substitui `/opt/turing-smart-screen-python/config.yaml` pelo arquivo do repositório, usando `sudo`.
+8. Copia `setup/desktop/turing-smart-screen-python/themes/frieren/` para `/opt/turing-smart-screen-python/res/themes/frieren/` e substitui `/opt/turing-smart-screen-python/config.yaml` pelo arquivo do repositório, usando `sudo`.
 
 Após concluir, desconecte e reconecte a tela USB, saia da sessão gráfica e entre novamente. Confira o grupo com `id` e, para a tela em `/dev/ttyACM0`, com `/usr/bin/ls -l /dev/ttyACM0`: o dispositivo deve pertencer ao grupo `turing-smart-screen`.
 
@@ -593,7 +601,7 @@ Os pacotes do Pi executam código com as permissões do usuário. Revise as orig
 5. Verifica se `/mnt/storage` é um ponto de montagem ativo.
 6. Cria `/mnt/storage/ollama` e `/mnt/storage/ollama/models` com `sudo install`, proprietário `ollama:ollama` e permissão `0750`.
 7. Adiciona o usuário do serviço `ollama` aos grupos `render` e `video`.
-8. Aplica `configs/ollama/amd.conf` em `/etc/systemd/system/ollama.service.d/amd.conf`.
+8. Aplica `setup/desktop/ollama/amd.conf` em `/etc/systemd/system/ollama.service.d/amd.conf`.
 9. Habilita o serviço no boot, reinicia o Ollama e verifica a API local.
 
 A ação ignora o instalador quando encontra o binário, o runtime ROCm e a unidade `ollama.service`.
@@ -687,18 +695,12 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 │   ├── face.jpg
 │   └── wallpapers/
 ├── cmd/dotfiles/          # Código e testes da CLI
-├── configs/
-│   ├── btop/
-│   ├── cursor/
-│   ├── ghostty/
-│   ├── git/
-│   ├── mise/
-│   ├── niri/
-│   ├── noctalia/
-│   ├── obsidian/
-│   ├── ollama/
-│   ├── pi/
-│   └── ssh/
+├── setup/
+│   ├── desktop/          # Configurações completas CachyOS
+│   ├── laptop/           # Cópia independente CachyOS
+│   ├── homelab/          # Reservado para servidor Ubuntu
+│   ├── homeprod/         # Reservado para Ubuntu
+│   └── macbook/          # Reservado para macOS
 ├── go.mod
 ├── go.sum
 └── Makefile

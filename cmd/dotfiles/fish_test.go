@@ -59,12 +59,14 @@ func TestInstallFishConfigCopiesFileAndRemovesObsoleteShellFiles(t *testing.T) {
 }
 
 func TestRepositoryFishConfigExists(t *testing.T) {
-	path := filepath.Join("..", "..", "configs", "fish", "config.fish")
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !info.Mode().IsRegular() {
-		t.Fatalf("configuração Fish não é arquivo regular: %s", path)
-	}
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		path := configPath(setupDir, "fish", "config.fish")
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !info.Mode().IsRegular() {
+			t.Fatalf("configuração Fish não é arquivo regular: %s", path)
+		}
+	})
 }

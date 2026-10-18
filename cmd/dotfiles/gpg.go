@@ -24,12 +24,12 @@ type gpgStatus struct {
 	configErr      error
 }
 
-func loadGPGStatus(dotfiles string) gpgStatus {
+func loadGPGStatus(dotfiles, setupDir string) gpgStatus {
 	paths, err := loadGPGImportPaths(dotfiles)
-	signingKey, _ := readGitSigningKey(configPath(dotfiles, "git", ".gitconfig"))
+	signingKey, _ := readGitSigningKey(configPath(setupDir, "git", ".gitconfig"))
 	return gpgStatus{
 		gnupgInstalled: len(missingPkgs("gnupg")) == 0,
-		gitReady:       loadGitStatus(dotfiles).readyForGPG(),
+		gitReady:       loadGitStatus(setupDir).readyForGPG(),
 		paths:          paths,
 		signingKey:     signingKey,
 		configErr:      err,
@@ -67,7 +67,7 @@ func (m model) gpgItems() []item {
 		{
 			title: "Importar chaves",
 			desc:  "Importa as chaves .asc e configura user.signingkey",
-			job:   func() job { return gpgImportJob(m.dotfiles) },
+			job:   func() job { return gpgImportJob(m.dotfiles, m.setupDir) },
 		},
 	}
 }
@@ -105,8 +105,8 @@ func loadGPGImportPaths(dotfiles string) (gpgImportPaths, error) {
 	return paths, nil
 }
 
-func validateGPGImport(dotfiles string, pathErr error) error {
-	if !loadGitStatus(dotfiles).readyForGPG() {
+func validateGPGImport(setupDir string, pathErr error) error {
+	if !loadGitStatus(setupDir).readyForGPG() {
 		return errors.New("configure o Git antes de importar as chaves GPG")
 	}
 	return pathErr
@@ -153,15 +153,15 @@ func signingKeyFromPrivateFile(path string) (string, error) {
 	return parseGPGSecretFingerprint(string(output))
 }
 
-func applyGitSigningKey(dotfiles, home, fingerprint string) error {
-	source := configPath(dotfiles, "git", ".gitconfig")
+func applyGitSigningKey(setupDir, home, fingerprint string) error {
+	source := configPath(setupDir, "git", ".gitconfig")
 	if err := writeGitSigningKey(source, fingerprint); err != nil {
 		return err
 	}
 	return copyFileAtomic(source, filepath.Join(home, ".gitconfig"))
 }
 
-func configureGitSigningKey(dotfiles, privateKeyPath string) error {
+func configureGitSigningKey(setupDir, privateKeyPath string) error {
 	fingerprint, err := signingKeyFromPrivateFile(privateKeyPath)
 	if err != nil {
 		return err
@@ -170,31 +170,31 @@ func configureGitSigningKey(dotfiles, privateKeyPath string) error {
 	if err != nil {
 		return fmt.Errorf("identificar diretório pessoal: %w", err)
 	}
-	return applyGitSigningKey(dotfiles, home, fingerprint)
+	return applyGitSigningKey(setupDir, home, fingerprint)
 }
 
-func gpgImportSteps(dotfiles string, paths gpgImportPaths, pathErr error, packageSteps []step) []step {
+func gpgImportSteps(setupDir string, paths gpgImportPaths, pathErr error, packageSteps []step) []step {
 	steps := []step{nativeStep("Validar Git e arquivos .asc", func() error {
-		return validateGPGImport(dotfiles, pathErr)
+		return validateGPGImport(setupDir, pathErr)
 	})}
 	steps = append(steps, packageSteps...)
 	return append(steps,
 		terminalStep("Importar chave pública", "gpg", "--import", paths.public),
 		terminalStep("Importar chave privada", "gpg", "--import", paths.private),
 		nativeStep("Configurar user.signingkey", func() error {
-			return configureGitSigningKey(dotfiles, paths.private)
+			return configureGitSigningKey(setupDir, paths.private)
 		}),
 	)
 }
 
-func gpgImportJob(dotfiles string) job {
+func gpgImportJob(dotfiles, setupDir string) job {
 	paths, pathErr := loadGPGImportPaths(dotfiles)
-	steps := gpgImportSteps(dotfiles, paths, pathErr, ensurePkgs("gnupg"))
+	steps := gpgImportSteps(setupDir, paths, pathErr, ensurePkgs("gnupg"))
 	return job{
 		title: "Importar chaves GPG",
 		steps: steps,
 		result: func() string {
-			signingKey, _ := readGitSigningKey(configPath(dotfiles, "git", ".gitconfig"))
+			signingKey, _ := readGitSigningKey(configPath(setupDir, "git", ".gitconfig"))
 			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves importadas · signingkey " + signingKey)
 		},
 	}

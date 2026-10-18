@@ -16,7 +16,7 @@ func lunarVimInstallStep() step {
 	return terminalStep("Instalar LunarVim", "bash", "-c", lunarVimInstallCommand)
 }
 
-func terminalToolsJobFor(dotfiles, home string, lookPath func(string) (string, error)) job {
+func terminalToolsJobFor(setupDir, home string, lookPath func(string) (string, error)) job {
 	steps := ensureYayPkgs(terminalToolPackages...)
 	steps = append(steps, ensureYayPkgs(terminalToolAurPackages...)...)
 	steps = append(steps, ensurePkgs(terminalToolPacmanPackages...)...)
@@ -26,8 +26,8 @@ func terminalToolsJobFor(dotfiles, home string, lookPath func(string) (string, e
 	if _, err := lookPath("posting"); err != nil {
 		steps = append(steps, terminalStep("Instalar Posting via uv", "uv", "tool", "install", "--python", "3.13", "posting"))
 	}
-	steps = append(steps, fastfetchConfigStep(dotfiles, home))
-	steps = append(steps, btopConfigStep(dotfiles, home))
+	steps = append(steps, fastfetchConfigStep(setupDir, home))
+	steps = append(steps, btopConfigStep(setupDir, home))
 	if _, err := lookPath("lvim"); err != nil {
 		steps = append(steps, lunarVimInstallStep())
 	}
@@ -37,7 +37,7 @@ func terminalToolsJobFor(dotfiles, home string, lookPath func(string) (string, e
 	}
 }
 
-func terminalToolsJob(dotfiles string) job {
+func terminalToolsJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
-	return terminalToolsJobFor(dotfiles, home, exec.LookPath)
+	return terminalToolsJobFor(setupDir, home, exec.LookPath)
 }

@@ -18,7 +18,7 @@ func TestTuringScreenAurUsesSystemEnvironment(t *testing.T) {
 func TestTuringScreenJobKeepsInstallationStepsSeparateAndOrdered(t *testing.T) {
 	home := "/home/test user"
 	python := home + "/.local/share/turing-screen-venv/bin/python"
-	configured := turingScreenJobFor("/dotfiles", home, "dev", []step{turingScreenInstallStep()})
+	configured := turingScreenJobFor("/dotfiles/setup/desktop", home, "dev", []step{turingScreenInstallStep()})
 	wantCommands := [][]string{
 		{"mise", "install", "python@3.13"},
 		{"mise", "exec", "python@3.13", "--", "python", "-m", "venv", home + "/.local/share/turing-screen-venv"},
@@ -28,8 +28,8 @@ func TestTuringScreenJobKeepsInstallationStepsSeparateAndOrdered(t *testing.T) {
 		{python, "-m", "pip", "install", "setuptools", "wheel", "Cython"},
 		{python, "-m", "pip", "install", "--no-build-isolation", "--no-binary=pyamdgpuinfo", "pyamdgpuinfo"},
 		{"sudo", "install", "-d", "/opt/turing-smart-screen-python/res/themes/frieren"},
-		{"sudo", "cp", "-r", "/dotfiles/configs/turing-smart-screen-python/themes/frieren/.", "/opt/turing-smart-screen-python/res/themes/frieren/"},
-		{"sudo", "install", "-m644", "/dotfiles/configs/turing-smart-screen-python/config.yaml", "/opt/turing-smart-screen-python/config.yaml"},
+		{"sudo", "cp", "-r", "/dotfiles/setup/desktop/turing-smart-screen-python/themes/frieren/.", "/opt/turing-smart-screen-python/res/themes/frieren/"},
+		{"sudo", "install", "-m644", "/dotfiles/setup/desktop/turing-smart-screen-python/config.yaml", "/opt/turing-smart-screen-python/config.yaml"},
 	}
 	last := 1 // validação e instalação do AUR precedem os comandos acima
 	for _, want := range wantCommands {
@@ -57,17 +57,14 @@ func TestTuringScreenJobKeepsInstallationStepsSeparateAndOrdered(t *testing.T) {
 }
 
 func TestTuringScreenCopiesThemeAndConfigWithMockedPrivileges(t *testing.T) {
-	dotfiles, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	home := t.TempDir()
-	root := t.TempDir()
-	bin := t.TempDir()
-	writeTestExecutable(t, bin, "mise", `exit 0`)
-	// Redireciona somente os caminhos de destino para um diretório temporário.
-	// Nenhum comando privilegiado, instalação ou acesso USB é executado.
-	if err := os.WriteFile(filepath.Join(bin, "sudo"), []byte(`#!/bin/bash
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		home := t.TempDir()
+		root := t.TempDir()
+		bin := t.TempDir()
+		writeTestExecutable(t, bin, "mise", `exit 0`)
+		// Redireciona somente os caminhos de destino para um diretório temporário.
+		// Nenhum comando privilegiado, instalação ou acesso USB é executado.
+		if err := os.WriteFile(filepath.Join(bin, "sudo"), []byte(`#!/bin/bash
 args=()
 for arg in "$@"; do
     args+=("${arg/#\/opt\/turing-smart-screen-python/$TURING_TEST_ROOT}")
@@ -77,36 +74,37 @@ case "${args[0]}" in
     *) exit 0 ;;
 esac
 `), 0755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("PATH", bin+":/usr/bin:/bin")
-	t.Setenv("TERM", "xterm")
-	t.Setenv("TURING_TEST_ROOT", root)
-	configured := turingScreenJobFor(dotfiles, home, "dev", nil)
-	if _, err := configured.steps[0].run(); err != nil {
-		t.Fatalf("pré-validação falhou: %v", err)
-	}
-	for _, s := range configured.steps {
-		if s.cmd == nil || (!strings.HasPrefix(s.label, "Copiar") && s.label != "Criar diretório do tema Frieren") {
-			continue
+			t.Fatal(err)
 		}
-		if out, err := s.cmd().CombinedOutput(); err != nil {
-			t.Fatalf("%s: %v: %s", s.label, err, out)
+		t.Setenv("PATH", bin+":/usr/bin:/bin")
+		t.Setenv("TERM", "xterm")
+		t.Setenv("TURING_TEST_ROOT", root)
+		configured := turingScreenJobFor(setupDir, home, "dev", nil)
+		if _, err := configured.steps[0].run(); err != nil {
+			t.Fatalf("pré-validação falhou: %v", err)
 		}
-	}
-	for _, relative := range []string{"config.yaml", "res/themes/frieren/theme.yaml", "res/themes/frieren/background.png", "res/themes/frieren/icons/gpu.png"} {
-		if _, err := os.Stat(filepath.Join(root, relative)); err != nil {
-			t.Fatalf("arquivo não copiado: %s: %v", relative, err)
+		for _, s := range configured.steps {
+			if s.cmd == nil || (!strings.HasPrefix(s.label, "Copiar") && s.label != "Criar diretório do tema Frieren") {
+				continue
+			}
+			if out, err := s.cmd().CombinedOutput(); err != nil {
+				t.Fatalf("%s: %v: %s", s.label, err, out)
+			}
 		}
-	}
-	want, err := os.ReadFile(configPath(dotfiles, turingScreenPackage, "config.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, err := os.ReadFile(filepath.Join(root, "config.yaml"))
-	if err != nil || string(got) != string(want) {
-		t.Fatalf("configuração copiada difere da origem: %v", err)
-	}
+		for _, relative := range []string{"config.yaml", "res/themes/frieren/theme.yaml", "res/themes/frieren/background.png", "res/themes/frieren/icons/gpu.png"} {
+			if _, err := os.Stat(filepath.Join(root, relative)); err != nil {
+				t.Fatalf("arquivo não copiado: %s: %v", relative, err)
+			}
+		}
+		want, err := os.ReadFile(configPath(setupDir, turingScreenPackage, "config.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := os.ReadFile(filepath.Join(root, "config.yaml"))
+		if err != nil || string(got) != string(want) {
+			t.Fatalf("configuração copiada difere da origem: %v", err)
+		}
+	}, deviceDesktop)
 }
 
 func TestTuringScreenValidationRejectsMissingPrerequisites(t *testing.T) {

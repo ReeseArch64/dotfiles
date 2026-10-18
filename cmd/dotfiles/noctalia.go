@@ -33,8 +33,8 @@ type noctaliaFile struct {
 	ok                        bool
 }
 
-func noctaliaFileDefs(dotfiles, home string) []noctaliaFile {
-	sourceDir := configPath(dotfiles, "noctalia")
+func noctaliaFileDefs(setupDir, home string) []noctaliaFile {
+	sourceDir := configPath(setupDir, "noctalia")
 	if absolute, err := filepath.Abs(sourceDir); err == nil {
 		sourceDir = absolute
 	}
@@ -45,9 +45,9 @@ func noctaliaFileDefs(dotfiles, home string) []noctaliaFile {
 	}
 }
 
-func loadNoctaliaStatus(dotfiles string) noctaliaStatus {
+func loadNoctaliaStatus(setupDir string) noctaliaStatus {
 	home, _ := os.UserHomeDir()
-	return loadNoctaliaStatusForHome(dotfiles, home)
+	return loadNoctaliaStatusForHome(setupDir, home)
 }
 
 func (s noctaliaStatus) missingPlugins() []string {
@@ -83,17 +83,17 @@ func (m model) noctaliaItems() []item {
 	return []item{{
 		title: "Configurar Noctalia",
 		desc:  "Copiar settings.toml e state.toml após baixar todos os plugins",
-		job:   func() job { return noctaliaJob(m.dotfiles) },
+		job:   func() job { return noctaliaJob(m.setupDir) },
 	}}
 }
 
-func installNoctalia(dotfiles, home string, now time.Time) error {
-	status := loadNoctaliaStatusForHome(dotfiles, home)
+func installNoctalia(setupDir, home string, now time.Time) error {
+	status := loadNoctaliaStatusForHome(setupDir, home)
 	if missing := status.missingPlugins(); len(missing) > 0 {
 		return errors.New("baixe os plugins ausentes no Noctalia: " + strings.Join(missing, ", "))
 	}
 
-	files := noctaliaFileDefs(dotfiles, home)
+	files := noctaliaFileDefs(setupDir, home)
 	for _, file := range files {
 		info, err := os.Stat(file.source)
 		if err != nil {
@@ -158,26 +158,26 @@ func installNoctalia(dotfiles, home string, now time.Time) error {
 	return nil
 }
 
-func loadNoctaliaStatusForHome(dotfiles, home string) noctaliaStatus {
+func loadNoctaliaStatusForHome(setupDir, home string) noctaliaStatus {
 	pluginDir := filepath.Join(home, ".local", "state", "noctalia", "plugins", "materialized", "community")
 	status := noctaliaStatus{}
 	for _, name := range requiredNoctaliaPlugins {
 		info, err := os.Stat(filepath.Join(pluginDir, name))
 		status.plugins = append(status.plugins, noctaliaPlugin{name: name, installed: err == nil && info.IsDir()})
 	}
-	for _, file := range noctaliaFileDefs(dotfiles, home) {
+	for _, file := range noctaliaFileDefs(setupDir, home) {
 		file.ok = regularFileMatches(file.source, file.destination)
 		status.files = append(status.files, file)
 	}
 	return status
 }
 
-func noctaliaJob(dotfiles string) job {
+func noctaliaJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
 	return job{
 		title: "Configurar Noctalia",
 		steps: []step{nativeStep("Verificar plugins e copiar configuração", func() error {
-			return installNoctalia(dotfiles, home, time.Now())
+			return installNoctalia(setupDir, home, time.Now())
 		})},
 		result: func() string {
 			return lipgloss.NewStyle().Foreground(colOK).Render("settings.toml e state.toml configurados")

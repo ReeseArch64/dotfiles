@@ -8,8 +8,8 @@ import (
 
 var obsoleteShellFiles = []string{".bashrc", ".bash_logout", ".bash_profile", ".zshrc"}
 
-func installFishConfig(dotfiles, home string) error {
-	source := configPath(dotfiles, "fish", "config.fish")
+func installFishConfig(setupDir, home string) error {
+	source := configPath(setupDir, "fish", "config.fish")
 	destination := filepath.Join(home, ".config", "fish", "config.fish")
 	legacyActivation := filepath.Join(home, ".config", "fish", "conf.d", "dotfiles-mise.fish")
 	if err := copyFileAtomic(source, destination); err != nil {
@@ -27,8 +27,8 @@ func installFishConfig(dotfiles, home string) error {
 	return nil
 }
 
-func fishConfigStep(dotfiles, home string) step {
+func fishConfigStep(setupDir, home string) step {
 	return nativeStep("Copiar configuração para ~/.config/fish/config.fish", func() error {
-		return installFishConfig(dotfiles, home)
+		return installFishConfig(setupDir, home)
 	})
 }

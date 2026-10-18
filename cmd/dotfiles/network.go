@@ -122,15 +122,15 @@ func (m model) sshItems() []item {
 		title: "Configurar SSH",
 		desc:  "Copia o cliente, libera a LAN e ativa o servidor no boot",
 		job: func() job {
-			return configureSSHJob(m.dotfiles, m.ssh.port(), lanSubnet())
+			return configureSSHJob(m.setupDir, m.ssh.port(), lanSubnet())
 		},
 	}}
 }
 
-func configureSSHJob(dotfiles, port, lan string) job {
+func configureSSHJob(setupDir, port, lan string) job {
 	home, _ := os.UserHomeDir()
 	steps := []step{nativeStep("Validar chaves e copiar ~/.ssh/config", func() error {
-		return installSSHClientConfig(dotfiles, home, time.Now())
+		return installSSHClientConfig(setupDir, home, time.Now())
 	})}
 	setup := ensurePkgs("openssh")
 	setup = append(setup, configureFirewallSteps(port, lan)...)

@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-func configPath(dotfiles string, elements ...string) string {
-	return filepath.Join(append([]string{dotfiles, "configs"}, elements...)...)
+func configPath(setupDir string, elements ...string) string {
+	return filepath.Join(append([]string{setupDir}, elements...)...)
 }
 
 func assetPath(dotfiles string, elements ...string) string {

@@ -111,7 +111,7 @@ func TestOllamaROCmVersionedRuntime(t *testing.T) {
 				t.Fatal(err)
 			}
 			lookPath := func(string) (string, error) { return binary, nil }
-			configured := ollamaJobFor("/dotfiles", nil, lookPath)
+			configured := ollamaJobFor("/dotfiles/setup/desktop", nil, lookPath)
 			if _, err := configured.steps[2].run(); err == nil {
 				t.Fatal("diretório ROCm vazio aceito")
 			}
@@ -147,7 +147,7 @@ func TestOllamaInstallerPropagatesCurlFailure(t *testing.T) {
 }
 
 func TestOllamaJobCommandsAndMissingRuntime(t *testing.T) {
-	configured := ollamaJobFor("/dotfiles", nil, func(string) (string, error) { return "", errors.New("ausente") })
+	configured := ollamaJobFor("/dotfiles/setup/desktop", nil, func(string) (string, error) { return "", errors.New("ausente") })
 	if configured.steps[1].skip() {
 		t.Fatal("instalação ausente ignorada")
 	}
@@ -159,7 +159,7 @@ func TestOllamaJobCommandsAndMissingRuntime(t *testing.T) {
 		{"mountpoint", "-q", "/mnt/storage"},
 		{"sudo", "install", "-d", "-o", "ollama", "-g", "ollama", "-m", "0750", "/mnt/storage/ollama", "/mnt/storage/ollama/models"},
 		{"sudo", "usermod", "-aG", "render,video", "ollama"},
-		{"sudo", "install", "-Dm644", "/dotfiles/configs/ollama/amd.conf", "/etc/systemd/system/ollama.service.d/amd.conf"},
+		{"sudo", "install", "-Dm644", "/dotfiles/setup/desktop/ollama/amd.conf", "/etc/systemd/system/ollama.service.d/amd.conf"},
 		{"sudo", "systemctl", "daemon-reload"},
 		{"sudo", "systemctl", "enable", "ollama.service"},
 		{"sudo", "systemctl", "restart", "ollama.service"},
@@ -183,7 +183,7 @@ func TestOllamaJobCommandsAndMissingRuntime(t *testing.T) {
 }
 
 func TestOllamaModelsDirectoriesPreserveDataAndCorrectPermissions(t *testing.T) {
-	configured := ollamaJobFor("/dotfiles", nil, exec.LookPath)
+	configured := ollamaJobFor("/dotfiles/setup/desktop", nil, exec.LookPath)
 	var args []string
 	for _, current := range configured.steps {
 		if current.cmd == nil {
@@ -243,7 +243,7 @@ func TestOllamaMissingStorageMountStopsJob(t *testing.T) {
 	bin := t.TempDir()
 	writeTestExecutable(t, bin, "mountpoint", "exit 1")
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	configured := ollamaJobFor("/dotfiles", nil, exec.LookPath)
+	configured := ollamaJobFor("/dotfiles/setup/desktop", nil, exec.LookPath)
 	for i, current := range configured.steps {
 		if current.cmd == nil || current.cmd().Args[4] != "mountpoint" {
 			continue
@@ -268,16 +268,18 @@ func TestOllamaMissingStorageMountStopsJob(t *testing.T) {
 }
 
 func TestOllamaServiceConfiguration(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join("..", "..", "configs", "ollama", "amd.conf"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, required := range []string{"[Unit]", "RequiresMountsFor=/mnt/storage/ollama/models", "ConditionPathIsMountPoint=/mnt/storage", "[Service]", "SupplementaryGroups=render video", "Environment=\"OLLAMA_HOST=127.0.0.1:11434\"", "Environment=\"OLLAMA_MODELS=/mnt/storage/ollama/models\""} {
-		if !strings.Contains(string(content), required) {
-			t.Fatalf("configuração ausente: %s", required)
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		content, err := os.ReadFile(configPath(setupDir, "ollama", "amd.conf"))
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-	if strings.Contains(string(content), "HSA_OVERRIDE_GFX_VERSION") {
-		t.Fatal("override de arquitetura não deve ser forçado")
-	}
+		for _, required := range []string{"[Unit]", "RequiresMountsFor=/mnt/storage/ollama/models", "ConditionPathIsMountPoint=/mnt/storage", "[Service]", "SupplementaryGroups=render video", "Environment=\"OLLAMA_HOST=127.0.0.1:11434\"", "Environment=\"OLLAMA_MODELS=/mnt/storage/ollama/models\""} {
+			if !strings.Contains(string(content), required) {
+				t.Fatalf("configuração ausente: %s", required)
+			}
+		}
+		if strings.Contains(string(content), "HSA_OVERRIDE_GFX_VERSION") {
+			t.Fatal("override de arquitetura não deve ser forçado")
+		}
+	}, deviceDesktop)
 }

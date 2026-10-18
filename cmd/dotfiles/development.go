@@ -17,10 +17,10 @@ var developmentPacmanPackages = []string{"fish", "rustup", "tk"}
 
 const betterStackInstallCommand = "curl -fsSL https://raw.githubusercontent.com/sounak98/betterstack-cli/main/install.sh | sh"
 
-func developmentToolsInstallStep(dotfiles string) step {
+func developmentToolsInstallStep(setupDir string) step {
 	return terminalStep(
 		"Instalar ferramentas configuradas via mise",
-		"mise", "--cd", dotfiles, "install",
+		"mise", "--cd", configPath(setupDir, "mise"), "install",
 	)
 }
 
@@ -133,15 +133,15 @@ func verifyRustTools(home string) error {
 	return nil
 }
 
-func developmentEnvironmentSteps(dotfiles, home string, packageSteps []step) []step {
-	steps := miseSetupSteps(dotfiles)
-	steps = append(steps, skipWhen(developmentToolsInstallStep(dotfiles), func() bool {
-		out, err := exec.Command("mise", "--cd", dotfiles, "ls", "--missing", "--current", "--no-header").Output()
+func developmentEnvironmentSteps(setupDir, home string, packageSteps []step) []step {
+	steps := miseSetupSteps(setupDir)
+	steps = append(steps, skipWhen(developmentToolsInstallStep(setupDir), func() bool {
+		out, err := exec.Command("mise", "--cd", configPath(setupDir, "mise"), "ls", "--missing", "--current", "--no-header").Output()
 		return err == nil && len(bytes.TrimSpace(out)) == 0
 	}))
 	steps = append(steps, cloudLoginSteps(home)...)
 	steps = append(steps, packageSteps...)
-	steps = append(steps, fishConfigStep(dotfiles, home))
+	steps = append(steps, fishConfigStep(setupDir, home))
 	return append(steps,
 		skipWhen(rustupToolchainStep(), func() bool {
 			out, err := exec.Command("rustup", "default").Output()
@@ -158,9 +158,9 @@ func developmentEnvironmentSteps(dotfiles, home string, packageSteps []step) []s
 	)
 }
 
-func developmentEnvironmentJob(dotfiles string) job {
+func developmentEnvironmentJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
-	steps := developmentEnvironmentSteps(dotfiles, home, ensurePkgs(developmentPacmanPackages...))
+	steps := developmentEnvironmentSteps(setupDir, home, ensurePkgs(developmentPacmanPackages...))
 	return job{
 		title: "Configurar Ambiente de Desenvolvimento",
 		steps: steps,

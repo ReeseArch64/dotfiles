@@ -1,0 +1,19 @@
+input {
+    keyboard {
+        xkb {
+            layout "br"
+            variant "abnt2"
+        }
+        numlock
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+
+    mouse {}
+
+    focus-follows-mouse
+    workspace-auto-back-and-forth
+}

@@ -32,20 +32,22 @@ func preparePiAgentTest(t *testing.T) (string, string) {
 }
 
 func TestRepositoryPiSettingsDeclareRequiredPackages(t *testing.T) {
-	content, err := os.ReadFile(filepath.Join("..", "..", "configs", "pi", "agent", "settings.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var settings piSettingsFile
-	if err := json.Unmarshal(content, &settings); err != nil {
-		t.Fatal(err)
-	}
-	if settings.Theme != "noctalia" {
-		t.Fatalf("tema inesperado: %s", settings.Theme)
-	}
-	if !slices.Equal(settings.Packages, requiredPiPackages) {
-		t.Fatalf("pacotes inesperados: %v", settings.Packages)
-	}
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		content, err := os.ReadFile(configPath(setupDir, "pi", "agent", "settings.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var settings piSettingsFile
+		if err := json.Unmarshal(content, &settings); err != nil {
+			t.Fatal(err)
+		}
+		if settings.Theme != "noctalia" {
+			t.Fatalf("tema inesperado: %s", settings.Theme)
+		}
+		if !slices.Equal(settings.Packages, requiredPiPackages) {
+			t.Fatalf("pacotes inesperados: %v", settings.Packages)
+		}
+	})
 }
 
 func TestInstallPiConfigCopiesRegularFilesAndPreservesExisting(t *testing.T) {

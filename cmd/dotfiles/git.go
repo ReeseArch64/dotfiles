@@ -23,9 +23,9 @@ type gitLink struct {
 	ok              bool
 }
 
-func loadGitStatus(dotfiles string) gitStatus {
+func loadGitStatus(setupDir string) gitStatus {
 	home, _ := os.UserHomeDir()
-	defs := gitLinkDefs(dotfiles, home)
+	defs := gitLinkDefs(setupDir, home)
 	var links []gitLink
 	for _, d := range defs {
 		ok := regularFileMatches(d.src, d.dst)
@@ -87,12 +87,12 @@ func (m model) gitItems() []item {
 		{
 			title: "Configurar Git",
 			desc:  "Instala ferramentas e aplica os arquivos globais do Git",
-			job:   func() job { return gitJob(m.dotfiles) },
+			job:   func() job { return gitJob(m.setupDir) },
 		},
 	}
 }
 
-func gitLinkDefs(dotfiles, home string) []struct {
+func gitLinkDefs(setupDir, home string) []struct {
 	label, src, dst string
 	copy            bool
 } {
@@ -100,10 +100,10 @@ func gitLinkDefs(dotfiles, home string) []struct {
 		label, src, dst string
 		copy            bool
 	}{
-		{"~/.gitconfig", configPath(dotfiles, "git", ".gitconfig"), filepath.Join(home, ".gitconfig"), true},
-		{"~/.gitattributes", configPath(dotfiles, "git", ".gitattributes"), filepath.Join(home, ".gitattributes"), false},
-		{"~/.gitignore", configPath(dotfiles, "git", ".gitignore"), filepath.Join(home, ".gitignore"), false},
-		{"~/.config/git/config", configPath(dotfiles, "git", "config"), filepath.Join(home, ".config", "git", "config"), false},
+		{"~/.gitconfig", configPath(setupDir, "git", ".gitconfig"), filepath.Join(home, ".gitconfig"), true},
+		{"~/.gitattributes", configPath(setupDir, "git", ".gitattributes"), filepath.Join(home, ".gitattributes"), false},
+		{"~/.gitignore", configPath(setupDir, "git", ".gitignore"), filepath.Join(home, ".gitignore"), false},
+		{"~/.config/git/config", configPath(setupDir, "git", "config"), filepath.Join(home, ".config", "git", "config"), false},
 	}
 }
 
@@ -176,11 +176,11 @@ func writeGitSigningKey(path, signingKey string) error {
 	return nil
 }
 
-func validateGitSSH(dotfiles, home string) error {
+func validateGitSSH(setupDir, home string) error {
 	if missing := missingSSHIdentityFiles(home); len(missing) > 0 {
 		return errors.New("configure o SSH antes de autenticar GitHub e GitLab: chaves ausentes: " + strings.Join(missing, ", "))
 	}
-	source := configPath(dotfiles, "ssh", "config")
+	source := configPath(setupDir, "ssh", "config")
 	destination := filepath.Join(home, ".ssh", "config")
 	if !regularFileMatches(source, destination) {
 		return errors.New("configure o SSH antes de autenticar GitHub e GitLab: ~/.ssh/config não está configurado")
@@ -196,9 +196,9 @@ func glabLoginStep() step {
 	return terminalStep("Autenticar no GitLab com SSH", "glab", "auth", "login", "--git-protocol", "ssh")
 }
 
-func gitJob(dotfiles string) job {
+func gitJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
-	defs := gitLinkDefs(dotfiles, home)
+	defs := gitLinkDefs(setupDir, home)
 
 	steps := ensurePkgs(gitPacmanPackages...)
 	steps = append(steps, ensureYayPkgs(gitYayPackages...)...)
@@ -220,7 +220,7 @@ func gitJob(dotfiles string) job {
 	}
 	steps = append(steps,
 		nativeStep("Validar SSH para GitHub e GitLab", func() error {
-			return validateGitSSH(dotfiles, home)
+			return validateGitSSH(setupDir, home)
 		}),
 		skipWhen(githubLoginStep(), func() bool { return commandSucceeds(nil, "gh", "auth", "status") }),
 		skipWhen(glabLoginStep(), func() bool { return commandSucceeds(nil, "glab", "auth", "status") }),
@@ -230,7 +230,7 @@ func gitJob(dotfiles string) job {
 		title: "Configurar Git",
 		steps: steps,
 		result: func() string {
-			g := loadGitStatus(dotfiles)
+			g := loadGitStatus(setupDir)
 			ok := 0
 			for _, l := range g.links {
 				if l.ok {

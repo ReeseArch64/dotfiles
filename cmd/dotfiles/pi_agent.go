@@ -60,16 +60,16 @@ func piAgentDir(home string) string {
 	return filepath.Join(home, ".pi", "agent")
 }
 
-func piConfigFiles(dotfiles, home string) []piConfigFile {
+func piConfigFiles(setupDir, home string) []piConfigFile {
 	agentDir := piAgentDir(home)
 	return []piConfigFile{
-		{name: "settings.json", source: configPath(dotfiles, "pi", "agent", "settings.json"), destination: filepath.Join(agentDir, "settings.json")},
-		{name: "noctalia.json", source: configPath(dotfiles, "pi", "agent", "themes", "noctalia.json"), destination: filepath.Join(agentDir, "themes", "noctalia.json")},
+		{name: "settings.json", source: configPath(setupDir, "pi", "agent", "settings.json"), destination: filepath.Join(agentDir, "settings.json")},
+		{name: "noctalia.json", source: configPath(setupDir, "pi", "agent", "themes", "noctalia.json"), destination: filepath.Join(agentDir, "themes", "noctalia.json")},
 	}
 }
 
-func validatePiConfig(dotfiles string) error {
-	settingsPath := configPath(dotfiles, "pi", "agent", "settings.json")
+func validatePiConfig(setupDir string) error {
+	settingsPath := configPath(setupDir, "pi", "agent", "settings.json")
 	content, err := os.ReadFile(settingsPath)
 	if err != nil {
 		return fmt.Errorf("ler %s: %w", settingsPath, err)
@@ -84,7 +84,7 @@ func validatePiConfig(dotfiles string) error {
 	if !slices.Equal(settings.Packages, requiredPiPackages) {
 		return errors.New("a lista de pacotes do Pi não corresponde à configuração esperada")
 	}
-	themePath := configPath(dotfiles, "pi", "agent", "themes", "noctalia.json")
+	themePath := configPath(setupDir, "pi", "agent", "themes", "noctalia.json")
 	content, err = os.ReadFile(themePath)
 	if err != nil {
 		return fmt.Errorf("ler %s: %w", themePath, err)
@@ -117,9 +117,9 @@ func executableFile(path string) bool {
 	return err == nil && info.Mode().IsRegular() && info.Mode().Perm()&0111 != 0
 }
 
-func loadPiAgentStatusForHome(dotfiles, home string, lookPath func(string) (string, error)) piAgentStatus {
-	files := piConfigFiles(dotfiles, home)
-	status := piAgentStatus{total: len(requiredPiPackages), configErr: validatePiConfig(dotfiles)}
+func loadPiAgentStatusForHome(setupDir, home string, lookPath func(string) (string, error)) piAgentStatus {
+	files := piConfigFiles(setupDir, home)
+	status := piAgentStatus{total: len(requiredPiPackages), configErr: validatePiConfig(setupDir)}
 	_, err := lookPath("pi")
 	status.piAvailable = err == nil || executableFile(filepath.Join(piAgentDir(home), "bin", "pi"))
 	status.settingsOK = regularFileMatches(files[0].source, files[0].destination)
@@ -134,9 +134,9 @@ func loadPiAgentStatusForHome(dotfiles, home string, lookPath func(string) (stri
 	return status
 }
 
-func loadPiAgentStatus(dotfiles string) piAgentStatus {
+func loadPiAgentStatus(setupDir string) piAgentStatus {
 	home, _ := os.UserHomeDir()
-	return loadPiAgentStatusForHome(dotfiles, home, exec.LookPath)
+	return loadPiAgentStatusForHome(setupDir, home, exec.LookPath)
 }
 
 func (s piAgentStatus) card(width int) string {
@@ -168,11 +168,11 @@ func (s piAgentStatus) card(width int) string {
 	return renderCard(rows, width)
 }
 
-func installPiConfig(dotfiles, home string, now time.Time) error {
-	if err := validatePiConfig(dotfiles); err != nil {
+func installPiConfig(setupDir, home string, now time.Time) error {
+	if err := validatePiConfig(setupDir); err != nil {
 		return err
 	}
-	files := piConfigFiles(dotfiles, home)
+	files := piConfigFiles(setupDir, home)
 	timestamp := now.Format("20060102-150405")
 	type change struct {
 		file   piConfigFile
@@ -226,11 +226,11 @@ func installPiConfig(dotfiles, home string, now time.Time) error {
 	return nil
 }
 
-func piAgentJobFor(dotfiles, home string, lookPath func(string) (string, error)) job {
+func piAgentJobFor(setupDir, home string, lookPath func(string) (string, error)) job {
 	agentDir := piAgentDir(home)
 	piPath, pathErr := lookPath("pi")
 	steps := []step{nativeStep("Validar configuração do Pi", func() error {
-		return validatePiConfig(dotfiles)
+		return validatePiConfig(setupDir)
 	})}
 	if pathErr != nil {
 		piPath = filepath.Join(agentDir, "bin", "pi")
@@ -241,11 +241,11 @@ func piAgentJobFor(dotfiles, home string, lookPath func(string) (string, error))
 	}
 	steps = append(steps,
 		nativeStep("Copiar settings e tema", func() error {
-			return installPiConfig(dotfiles, home, time.Now())
+			return installPiConfig(setupDir, home, time.Now())
 		}),
 		skipWhen(terminalStep("Instalar pacotes do Pi", "env", "PI_CODING_AGENT_DIR="+agentDir,
 			piPath, "update", "--extensions"), func() bool {
-			return loadPiAgentStatusForHome(dotfiles, home, lookPath).installed == len(requiredPiPackages)
+			return loadPiAgentStatusForHome(setupDir, home, lookPath).installed == len(requiredPiPackages)
 		}),
 	)
 	return job{
@@ -257,15 +257,15 @@ func piAgentJobFor(dotfiles, home string, lookPath func(string) (string, error))
 	}
 }
 
-func piAgentJob(dotfiles string) job {
+func piAgentJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
-	return piAgentJobFor(dotfiles, home, exec.LookPath)
+	return piAgentJobFor(setupDir, home, exec.LookPath)
 }
 
 func (m model) piAgentItems() []item {
 	return []item{{
 		title: "Configurar Pi Agent",
 		desc:  "Copiar settings e tema, depois instalar todos os pacotes",
-		job:   func() job { return piAgentJob(m.dotfiles) },
+		job:   func() job { return piAgentJob(m.setupDir) },
 	}}
 }

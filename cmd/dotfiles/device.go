@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -24,6 +25,17 @@ func (d deviceProfile) String() string {
 	default:
 		return "Desconhecido"
 	}
+}
+
+func setupDirectory(dotfiles string, device deviceProfile) string {
+	profile := "desktop"
+	switch device {
+	case deviceNotebook:
+		profile = "laptop"
+	case deviceMacBook:
+		profile = "macbook"
+	}
+	return filepath.Join(dotfiles, "setup", profile)
 }
 
 func detectDevice(hostname string) (deviceProfile, error) {
