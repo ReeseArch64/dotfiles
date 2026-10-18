@@ -38,7 +38,7 @@ func installNoctaliaTestPlugins(t *testing.T, pluginDir string) {
 }
 
 func TestRequiredNoctaliaPlugins(t *testing.T) {
-	want := []string{"github-kanban", "mini-docker", "noctaproton-vpn", "zed-provider"}
+	want := []string{"containers", "github-kanban", "noctaproton-vpn", "zed-provider"}
 	if strings.Join(requiredNoctaliaPlugins, ",") != strings.Join(want, ",") {
 		t.Fatalf("plugins obrigatórios inesperados: %v", requiredNoctaliaPlugins)
 	}

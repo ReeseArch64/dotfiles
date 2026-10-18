@@ -12,8 +12,8 @@ import (
 )
 
 var requiredNoctaliaPlugins = []string{
+	"containers",
 	"github-kanban",
-	"mini-docker",
 	"noctaproton-vpn",
 	"zed-provider",
 }

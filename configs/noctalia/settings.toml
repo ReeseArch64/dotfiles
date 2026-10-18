@@ -9,10 +9,11 @@ thickness = 35
     [[bar.default.capsule_group]]
     accordion = false
     accordion_direction = "end"
+    border_width = 1.0
     enabled = true
     fill = "surface_variant"
     id = "g1"
-    members = [ "tray", "bar_2", "github", "mini-docker", "bluetooth", "notifications", "clipboard" ]
+    members = [ "tray", "bar_2", "bar", "github", "bluetooth", "notifications", "clipboard" ]
     opacity = 1.0
     padding = 6.0
 
@@ -175,7 +176,7 @@ bar_display_mode = "icon"
 kanban_open_near_click = false
 
 [plugins]
-enabled = [ "8bury/mini-docker", "cleboost/zed-provider", "shangshui0302/github-kanban", "riversyx/noctaproton-vpn" ]
+enabled = [ "cleboost/zed-provider", "shangshui0302/github-kanban", "riversyx/noctaproton-vpn", "davinci13/containers" ]
 
 [shell]
 external_ip_enabled = true
@@ -226,13 +227,18 @@ fill_mode = "stretch"
 transition_on_startup = true
 
     [wallpaper.default]
-    path = "/home/alsgy/.wallpapers/desktop.jpg"
+    path = "/home/alsgy/.wallpapers/anime-girls-student-sparkler-beach-hd-wallpaper-uhdpaper.com-700@5@s.jpg"
 
     [wallpaper.last]
-    path = "/home/alsgy/.wallpapers/desktop.jpg"
+    path = "/home/alsgy/.wallpapers/anime-girls-student-sparkler-beach-hd-wallpaper-uhdpaper.com-700@5@s.jpg"
 
     [wallpaper.monitors.DP-1]
-    path = "/home/alsgy/.wallpapers/desktop.jpg"
+    path = "/home/alsgy/.wallpapers/anime-girls-student-sparkler-beach-hd-wallpaper-uhdpaper.com-700@5@s.jpg"
+
+[widget.bar]
+glyph = "brand-docker"
+show_label = false
+type = "davinci13/containers:bar"
 
 [widget.bar_2]
 type = "riversyx/noctaproton-vpn:bar"
@@ -254,12 +260,6 @@ enabled = false
 
 [widget.media]
 album_art_only = true
-
-[widget.mini-docker]
-enable_scroll = false
-show_count = false
-status_mode = "hidden"
-type = "8bury/mini-docker:mini-docker"
 
 [widget.privacy]
 enabled = false

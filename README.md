@@ -443,8 +443,8 @@ Quando o cursor de destino é diferente, a CLI preserva a versão anterior com u
 
 `Desktop > Noctalia` exige estes plugins:
 
+- `containers`
 - `github-kanban`
-- `mini-docker`
 - `noctaproton-vpn`
 - `zed-provider`
 
