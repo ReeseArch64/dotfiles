@@ -38,6 +38,7 @@ func renderCard(rows []cardRow, width int) string {
 
 type sshStatus struct {
 	missing         []string
+	device          deviceProfile
 	service, socket unitState
 	cfg             map[string]string
 	partial         bool
@@ -45,13 +46,22 @@ type sshStatus struct {
 	addrs           []ifaceAddr
 }
 
-func loadSSHStatus() sshStatus {
-	units := unitStates("sshd.service", "sshd.socket")
+func sshUnits(device deviceProfile) (string, string) {
+	if device == deviceServer {
+		return "ssh.service", "ssh.socket"
+	}
+	return "sshd.service", "sshd.socket"
+}
+
+func loadSSHStatusForDevice(device deviceProfile) sshStatus {
+	service, socket := sshUnits(device)
+	units := unitStates(service, socket)
 	cfg, partial := readSSHDConfig()
 	return sshStatus{
-		missing: missingPkgs("openssh"),
-		service: units["sshd.service"],
-		socket:  units["sshd.socket"],
+		missing: sshMissingPkgs(device),
+		device:  device,
+		service: units[service],
+		socket:  units[socket],
 		cfg:     cfg,
 		partial: partial,
 		keys:    authorizedKeys(),
@@ -62,23 +72,24 @@ func loadSSHStatus() sshStatus {
 func (s sshStatus) port() string { return s.cfg["port"] }
 
 func (s sshStatus) card(width int) string {
+	service, socket := sshUnits(s.device)
 	var rows []cardRow
 	if len(s.missing) > 0 {
-		rows = append(rows, cardRow{colErr, "Pacote", "openssh não instalado"})
+		rows = append(rows, cardRow{colErr, "Pacote", strings.Join(s.missing, ", ") + " não instalado"})
 	}
 	switch {
 	case s.service.isActive():
-		rows = append(rows, cardRow{colOK, "Servidor", "rodando (sshd.service)"})
+		rows = append(rows, cardRow{colOK, "Servidor", "rodando (" + service + ")"})
 	case s.socket.isActive():
-		rows = append(rows, cardRow{colOK, "Servidor", "escutando via sshd.socket"})
+		rows = append(rows, cardRow{colOK, "Servidor", "escutando via " + socket})
 	default:
 		rows = append(rows, cardRow{colDim, "Servidor", "parado"})
 	}
 	switch {
 	case s.service.isEnabled():
-		rows = append(rows, cardRow{colOK, "Boot", "sshd.service habilitado"})
+		rows = append(rows, cardRow{colOK, "Boot", service + " habilitado"})
 	case s.socket.isEnabled():
-		rows = append(rows, cardRow{colOK, "Boot", "sshd.socket habilitado"})
+		rows = append(rows, cardRow{colOK, "Boot", socket + " habilitado"})
 	default:
 		rows = append(rows, cardRow{colDim, "Boot", "não inicia no boot"})
 	}
@@ -142,8 +153,10 @@ func configureSSHJob(setupDir, port, lan string) job {
 }
 
 // sshResult mostra como conectar e avisa se o firewall está barrando a porta.
-func sshResult() string {
-	s := loadSSHStatus()
+func sshResult() string { return sshResultForDevice(deviceDesktop) }
+
+func sshResultForDevice(device deviceProfile) string {
+	s := loadSSHStatusForDevice(device)
 	user := os.Getenv("USER")
 	cmd := lipgloss.NewStyle().Foreground(colTitle).Bold(true)
 	lines := []string{lipgloss.NewStyle().Foreground(colDim).Render("Conecte com:")}
@@ -154,7 +167,7 @@ func sshResult() string {
 		}
 		lines = append(lines, "  "+cmd.Render(c))
 	}
-	fw := loadFWStatus(s.port())
+	fw := loadFWStatusForDevice(device, s.port())
 	if fw.active() && fw.rulesErr == nil && !fw.sshAllowed() {
 		lines = append(lines, "", lipgloss.NewStyle().Foreground(colWarn).Render(
 			"⚠ O firewall está ativo e não libera a porta "+s.port()+". Execute Configurar Firewall."))
@@ -175,17 +188,17 @@ type fwStatus struct {
 	lan, port string
 }
 
-func loadFWStatus(port string) fwStatus {
+func loadFWStatusForDevice(device deviceProfile, port string) fwStatus {
 	rules, err := readUFWRules()
 	return fwStatus{
-		missing:   missingPkgs("ufw", "iptables-nft"),
+		missing:   firewallMissingPkgs(device),
 		service:   unitStates("ufw.service")["ufw.service"],
 		enabled:   readKV("/etc/ufw/ufw.conf", "ENABLED") == "yes",
 		policyIn:  readKV("/etc/default/ufw", "DEFAULT_INPUT_POLICY"),
 		policyOut: readKV("/etc/default/ufw", "DEFAULT_OUTPUT_POLICY"),
 		rules:     rules,
 		rulesErr:  err,
-		lan:       lanSubnet(),
+		lan:       profileLANSubnet(device),
 		port:      port,
 	}
 }

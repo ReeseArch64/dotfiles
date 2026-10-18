@@ -185,7 +185,7 @@ func TestInstallNiriDeviceProfiles(t *testing.T) {
 			if !regularFileMatches(common, filepath.Join(destination, "cfg", "autostart.kdl")) {
 				t.Fatal("autostart do perfil foi alterado")
 			}
-			content, err := os.ReadFile(filepath.Join(destination, "cfg", "device.kdl"))
+			content, err := os.ReadFile(filepath.Join(destination, "cfg", "autostart.kdl"))
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -105,4 +105,6 @@ alias megabrain="cd ~/.obsidian/MegaBrain/ && pi"
 
 alias notebook="ssh alsgy@192.168.1.105"
 
+alias homelab="ssh alsgy@192.168.1.107"
+
 alias pu="pi update --extensions"

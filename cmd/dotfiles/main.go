@@ -110,6 +110,9 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 }
 
 func (m model) items() []item {
+	if m.device == deviceServer {
+		return m.serverItems()
+	}
 	switch m.screen {
 	case screenMain:
 		return []item{
@@ -261,9 +264,9 @@ func (m model) back() model {
 func (m *model) refresh() {
 	switch m.screen {
 	case screenSSH:
-		m.ssh = loadSSHStatus()
+		m.ssh = loadSSHStatusForDevice(m.device)
 	case screenFirewall:
-		m.fw = loadFWStatus(loadSSHStatus().port())
+		m.fw = loadFWStatusForDevice(m.device, loadSSHStatusForDevice(m.device).port())
 	case screenDocker:
 		m.docker = loadDockerStatus()
 	case screenGit:
@@ -370,7 +373,11 @@ func (m model) View() string {
 		Width(boxW).
 		Render(header + "\n\n" + body)
 
-	subtitle := lipgloss.NewStyle().Foreground(colDim).Render("CachyOS · Niri · Noctalia Shell · " + m.device.String() + " · v" + version)
+	environment := "CachyOS · Niri · Noctalia Shell"
+	if m.device == deviceServer {
+		environment = "Ubuntu"
+	}
+	subtitle := lipgloss.NewStyle().Foreground(colDim).Render(environment + " · " + m.device.String() + " · v" + version)
 
 	help := m.viewHelp(false)
 	if lipgloss.Width(help) > m.width {
@@ -496,7 +503,7 @@ func main() {
 	}
 
 	dotfiles := findDotfiles()
-	if err := checkPlatform("/etc/os-release", exec.LookPath); err != nil {
+	if err := checkPlatformForDevice(device, "/etc/os-release", exec.LookPath); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}

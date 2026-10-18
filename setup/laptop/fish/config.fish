@@ -101,8 +101,8 @@ alias start="sudo systemctl start"
 alias restart="sudo systemctl restart"
 alias stop="sudo systemctl stop"
 
-alias megabrain="cd ~/.obsidian/MegaBrain/ && pi"
+alias desktop="ssh alsgy@192.168.1.104"
 
-alias notebook="ssh alsgy@192.168.1.105"
+alias homelab="ssh alsgy@192.168.1.107"
 
 alias pu="pi update --extensions"

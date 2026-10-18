@@ -1,8 +1,8 @@
 # ReeseArch64 Dotfiles
 
-Configuração pessoal para CachyOS com Niri e Noctalia Shell.
+Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
 
-O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente. As ações são selecionadas automaticamente para Desktop ou Notebook pelo hostname; o MacBook ainda não possui suporte.
+O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente. As ações são selecionadas automaticamente para Desktop, Notebook ou Mini-server pelo hostname; o MacBook ainda não possui suporte.
 
 ## Visão geral
 
@@ -46,6 +46,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 
 - `desktop`: disponibiliza todas as ações;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
+- `mini-server`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
@@ -58,6 +59,8 @@ Nos perfis Desktop e Notebook, a CLI exige este ambiente:
 
 Ela encerra a execução quando algum desses componentes está ausente.
 
+O perfil `mini-server` exige Ubuntu (`ID=ubuntu` em `/etc/os-release`), sem exigir Niri ou Noctalia. Seus pacotes são instalados via APT, não Pacman/yay.
+
 Também são necessários:
 
 - Go compatível com `go.mod`
@@ -65,7 +68,7 @@ Também são necessários:
 - Bash
 - curl
 - Acesso à internet
-- Pacman
+- Pacman (Desktop/Notebook) ou APT (Mini-server Ubuntu)
 - sudo
 - systemd
 
@@ -73,7 +76,7 @@ O `yay` é instalado automaticamente, quando necessário, compilando o pacote `y
 
 Algumas ações possuem requisitos próprios. Eles estão descritos nas seções correspondentes.
 
-Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
+CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
 
 ## Instalação rápida
 
@@ -86,7 +89,7 @@ cd ~/.dotfiles
 
 As configurações são cópias independentes em `setup/desktop/` e `setup/laptop/`, selecionadas pelo hostname (`desktop` e `notebook`, respectivamente). Não há base compartilhada nem sobreposição. Discord, Obsidian, Ollama e Turing Smart Screen são exclusivos de `setup/desktop/` e não estão presentes no laptop. Nos caminhos abaixo, `setup/<perfil>/` representa a pasta selecionada.
 
-Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. A CLI ainda suporta somente Desktop e Notebook.
+Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. O hostname `mini-server` usa `setup/homelab/`. Homeprod e MacBook ainda não têm ações suportadas.
 
 A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
@@ -126,6 +129,20 @@ O Notebook recebe:
 - Backup: todas as ações disponíveis.
 
 As demais ações ficam exclusivas do Desktop.
+
+### Ações do Mini-server (Ubuntu)
+
+O perfil oferece instalação do CasaOS e configuração de DNS, SSH e firewall, sem ações de desktop.
+
+O instalador do CasaOS executa o comando solicitado, com detecção de falhas no download:
+
+```bash
+curl -fsSL https://get.casaos.io | sudo bash
+```
+
+A configuração DNS altera `DNSStubListener=no` na seção `[Resolve]` de `/etc/systemd/resolved.conf` e reinicia `systemd-resolved` para liberar a porta 53. Se `/etc/resolv.conf` apontar para o stub do systemd, o link é ajustado para `/run/systemd/resolve/resolv.conf`, mantendo a resolução de nomes sem o listener local. Drop-ins que habilitem o stub são rejeitados antes de qualquer alteração; ajuste esses arquivos antes de repetir a ação.
+
+SSH usa os pacotes e unidades do Ubuntu. O firewall UFW libera SSH e a interface web do CasaOS (porta 80/TCP) somente para a LAN antes de ser ativado. A configuração não abre a porta 53 para a internet.
 
 ## Navegação
 
@@ -443,7 +460,7 @@ Ela também copia `setup/<perfil>/btop/` para `~/.config/btop`. Uma configuraç�
 
 Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do laptop contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
 
-A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/device.kdl`. O laptop não inicia esse serviço.
+A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/autostart.kdl`. O laptop não inicia esse serviço.
 
 Quando o cursor de destino é diferente, a CLI preserva a versão anterior com um sufixo de backup datado.
 
@@ -698,7 +715,7 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 ├── setup/
 │   ├── desktop/          # Configurações completas CachyOS
 │   ├── laptop/           # Cópia independente CachyOS
-│   ├── homelab/          # Reservado para servidor Ubuntu
+│   ├── homelab/          # Mini-server Ubuntu
 │   ├── homeprod/         # Reservado para Ubuntu
 │   └── macbook/          # Reservado para macOS
 ├── go.mod
