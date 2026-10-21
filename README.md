@@ -114,6 +114,20 @@ dotfiles
 
 Antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
 
+Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
+
+| Link no home | Destino |
+| --- | --- |
+| `~/.aur` | `/mnt/sdk/Aur` |
+| `~/.local` | `/mnt/sdk/Local` |
+| `~/.cache` | `/mnt/sdk/Cache` |
+| `~/Android` | `/mnt/sdk/Android` |
+| `~/.gradle` | `/mnt/sdk/Gradle` |
+
+Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups adjacentes no formato `<nome>.sdk-backup-<data-UTC>-<identificador>/original`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
+
+**Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links. Os backups são preservados para conferência; a CLI não os remove automaticamente.
+
 Para compilar e executar sem instalar o comando:
 
 ```bash

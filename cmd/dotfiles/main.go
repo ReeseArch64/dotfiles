@@ -511,6 +511,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}
+	if err := prepareSystemSDKDirectories(); err != nil {
+		fmt.Fprintln(os.Stderr, "erro:", err)
+		os.Exit(1)
+	}
 	p := tea.NewProgram(newModelForDevice(dotfiles, device), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
