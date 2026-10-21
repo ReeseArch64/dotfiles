@@ -126,7 +126,7 @@ func TestEnsureProjectsLinkCreatesAndPreservesLink(t *testing.T) {
 	if err := ensureProjectsLink(home, target); err != nil {
 		t.Fatal(err)
 	}
-	link := filepath.Join(home, ".projects")
+	link := filepath.Join(home, "Projects")
 	if got, err := os.Readlink(link); err != nil || got != target {
 		t.Fatalf("link inesperado: %q err=%v", got, err)
 	}
@@ -162,7 +162,7 @@ func TestProjectsBackupJobOrdersSetupBeforePushes(t *testing.T) {
 	want := []string{
 		"Preparar /mnt/workspaces",
 		"Criar /mnt/workspaces/reesearch64",
-		"Criar link ~/.projects",
+		"Criar link ~/Projects",
 		"Enviar projetos ao GitHub e GitLab",
 	}
 	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {

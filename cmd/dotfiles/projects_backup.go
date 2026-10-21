@@ -56,7 +56,7 @@ func ensureProjectsRoot(path string) error {
 }
 
 func ensureProjectsLink(home, target string) error {
-	link := filepath.Join(home, ".projects")
+	link := filepath.Join(home, "Projects")
 	current, err := os.Readlink(link)
 	if err == nil {
 		if current == target {
@@ -156,7 +156,7 @@ func projectsBackupJobFor(setup []step, prepare, link func() error, backup func(
 	steps := append([]step{}, setup...)
 	steps = append(steps,
 		nativeStep("Criar "+projectsRoot, prepare),
-		nativeStep("Criar link ~/.projects", link),
+		nativeStep("Criar link ~/Projects", link),
 		nativeStep("Enviar projetos ao GitHub e GitLab", func() error {
 			var err error
 			count, err = backup()

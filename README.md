@@ -688,7 +688,7 @@ git push backup
 
 O remoto `origin` deve apontar para o GitHub. O remoto `backup` deve apontar para o GitLab. Se o envio ao GitHub falhar, a CLI não envia esse projeto ao GitLab. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
 
-Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também cria `/mnt/workspaces/reesearch64` e o link simbólico `~/.projects`, que aponta para `/mnt/workspaces`.
+Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também cria `/mnt/workspaces/reesearch64` e o link simbólico `~/Projects`, que aponta para `/mnt/workspaces`.
 
 A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
 
