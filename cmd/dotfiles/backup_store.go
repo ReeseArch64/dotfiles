@@ -119,10 +119,10 @@ func moveToBackup(source, backup string, ops sdkMigrationOps) error {
 		return err
 	}
 	if err := ops.copyTree(source, backup); err != nil {
-		_ = os.RemoveAll(backup)
+		_ = forceRemoveAll(backup)
 		return fmt.Errorf("copiar backup (origem intacta em %s): %w", source, err)
 	}
-	if err := os.RemoveAll(source); err != nil {
+	if err := forceRemoveAll(source); err != nil {
 		recovery := restoreBackup(backup, source, ops)
 		return errors.Join(fmt.Errorf("remover origem %s; backup completo em %s: %w", source, backup, err), recovery)
 	}
@@ -147,10 +147,10 @@ func restoreBackup(backup, destination string, ops sdkMigrationOps) error {
 	if err != nil {
 		return fmt.Errorf("restaurar %s; original em %s: %w", destination, backup, err)
 	}
-	defer os.RemoveAll(container)
+	defer forceRemoveAll(container)
 	staged := filepath.Join(container, "original")
 	if err = ops.copyTree(backup, staged); err == nil {
-		err = os.RemoveAll(destination)
+		err = forceRemoveAll(destination)
 	}
 	if err == nil {
 		err = ops.rename(staged, destination)

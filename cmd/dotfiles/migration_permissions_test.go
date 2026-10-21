@@ -10,6 +10,34 @@ import (
 	"testing"
 )
 
+func TestForceRemoveAllReadOnlyTree(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root ignora permiss\u00f5es")
+	}
+	root := t.TempDir()
+	mod := filepath.Join(root, "go", "pkg", "mod", "dep@v1")
+	sdkTestWrite(t, filepath.Join(mod, "file.go"), "package dep")
+	// Replica o cache de m\u00f3dulos do Go: arquivos 0444, diret\u00f3rios 0555.
+	if err := os.Chmod(filepath.Join(mod, "file.go"), 0444); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{mod, filepath.Dir(mod), filepath.Dir(filepath.Dir(mod))} {
+		if err := os.Chmod(dir, 0555); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Cleanup(func() { _ = os.Chmod(filepath.Join(root, "go"), 0700) })
+	if err := os.RemoveAll(filepath.Join(root, "go")); err == nil {
+		t.Skip("os.RemoveAll j\u00e1 removeu a \u00e1rvore read-only neste ambiente")
+	}
+	if err := forceRemoveAll(filepath.Join(root, "go")); err != nil {
+		t.Fatalf("forceRemoveAll: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "go")); !os.IsNotExist(err) {
+		t.Fatalf("\u00e1rvore ainda existe: %v", err)
+	}
+}
+
 func TestValidateMigrationTreeSkipsSpecialFiles(t *testing.T) {
 	root := t.TempDir()
 	sdkTestWrite(t, filepath.Join(root, "payload"), "keep")

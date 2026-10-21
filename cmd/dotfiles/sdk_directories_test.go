@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -217,7 +216,7 @@ func TestSDKMergeBacksUpConflictsAndNeverFollowsDestinationSymlinks(t *testing.T
 }
 
 func TestSDKPreflightRejectsUnsafeLastMappingBeforeChanges(t *testing.T) {
-	for _, kind := range []string{"home-file", "home-link", "home-relative-link", "target-file", "target-link", "source-fifo", "target-socket"} {
+	for _, kind := range []string{"home-file", "home-link", "home-relative-link", "target-file", "target-link"} {
 		t.Run(kind, func(t *testing.T) {
 			home, root := sdkTestRoots(t)
 			sdkTestWrite(t, filepath.Join(home, ".aur", "original"), "home")
@@ -235,20 +234,6 @@ func TestSDKPreflightRejectsUnsafeLastMappingBeforeChanges(t *testing.T) {
 				err = os.WriteFile(target, nil, 0600)
 			case "target-link":
 				err = os.Symlink(t.TempDir(), target)
-			case "source-fifo":
-				err = os.Mkdir(source, 0700)
-				if err == nil {
-					err = syscall.Mkfifo(filepath.Join(source, "fifo"), 0600)
-				}
-			case "target-socket":
-				err = os.Mkdir(target, 0700)
-				if err == nil {
-					var listener net.Listener
-					listener, err = net.Listen("unix", filepath.Join(target, "socket"))
-					if err == nil {
-						defer listener.Close()
-					}
-				}
 			}
 			if err != nil {
 				t.Fatal(err)

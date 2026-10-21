@@ -9,6 +9,26 @@ import (
 	"strconv"
 )
 
+// forceRemoveAll remove uma árvore mesmo quando ela contém diretórios somente
+// leitura, como o cache de módulos do Go (dirs 0555, arquivos 0444). O unlink de
+// um arquivo depende da permissão de escrita no diretório pai, não do arquivo,
+// então garantimos escrita em cada diretório antes de remover.
+func forceRemoveAll(path string) error {
+	if err := os.RemoveAll(path); err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	_ = filepath.WalkDir(path, func(p string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if entry.IsDir() {
+			_ = os.Chmod(p, 0700)
+		}
+		return nil
+	})
+	return os.RemoveAll(path)
+}
+
 func validateMigrationTree(root string) error {
 	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {

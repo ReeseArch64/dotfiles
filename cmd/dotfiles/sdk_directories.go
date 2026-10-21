@@ -99,7 +99,7 @@ func runDirectoryMigrations(migrations []sdkMigration, ops sdkMigrationOps) (res
 			// Only disposable copies and temporary links are recursively removed.
 			for _, path := range []string{m.stage, m.linkDir} {
 				if path != "" {
-					result = errors.Join(result, os.RemoveAll(path))
+					result = errors.Join(result, forceRemoveAll(path))
 				}
 			}
 		}
@@ -231,7 +231,7 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 			if entry.IsDir() && info.IsDir() {
 				return nil
 			}
-			return os.RemoveAll(destination)
+			return forceRemoveAll(destination)
 		}); err != nil {
 			return err
 		}
