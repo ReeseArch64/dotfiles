@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"os"
@@ -17,17 +19,14 @@ import (
 )
 
 const (
-	backupDestination      = "/mnt/backups"
-	restorePointsDirectory = "/.snapshots"
-)
-
-const (
-	sshBackupDestination = backupDestination + "/ssh"
-	gpgBackupDestination = backupDestination + "/gpg"
+	backupDestination = "/mnt/backups"
 )
 
 func backupDestinationReady(destination string, uid, gid int) bool {
-	info, err := os.Stat(destination)
+	if err := validateBackupDirectoryPath(destination); err != nil {
+		return false
+	}
+	info, err := os.Lstat(destination)
 	if err != nil || !info.IsDir() || info.Mode().Perm() != 0700 {
 		return false
 	}
@@ -40,19 +39,60 @@ func backupDestinationSetupArgs(destination string, uid, gid int) []string {
 }
 
 func backupDestinationSetupSteps(destination string, uid, gid int) []step {
+	if err := validateBackupDirectoryPath(destination); err != nil {
+		return []step{nativeStep("Validar diretório de backup", func() error { return err })}
+	}
 	if backupDestinationReady(destination, uid, gid) {
 		return nil
 	}
-	return withSudo(sudoStep("Preparar "+destination, false, backupDestinationSetupArgs(destination, uid, gid)...))
+	prepare := step{label: "Preparar " + destination, run: func() (string, error) {
+		if err := validateBackupDirectoryPath(destination); err != nil {
+			return "", err
+		}
+		return sudoRun(backupDestinationSetupArgs(destination, uid, gid)...)
+	}}
+	return withSudo(prepare)
 }
 
 func restorePointPath(at time.Time) string {
-	name := "ponto-restauracao-" + at.Format("2006-01-02_15-04-05")
-	return filepath.Join(restorePointsDirectory, name)
+	return filepath.Join(localBackupRoot(), "snapshots", fmt.Sprintf("%x", sha256.Sum256([]byte("/"))), at.UTC().Format("20060102T150405.000000000Z")+"-"+rand.Text(), "original")
 }
 
+const restorePointScript = `set -euo pipefail
+destination=$1
+root=$2
+[[ $root = /* && -d $root ]] || { echo "Diretório de backup deve ser absoluto e existente: $root" >&2; exit 1; }
+# Snapshotting across Btrfs subvolumes is supported; comparing st_dev is not.
+read -r source_type source_uuid < <(findmnt -n -o FSTYPE,UUID -T /) || { echo 'Não foi possível identificar o filesystem Btrfs de /.' >&2; exit 1; }
+read -r target_type target_uuid < <(findmnt -n -o FSTYPE,UUID -T "$root") || { echo "Não foi possível identificar o filesystem de $root." >&2; exit 1; }
+if [[ $source_type != btrfs || $target_type != btrfs || -z $source_uuid || $source_uuid != "$target_uuid" ]]; then
+    echo "Snapshot Btrfs requer / e $root no mesmo filesystem Btrfs (UUID). Nenhum fallback fora de $root." >&2
+    exit 1
+fi
+btrfs subvolume show / >/dev/null || { echo 'A raiz / deve ser um subvolume Btrfs para criar o snapshot.' >&2; exit 1; }
+parent=$(dirname -- "$destination")
+category=$root/snapshots
+path=$root
+while [[ $path != / ]]; do
+    [[ ! -L $path ]] || { echo "Diretório de backup não pode ser symlink: $path" >&2; exit 1; }
+    path=$(dirname -- "$path")
+done
+umask 077
+for path in "$category" "$(dirname -- "$parent")"; do
+    if [[ -e $path || -L $path ]]; then
+        [[ -d $path && ! -L $path && $(stat -c %u "$path") = "$EUID" && $(stat -c %a "$path") = 700 ]] || { echo "Diretório de snapshot deve ser privado e pertencer ao usuário atual: $path" >&2; exit 1; }
+    else
+        mkdir -- "$path"
+    fi
+done
+# Reserve a generation exclusively; never reuse even an incomplete record.
+mkdir -- "$parent" || { echo "Registro de snapshot já existe ou inacessível: $parent" >&2; exit 1; }
+printf '{"origin":"/","created_utc":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)" > "$parent/origin.json"
+btrfs subvolume snapshot / "$destination"
+`
+
 func restorePointSnapshotArgs(destination string) []string {
-	return []string{"btrfs", "subvolume", "snapshot", "/", destination}
+	return []string{"bash", "-c", restorePointScript, "dotfiles-restore-point", destination, localBackupRoot()}
 }
 
 func restorePointJobFor(destination string, steps []step) job {
@@ -68,7 +108,6 @@ func restorePointJobFor(destination string, steps []step) job {
 func restorePointJob() job {
 	destination := restorePointPath(time.Now())
 	steps := withSudo(
-		sudoStep("Preparar "+restorePointsDirectory, false, "mkdir", "-p", restorePointsDirectory),
 		sudoStep("Criar snapshot Btrfs", false, restorePointSnapshotArgs(destination)...),
 	)
 	return restorePointJobFor(destination, steps)
@@ -79,7 +118,7 @@ func runBrowserBackup(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("localizar diretório pessoal: %w", err)
 	}
-	return backupBrowser(ctx, home, backupDestination)
+	return backupBrowser(ctx, home, localBackupRoot())
 }
 
 func backupBrowser(ctx context.Context, home, destination string) error {
@@ -103,7 +142,20 @@ func backupBrowserAt(ctx context.Context, home, destination, procRoot string) er
 		return fmt.Errorf("%s não é um diretório", destination)
 	}
 
-	archive, err := os.CreateTemp(destination, ".zen-backup-*.tar")
+	payload, err := reserveBackupAt(destination, "browser", home, time.Now())
+	if err != nil {
+		return err
+	}
+	if err := os.Mkdir(payload, 0700); err != nil {
+		return err
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = os.RemoveAll(filepath.Dir(payload))
+		}
+	}()
+	archive, err := os.CreateTemp(payload, ".zen-backup-*.tar")
 	if err != nil {
 		return fmt.Errorf("criar arquivo temporário em %s: %w", destination, err)
 	}
@@ -137,9 +189,10 @@ func backupBrowserAt(ctx context.Context, home, destination, procRoot string) er
 	if open {
 		return fmt.Errorf("o Zen Browser foi aberto durante o backup; feche-o e tente novamente")
 	}
-	if err := os.Rename(archivePath, filepath.Join(destination, "zen-backup.tar")); err != nil {
+	if err := os.Rename(archivePath, filepath.Join(payload, "zen-backup.tar")); err != nil {
 		return fmt.Errorf("mover backup para %s: %w", destination, err)
 	}
+	complete = true
 	return nil
 }
 
@@ -180,13 +233,13 @@ func browserBackupJobFor(setup []step, run func() error) job {
 		title: "Backup do Navegador",
 		steps: steps,
 		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render("Backup salvo em /mnt/backups/zen-backup.tar.")
+			return lipgloss.NewStyle().Foreground(colOK).Render("Backup salvo em " + filepath.Join(localBackupRoot(), "browser") + " (geração por origem/data).")
 		},
 	}
 }
 
 func browserBackupJob() job {
-	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
+	setup := backupDestinationSetupSteps(localBackupRoot(), os.Getuid(), os.Getgid())
 	return browserBackupJobFor(setup, func() error {
 		return runBrowserBackup(context.Background())
 	})
@@ -197,10 +250,10 @@ func runSSHKeysBackup() error {
 	if err != nil {
 		return fmt.Errorf("localizar diretório pessoal: %w", err)
 	}
-	return backupSSHKeys(filepath.Join(home, ".ssh"), sshBackupDestination)
+	return backupSSHKeys(filepath.Join(home, ".ssh"), localBackupRoot())
 }
 
-func backupSSHKeys(sshDir, destination string) error {
+func backupSSHKeys(sshDir, root string) error {
 	var missing []string
 	for _, name := range requiredSSHIdentityFiles {
 		info, err := os.Stat(filepath.Join(sshDir, name))
@@ -211,17 +264,26 @@ func backupSSHKeys(sshDir, destination string) error {
 	if len(missing) > 0 {
 		return errors.New("chaves ausentes em " + sshDir + ": " + strings.Join(missing, ", "))
 	}
-	if err := os.MkdirAll(destination, 0700); err != nil {
-		return fmt.Errorf("criar %s: %w", destination, err)
+	destination, err := reserveBackupAt(root, "ssh", sshDir, time.Now())
+	if err != nil {
+		return err
 	}
-	if err := os.Chmod(destination, 0700); err != nil {
-		return fmt.Errorf("proteger %s: %w", destination, err)
+	if err := os.Mkdir(destination, 0700); err != nil {
+		return err
 	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = os.RemoveAll(filepath.Dir(destination))
+		}
+	}()
+
 	for _, name := range requiredSSHIdentityFiles {
 		if err := copyFileAtomic(filepath.Join(sshDir, name), filepath.Join(destination, name)); err != nil {
 			return fmt.Errorf("copiar %s: %w", name, err)
 		}
 	}
+	complete = true
 	return nil
 }
 
@@ -232,13 +294,13 @@ func sshKeysBackupJobFor(setup []step, run func() error) job {
 		title: "Backup das Chaves SSH",
 		steps: steps,
 		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves SSH salvas em " + sshBackupDestination + ".")
+			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves SSH salvas em " + filepath.Join(localBackupRoot(), "ssh") + " (geração por origem/data).")
 		},
 	}
 }
 
 func sshKeysBackupJob() job {
-	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
+	setup := backupDestinationSetupSteps(localBackupRoot(), os.Getuid(), os.Getgid())
 	return sshKeysBackupJobFor(setup, runSSHKeysBackup)
 }
 
@@ -294,13 +356,7 @@ func writeBackupFileAtomic(path string, content []byte, mode os.FileMode) error 
 	return nil
 }
 
-func backupGPGKeys(ctx context.Context, destination string, export gpgExporter) error {
-	if err := os.MkdirAll(destination, 0700); err != nil {
-		return fmt.Errorf("criar %s: %w", destination, err)
-	}
-	if err := os.Chmod(destination, 0700); err != nil {
-		return fmt.Errorf("proteger %s: %w", destination, err)
-	}
+func backupGPGKeys(ctx context.Context, root string, export gpgExporter) error {
 	publicKey, err := export(ctx, false)
 	if err != nil {
 		return err
@@ -309,10 +365,32 @@ func backupGPGKeys(ctx context.Context, destination string, export gpgExporter) 
 	if err != nil {
 		return err
 	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	destination, err := reserveBackupAt(root, "gpg", filepath.Join(home, ".gnupg"), time.Now())
+	if err != nil {
+		return err
+	}
+	if err := os.Mkdir(destination, 0700); err != nil {
+		return err
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = os.RemoveAll(filepath.Dir(destination))
+		}
+	}()
+
 	if err := writeBackupFileAtomic(filepath.Join(destination, "minha_chave_publica.asc"), publicKey, 0644); err != nil {
 		return err
 	}
-	return writeBackupFileAtomic(filepath.Join(destination, "minha_chave_privada.asc"), privateKey, 0600)
+	if err := writeBackupFileAtomic(filepath.Join(destination, "minha_chave_privada.asc"), privateKey, 0600); err != nil {
+		return err
+	}
+	complete = true
+	return nil
 }
 
 func gpgBackupJobFor(setup []step, run func() error) job {
@@ -322,14 +400,14 @@ func gpgBackupJobFor(setup []step, run func() error) job {
 		title: "Backup das Chaves GPG",
 		steps: steps,
 		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves GPG salvas em " + gpgBackupDestination + ".")
+			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves GPG salvas em " + filepath.Join(localBackupRoot(), "gpg") + " (geração por origem/data).")
 		},
 	}
 }
 
 func gpgBackupJob() job {
-	setup := backupDestinationSetupSteps(backupDestination, os.Getuid(), os.Getgid())
+	setup := backupDestinationSetupSteps(localBackupRoot(), os.Getuid(), os.Getgid())
 	return gpgBackupJobFor(setup, func() error {
-		return backupGPGKeys(context.Background(), gpgBackupDestination, exportGPGKey)
+		return backupGPGKeys(context.Background(), localBackupRoot(), exportGPGKey)
 	})
 }

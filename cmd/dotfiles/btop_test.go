@@ -8,6 +8,7 @@ import (
 )
 
 func TestInstallBtopCopiesCompleteDirectory(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "btop")
@@ -40,6 +41,7 @@ func TestInstallBtopCopiesCompleteDirectory(t *testing.T) {
 }
 
 func TestInstallBtopPreservesExistingConfiguration(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "btop")
@@ -61,7 +63,7 @@ func TestInstallBtopPreservesExistingConfiguration(t *testing.T) {
 	if err := installBtop(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	content, err := os.ReadFile(filepath.Join(backup, "btop.conf"))
 	if err != nil {
 		t.Fatal(err)

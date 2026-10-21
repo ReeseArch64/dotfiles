@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -238,19 +240,20 @@ func prepareZenRestorePath(source, destination string) (zenRestorePath, error) {
 	return zenRestorePath{source: source, destination: destination, staging: staging}, nil
 }
 
-func rollbackZenRestore(paths []zenRestorePath) {
+func rollbackZenRestore(paths []zenRestorePath) error {
+	var result error
 	for i := len(paths) - 1; i >= 0; i-- {
 		current := paths[i]
-		if current.active {
-			_ = os.RemoveAll(current.destination)
-		}
 		if current.previous != "" {
-			_ = os.Rename(current.previous, current.destination)
+			result = errors.Join(result, restoreLocalBackup(current.previous, current.destination))
+		} else if current.active {
+			result = errors.Join(result, os.RemoveAll(current.destination))
 		}
 		if current.staging != "" {
-			_ = os.RemoveAll(current.staging)
+			result = errors.Join(result, os.RemoveAll(current.staging))
 		}
 	}
+	return result
 }
 
 func restoreZenBackup(dotfiles, home string) error {
@@ -262,45 +265,27 @@ func restoreZenBackup(dotfiles, home string) error {
 			filepath.Join(home, filepath.FromSlash(root)),
 		)
 		if err != nil {
-			rollbackZenRestore(paths)
-			return err
+			return errors.Join(err, rollbackZenRestore(paths))
 		}
 		paths = append(paths, current)
 	}
 	for i := range paths {
 		if _, err := os.Lstat(paths[i].destination); err == nil {
-			placeholder, err := os.MkdirTemp(filepath.Dir(paths[i].destination), ".zen-previous-")
+			previous, err := backupExistingPath(paths[i].destination, time.Now())
 			if err != nil {
-				rollbackZenRestore(paths)
-				return fmt.Errorf("preparar substituição de %s: %w", paths[i].destination, err)
+				return errors.Join(err, rollbackZenRestore(paths))
 			}
-			if err := os.Remove(placeholder); err != nil {
-				_ = os.RemoveAll(placeholder)
-				rollbackZenRestore(paths)
-				return fmt.Errorf("preparar %s: %w", placeholder, err)
-			}
-			paths[i].previous = placeholder
-			if err := os.Rename(paths[i].destination, paths[i].previous); err != nil {
-				rollbackZenRestore(paths)
-				return fmt.Errorf("preservar %s: %w", paths[i].destination, err)
-			}
+			paths[i].previous = previous
 		} else if !os.IsNotExist(err) {
-			rollbackZenRestore(paths)
-			return fmt.Errorf("verificar %s: %w", paths[i].destination, err)
+			return errors.Join(fmt.Errorf("verificar %s: %w", paths[i].destination, err), rollbackZenRestore(paths))
 		}
 		if err := os.Rename(paths[i].staging, paths[i].destination); err != nil {
-			rollbackZenRestore(paths)
-			return fmt.Errorf("restaurar %s: %w", paths[i].destination, err)
+			return errors.Join(fmt.Errorf("restaurar %s: %w", paths[i].destination, err), rollbackZenRestore(paths))
 		}
 		paths[i].staging = ""
 		paths[i].active = true
 	}
 	for _, current := range paths {
-		if current.previous != "" {
-			if err := os.RemoveAll(current.previous); err != nil {
-				return fmt.Errorf("remover dados substituídos em %s: %w", current.previous, err)
-			}
-		}
 		if err := os.RemoveAll(current.source); err != nil {
 			return fmt.Errorf("remover dados restaurados de %s: %w", current.source, err)
 		}

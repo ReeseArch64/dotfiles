@@ -13,32 +13,35 @@ import (
 )
 
 func TestRestorePointPathIncludesDateAndTime(t *testing.T) {
+	testBackupStore(t)
 	at := time.Date(2026, time.March, 7, 14, 5, 9, 0, time.Local)
-	want := "/.snapshots/ponto-restauracao-2026-03-07_14-05-09"
-	if got := restorePointPath(at); got != want {
+	want := at.UTC().Format("20060102T150405.000000000Z") + "-"
+	if got := restorePointPath(at); !strings.HasPrefix(got, filepath.Join(localBackupRoot(), "snapshots")+"/") || !strings.HasPrefix(filepath.Base(filepath.Dir(got)), want) || got == restorePointPath(at) {
 		t.Fatalf("caminho inesperado: %s", got)
 	}
 }
 
 func TestRestorePointUsesStandardWritableBtrfsSnapshot(t *testing.T) {
-	destination := "/.snapshots/ponto-restauracao-2026-03-07_14-05-09"
-	want := []string{"btrfs", "subvolume", "snapshot", "/", destination}
+	testBackupStore(t)
+	destination := restorePointPath(time.Now())
+	want := []string{"bash", "-c", restorePointScript, "dotfiles-restore-point", destination, localBackupRoot()}
 	if got := restorePointSnapshotArgs(destination); !slices.Equal(got, want) {
 		t.Fatalf("argumentos inesperados: %v", got)
 	}
 }
 
 func TestRestorePointJobCreatesSnapshotAfterPreparingDirectory(t *testing.T) {
-	destination := "/.snapshots/ponto-restauracao-2026-03-07_14-05-09"
+	testBackupStore(t)
+	destination := restorePointPath(time.Now())
 	steps := []step{
-		nativeStep("Preparar /.snapshots", func() error { return nil }),
+		nativeStep("Validar filesystem Btrfs", func() error { return nil }),
 		nativeStep("Criar snapshot Btrfs", func() error { return nil }),
 	}
 	configured := restorePointJobFor(destination, steps)
 	if configured.title != "Ponto de Restauração" {
 		t.Fatalf("título inesperado: %s", configured.title)
 	}
-	want := []string{"Preparar /.snapshots", "Criar snapshot Btrfs"}
+	want := []string{"Validar filesystem Btrfs", "Criar snapshot Btrfs"}
 	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
 		t.Fatalf("passos inesperados: %v", labels)
 	}
@@ -48,8 +51,9 @@ func TestRestorePointJobCreatesSnapshotAfterPreparingDirectory(t *testing.T) {
 }
 
 func TestBackupBrowserCreatesArchive(t *testing.T) {
+	testBackupStore(t)
 	home := t.TempDir()
-	destination := t.TempDir()
+	destination := testPrivateDirectory(t)
 	procRoot := t.TempDir()
 	for _, name := range []string{".config/zen/profile", ".cache/zen/cache", ".local/share/keyrings/keys"} {
 		path := filepath.Join(home, name)
@@ -63,7 +67,7 @@ func TestBackupBrowserCreatesArchive(t *testing.T) {
 	if err := backupBrowserAt(context.Background(), home, destination, procRoot); err != nil {
 		t.Fatal(err)
 	}
-	archive := filepath.Join(destination, "zen-backup.tar")
+	archive := filepath.Join(testBackupAt(t, destination, "browser", home), "zen-backup.tar")
 	info, err := os.Stat(archive)
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +87,7 @@ func TestBackupBrowserCreatesArchive(t *testing.T) {
 }
 
 func TestBackupBrowserRefusesOpenZen(t *testing.T) {
+	testBackupStore(t)
 	procRoot := t.TempDir()
 	pidPath := filepath.Join(procRoot, "123")
 	if err := os.Mkdir(pidPath, 0700); err != nil {
@@ -91,7 +96,7 @@ func TestBackupBrowserRefusesOpenZen(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(pidPath, "comm"), []byte("zen-browser\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	destination := t.TempDir()
+	destination := testPrivateDirectory(t)
 	err := backupBrowserAt(context.Background(), t.TempDir(), destination, procRoot)
 	if err == nil || !strings.Contains(err.Error(), "feche o Zen") {
 		t.Fatalf("Zen aberto deveria impedir backup: %v", err)
@@ -102,8 +107,9 @@ func TestBackupBrowserRefusesOpenZen(t *testing.T) {
 }
 
 func TestBackupBrowserKeepsPreviousArchiveOnFailure(t *testing.T) {
+	testBackupStore(t)
 	home := t.TempDir()
-	destination := t.TempDir()
+	destination := testPrivateDirectory(t)
 	archive := filepath.Join(destination, "zen-backup.tar")
 	if err := os.WriteFile(archive, []byte("previous"), 0600); err != nil {
 		t.Fatal(err)
@@ -118,7 +124,8 @@ func TestBackupBrowserKeepsPreviousArchiveOnFailure(t *testing.T) {
 }
 
 func TestBackupDestinationReadyRequiresOwnerAndPrivateMode(t *testing.T) {
-	destination := t.TempDir()
+	testBackupStore(t)
+	destination := testPrivateDirectory(t)
 	if err := os.Chmod(destination, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -137,6 +144,7 @@ func TestBackupDestinationReadyRequiresOwnerAndPrivateMode(t *testing.T) {
 }
 
 func TestBackupDestinationSetupUsesSudoInstallArguments(t *testing.T) {
+	testBackupStore(t)
 	want := []string{"install", "-d", "-m", "0700", "-o", "1000", "-g", "1001", "/mnt/backups"}
 	if got := backupDestinationSetupArgs("/mnt/backups", 1000, 1001); !slices.Equal(got, want) {
 		t.Fatalf("argumentos inesperados: %v", got)
@@ -144,6 +152,7 @@ func TestBackupDestinationSetupUsesSudoInstallArguments(t *testing.T) {
 }
 
 func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
+	testBackupStore(t)
 	sshDir := t.TempDir()
 	destination := filepath.Join(t.TempDir(), "ssh")
 	for _, name := range requiredSSHIdentityFiles {
@@ -158,6 +167,7 @@ func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
 	if err := backupSSHKeys(sshDir, destination); err != nil {
 		t.Fatal(err)
 	}
+	destination = testBackupAt(t, destination, "ssh", sshDir)
 	info, err := os.Stat(destination)
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +184,7 @@ func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
 }
 
 func TestBackupSSHKeysFailsWhenKeysMissing(t *testing.T) {
+	testBackupStore(t)
 	sshDir := t.TempDir()
 	destination := filepath.Join(t.TempDir(), "ssh")
 	if err := backupSSHKeys(sshDir, destination); err == nil || !strings.Contains(err.Error(), "chaves ausentes") {
@@ -185,6 +196,7 @@ func TestBackupSSHKeysFailsWhenKeysMissing(t *testing.T) {
 }
 
 func TestSSHKeysBackupJobCopiesAfterSetup(t *testing.T) {
+	testBackupStore(t)
 	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
 	configured := sshKeysBackupJobFor([]step{setup}, func() error { return nil })
 	if configured.title != "Backup das Chaves SSH" {
@@ -197,6 +209,7 @@ func TestSSHKeysBackupJobCopiesAfterSetup(t *testing.T) {
 }
 
 func TestBackupGPGKeysExportsPublicAndPrivateKeys(t *testing.T) {
+	testBackupStore(t)
 	destination := filepath.Join(t.TempDir(), "gpg")
 	exporter := func(_ context.Context, secret bool) ([]byte, error) {
 		if secret {
@@ -207,6 +220,8 @@ func TestBackupGPGKeysExportsPublicAndPrivateKeys(t *testing.T) {
 	if err := backupGPGKeys(context.Background(), destination, exporter); err != nil {
 		t.Fatal(err)
 	}
+	home, _ := os.UserHomeDir()
+	destination = testBackupAt(t, destination, "gpg", filepath.Join(home, ".gnupg"))
 	checks := []struct {
 		name string
 		mode os.FileMode
@@ -233,6 +248,7 @@ func TestBackupGPGKeysExportsPublicAndPrivateKeys(t *testing.T) {
 }
 
 func TestBackupGPGKeysDoesNotWriteWhenExportFails(t *testing.T) {
+	testBackupStore(t)
 	destination := filepath.Join(t.TempDir(), "gpg")
 	exporter := func(_ context.Context, secret bool) ([]byte, error) {
 		if secret {
@@ -243,12 +259,13 @@ func TestBackupGPGKeysDoesNotWriteWhenExportFails(t *testing.T) {
 	if err := backupGPGKeys(context.Background(), destination, exporter); err == nil {
 		t.Fatal("exportação deveria falhar")
 	}
-	if entries, err := os.ReadDir(destination); err != nil || len(entries) != 0 {
+	if entries, err := os.ReadDir(destination); !os.IsNotExist(err) && (err != nil || len(entries) != 0) {
 		t.Fatalf("arquivos parciais encontrados: %v (%v)", entries, err)
 	}
 }
 
 func TestGPGBackupJobExportsAfterSetup(t *testing.T) {
+	testBackupStore(t)
 	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
 	configured := gpgBackupJobFor([]step{setup}, func() error { return nil })
 	if configured.title != "Backup das Chaves GPG" {
@@ -261,6 +278,7 @@ func TestGPGBackupJobExportsAfterSetup(t *testing.T) {
 }
 
 func TestBrowserBackupJobPreparesDestinationBeforeBackup(t *testing.T) {
+	testBackupStore(t)
 	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
 	configured := browserBackupJobFor([]step{setup}, func() error { return nil })
 	if configured.title != "Backup do Navegador" {

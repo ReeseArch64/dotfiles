@@ -87,16 +87,10 @@ func prepareSDKDirectories(home, root string, ops sdkMigrationOps) (result error
 					result = errors.Join(result, os.RemoveAll(path))
 				}
 			}
-			// Empty reservation containers may be removed, never their originals.
-			for _, backup := range []string{m.homeBackup, m.targetBackup} {
-				if backup != "" {
-					_ = os.Remove(filepath.Dir(backup))
-				}
-			}
 		}
 	}()
 
-	// Finish every copy before any HOME directory is renamed or link activated.
+	// Finish every merged copy before any original is moved or link activated.
 	for i := range migrations {
 		if err := migrations[i].prepare(ops); err != nil {
 			return err
@@ -254,11 +248,7 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 }
 
 func reserveSDKBackup(path string) (string, error) {
-	directory, err := os.MkdirTemp(filepath.Dir(path), filepath.Base(path)+".sdk-backup-"+time.Now().UTC().Format("20060102T150405.000000000Z")+"-*")
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(directory, "original"), nil
+	return reserveLocalBackup(path, time.Now())
 }
 
 func (m *sdkMigration) activate(ops sdkMigrationOps) error {
@@ -266,7 +256,7 @@ func (m *sdkMigration) activate(ops sdkMigrationOps) error {
 		return nil
 	}
 	if m.hasTarget {
-		if err := ops.rename(m.target, m.targetBackup); err != nil {
+		if err := moveToBackup(m.target, m.targetBackup, ops); err != nil {
 			return err
 		}
 		m.targetMoved = true
@@ -279,7 +269,7 @@ func (m *sdkMigration) activate(ops sdkMigrationOps) error {
 		return nil
 	}
 	if m.hasHome {
-		if err := ops.rename(m.home, m.homeBackup); err != nil {
+		if err := moveToBackup(m.home, m.homeBackup, ops); err != nil {
 			return err
 		}
 		m.homeMoved = true
@@ -297,7 +287,7 @@ func (m *sdkMigration) restore(ops sdkMigrationOps) error {
 		result = errors.Join(result, os.Remove(m.home))
 	}
 	if m.homeMoved {
-		if err := ops.rename(m.homeBackup, m.home); err != nil {
+		if err := restoreBackup(m.homeBackup, m.home, ops); err != nil {
 			result = errors.Join(result, fmt.Errorf("restaurar %s (original em %s): %w", m.home, m.homeBackup, err))
 		}
 	}
@@ -308,7 +298,7 @@ func (m *sdkMigration) restore(ops sdkMigrationOps) error {
 		}
 	}
 	if m.targetMoved {
-		if err := ops.rename(m.targetBackup, m.target); err != nil {
+		if err := restoreBackup(m.targetBackup, m.target, ops); err != nil {
 			result = errors.Join(result, fmt.Errorf("restaurar %s (original em %s): %w", m.target, m.targetBackup, err))
 		}
 	}

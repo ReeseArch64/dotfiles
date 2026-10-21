@@ -18,6 +18,7 @@ func sdkTestOps() sdkMigrationOps {
 
 func sdkTestRoots(t *testing.T) (string, string) {
 	t.Helper()
+	testBackupStore(t)
 	base := t.TempDir()
 	home, root := filepath.Join(base, "home"), filepath.Join(base, "sdk")
 	for _, path := range []string{home, root} {
@@ -48,14 +49,7 @@ func sdkTestContent(t *testing.T, path, want string) {
 
 func sdkTestBackup(t *testing.T, path string) string {
 	t.Helper()
-	matches, err := filepath.Glob(path + ".sdk-backup-*")
-	if err != nil || len(matches) != 1 {
-		t.Fatalf("backups for %s = %v, %v", path, matches, err)
-	}
-	if !strings.Contains(filepath.Base(matches[0]), "Z-") {
-		t.Fatalf("backup lacks UTC timestamp and unique suffix: %s", matches[0])
-	}
-	return filepath.Join(matches[0], "original")
+	return testBackupFor(t, path)
 }
 
 func TestSDKMissingSourcesAndIdempotence(t *testing.T) {

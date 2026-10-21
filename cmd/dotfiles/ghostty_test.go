@@ -8,6 +8,7 @@ import (
 )
 
 func TestInstallGhosttyCopiesCompleteDirectory(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "ghostty")
@@ -48,6 +49,7 @@ func TestInstallGhosttyCopiesCompleteDirectory(t *testing.T) {
 }
 
 func TestInstallGhosttyPreservesExistingConfiguration(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "ghostty")
@@ -69,7 +71,7 @@ func TestInstallGhosttyPreservesExistingConfiguration(t *testing.T) {
 	if err := installGhostty(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	content, err := os.ReadFile(filepath.Join(backup, "config.ghostty"))
 	if err != nil {
 		t.Fatal(err)

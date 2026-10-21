@@ -38,6 +38,7 @@ func installNoctaliaTestPlugins(t *testing.T, pluginDir string) {
 }
 
 func TestRequiredNoctaliaPlugins(t *testing.T) {
+	testBackupStore(t)
 	want := []string{"containers", "github-kanban", "noctaproton-vpn", "zed-provider"}
 	if strings.Join(requiredNoctaliaPlugins, ",") != strings.Join(want, ",") {
 		t.Fatalf("plugins obrigatórios inesperados: %v", requiredNoctaliaPlugins)
@@ -45,6 +46,7 @@ func TestRequiredNoctaliaPlugins(t *testing.T) {
 }
 
 func TestInstallNoctaliaRequiresPlugins(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
 	if err := os.Mkdir(filepath.Join(pluginDir, requiredNoctaliaPlugins[0]), 0755); err != nil {
 		t.Fatal(err)
@@ -68,6 +70,7 @@ func TestInstallNoctaliaRequiresPlugins(t *testing.T) {
 }
 
 func TestInstallNoctaliaCopiesFilesAndPreservesState(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
 	installNoctaliaTestPlugins(t, pluginDir)
 	stateDir := filepath.Join(home, ".local", "state", "noctalia")
@@ -97,7 +100,7 @@ func TestInstallNoctaliaCopiesFilesAndPreservesState(t *testing.T) {
 		if string(content) != "new "+name {
 			t.Fatalf("cópia inesperada para %s: %q", name, content)
 		}
-		backup := destination + ".backup-20250102-030405"
+		backup := testBackupFor(t, destination)
 		backupContent, err := os.ReadFile(backup)
 		if err != nil {
 			t.Fatal(err)
@@ -114,6 +117,7 @@ func TestInstallNoctaliaCopiesFilesAndPreservesState(t *testing.T) {
 }
 
 func TestInstallNoctaliaMigratesExistingSymlinks(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
 	installNoctaliaTestPlugins(t, pluginDir)
 	stateDir := filepath.Join(home, ".local", "state", "noctalia")
@@ -141,6 +145,7 @@ func TestInstallNoctaliaMigratesExistingSymlinks(t *testing.T) {
 }
 
 func TestInstallNoctaliaIsIdempotent(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home, pluginDir := prepareNoctaliaTest(t)
 	installNoctaliaTestPlugins(t, pluginDir)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -151,8 +156,7 @@ func TestInstallNoctaliaIsIdempotent(t *testing.T) {
 	if err := installNoctalia(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	stateDir := filepath.Join(home, ".local", "state", "noctalia")
-	if matches, err := filepath.Glob(filepath.Join(stateDir, "*.backup-*")); err != nil || len(matches) != 0 {
+	if matches, err := filepath.Glob(filepath.Join(localBackupRoot(), "files", "*", "*", "original")); err != nil || len(matches) != 0 {
 		t.Fatalf("backups inesperados: %v, err=%v", matches, err)
 	}
 }

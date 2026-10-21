@@ -173,7 +173,6 @@ func installPiConfig(setupDir, home string, now time.Time) error {
 		return err
 	}
 	files := piConfigFiles(setupDir, home)
-	timestamp := now.Format("20060102-150405")
 	type change struct {
 		file   piConfigFile
 		backup string
@@ -188,11 +187,9 @@ func installPiConfig(setupDir, home string, now time.Time) error {
 		}
 		change := change{file: file}
 		if _, err := os.Lstat(file.destination); err == nil {
-			change.backup = file.destination + ".backup-" + timestamp
-			if _, err := os.Lstat(change.backup); err == nil {
-				return fmt.Errorf("backup já existe: %s", change.backup)
-			} else if !os.IsNotExist(err) {
-				return fmt.Errorf("verificar %s: %w", change.backup, err)
+			change.backup, err = reserveLocalBackup(file.destination, now)
+			if err != nil {
+				return err
 			}
 		} else if !os.IsNotExist(err) {
 			return fmt.Errorf("verificar %s: %w", file.destination, err)
@@ -201,26 +198,28 @@ func installPiConfig(setupDir, home string, now time.Time) error {
 	}
 
 	var applied []change
-	rollback := func() {
+	rollback := func() error {
+		var result error
 		for i := len(applied) - 1; i >= 0; i-- {
 			change := applied[i]
-			_ = os.Remove(change.file.destination)
+			if change.backup == "" {
+				result = errors.Join(result, os.Remove(change.file.destination))
+			}
 			if change.backup != "" {
-				_ = os.Rename(change.backup, change.file.destination)
+				result = errors.Join(result, restoreLocalBackup(change.backup, change.file.destination))
 			}
 		}
+		return result
 	}
 	for _, change := range changes {
 		if change.backup != "" {
-			if err := os.Rename(change.file.destination, change.backup); err != nil {
-				rollback()
-				return fmt.Errorf("preservar %s: %w", change.file.name, err)
+			if err := moveToBackup(change.file.destination, change.backup, sdkMigrationOps{copyTree: copySDKTree, rename: os.Rename}); err != nil {
+				return errors.Join(fmt.Errorf("preservar %s: %w", change.file.name, err), rollback())
 			}
 		}
 		applied = append(applied, change)
 		if err := copyFileAtomic(change.file.source, change.file.destination); err != nil {
-			rollback()
-			return fmt.Errorf("configurar %s: %w", change.file.name, err)
+			return errors.Join(fmt.Errorf("configurar %s: %w", change.file.name, err), rollback())
 		}
 	}
 	return nil

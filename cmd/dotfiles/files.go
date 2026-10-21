@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -147,21 +148,16 @@ func copyDirectoryWithBackup(source, destination string, now time.Time) error {
 	}
 	var backup string
 	if _, err := os.Lstat(destination); err == nil {
-		backup = destination + ".backup-" + now.Format("20060102-150405")
-		if _, err := os.Lstat(backup); err == nil {
-			return fmt.Errorf("backup já existe: %s", backup)
-		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("verificar %s: %w", backup, err)
-		}
-		if err := os.Rename(destination, backup); err != nil {
-			return fmt.Errorf("preservar configuração atual em %s: %w", backup, err)
+		backup, err = backupExistingPath(destination, now)
+		if err != nil {
+			return err
 		}
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("verificar %s: %w", destination, err)
 	}
 	if err := os.Rename(staging, destination); err != nil {
 		if backup != "" {
-			_ = os.Rename(backup, destination)
+			err = errors.Join(err, restoreLocalBackup(backup, destination))
 		}
 		return fmt.Errorf("ativar configuração em %s: %w", destination, err)
 	}

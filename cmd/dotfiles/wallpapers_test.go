@@ -37,6 +37,7 @@ func prepareWallpapersTest(t *testing.T) (string, string) {
 }
 
 func TestInstallWallpapersCopiesRegularDirectory(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareWallpapersTest(t)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 
@@ -63,6 +64,7 @@ func TestInstallWallpapersCopiesRegularDirectory(t *testing.T) {
 }
 
 func TestInstallWallpapersPreservesExistingDirectory(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareWallpapersTest(t)
 	destination := filepath.Join(home, ".wallpapers")
 	if err := os.MkdirAll(destination, 0755); err != nil {
@@ -76,7 +78,7 @@ func TestInstallWallpapersPreservesExistingDirectory(t *testing.T) {
 	if err := installWallpapers(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	if content, err := os.ReadFile(filepath.Join(backup, "old.jpg")); err != nil || string(content) != "old" {
 		t.Fatalf("backup inesperado: content=%q err=%v", content, err)
 	}
@@ -86,6 +88,7 @@ func TestInstallWallpapersPreservesExistingDirectory(t *testing.T) {
 }
 
 func TestInstallWallpapersIsIdempotent(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareWallpapersTest(t)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 
@@ -95,7 +98,7 @@ func TestInstallWallpapersIsIdempotent(t *testing.T) {
 	if err := installWallpapers(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	matches, err := filepath.Glob(filepath.Join(home, ".wallpapers.backup-*"))
+	matches, err := testBackupPaths(localBackupRoot(), "files", filepath.Join(home, ".wallpapers"))
 	if err != nil || len(matches) != 0 {
 		t.Fatalf("backups inesperados: %v, err=%v", matches, err)
 	}

@@ -5,7 +5,8 @@ config=$1
 resolver=$2
 stub=$3
 upstream=$4
-shift 4
+backup_root=$5
+shift 5
 
 # Drop-ins take precedence over resolved.conf. Refuse conflicting settings rather
 # than claiming the port was freed while another configuration enables the stub.
@@ -67,15 +68,41 @@ awk '
     END { if (!found) print "\n[Resolve]\nDNSStubListener=no" }
 ' "$config" > "$staging/resolved.conf"
 
-if ! cmp -s -- "$config" "$staging/resolved.conf"; then
-    if [[ ! -e $config.dotfiles-backup ]]; then
-        cp -p -- "$config" "$config.dotfiles-backup"
+# Never chown/chmod the shared top-level store: startup owns that policy.
+# Only this root-run category and its records belong to the current EUID.
+reserve_backup() {
+    local origin hash parent record path
+    [[ $backup_root = /* && -d $backup_root ]] || { printf 'Backup root deve ser um diretório absoluto existente: %s\n' "$backup_root" >&2; return 1; }
+    path=$backup_root
+    while [[ $path != / ]]; do
+        [[ ! -L $path ]] || { printf 'Backup root não pode conter symlink: %s\n' "$path" >&2; return 1; }
+        path=$(dirname -- "$path")
+    done
+    origin=$(realpath -ms -- "$1")
+    hash=$(printf '%s' "$origin" | sha256sum)
+    hash=${hash%% *}
+    parent=$backup_root/dns/$hash
+    umask 077
+    for path in "$backup_root/dns" "$parent"; do
+        if [[ -e $path || -L $path ]]; then
+            [[ -d $path && ! -L $path && $(stat -c %u "$path") = "$EUID" && $(stat -c %a "$path") = 700 ]] || { printf 'Categoria de backup deve ser privada e pertencer ao usuário atual: %s\n' "$path" >&2; return 1; }
+        else
+            mkdir -- "$path"
+        fi
+    done
+    record=$(mktemp -d "$parent/$(date -u +%Y%m%dT%H%M%S.%NZ)-XXXXXX")
+    printf '%s\n' "$origin" > "$record/origin.path"
+    if ! cp -a --no-target-directory -- "$1" "$record/original"; then
+        rm -rf -- "$record"
+        return 1
     fi
+}
+
+if ! cmp -s -- "$config" "$staging/resolved.conf"; then
+    reserve_backup "$config"
 fi
 if $switch_resolver; then
-    if [[ ! -e $resolver.dotfiles-backup && ! -L $resolver.dotfiles-backup ]]; then
-        cp -P -- "$resolver" "$resolver.dotfiles-backup"
-    fi
+    reserve_backup "$resolver"
     ln -s -- "$upstream" "$staging/resolv.conf"
     mv -Tf -- "$staging/resolv.conf" "$resolver"
 fi

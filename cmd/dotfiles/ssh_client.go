@@ -49,25 +49,21 @@ func installSSHClientConfig(setupDir, home string, now time.Time) error {
 	}
 	backup := ""
 	if _, err := os.Lstat(destination); err == nil {
-		backup = destination + ".backup-" + now.Format("20060102-150405")
-		if _, err := os.Lstat(backup); err == nil {
-			return fmt.Errorf("backup já existe: %s", backup)
-		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("verificar %s: %w", backup, err)
-		}
-		if err := os.Rename(destination, backup); err != nil {
-			return fmt.Errorf("preservar configuração atual em %s: %w", backup, err)
+		backup, err = backupExistingPath(destination, now)
+		if err != nil {
+			return err
 		}
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("verificar %s: %w", destination, err)
 	}
-	if err := copyFileAtomic(source, destination); err == nil {
+	if err = copyFileAtomic(source, destination); err == nil {
 		err = os.Chmod(destination, 0600)
 	}
 	if err != nil {
-		_ = os.Remove(destination)
 		if backup != "" {
-			_ = os.Rename(backup, destination)
+			err = errors.Join(err, restoreLocalBackup(backup, destination))
+		} else {
+			err = errors.Join(err, os.Remove(destination))
 		}
 		return fmt.Errorf("copiar configuração SSH: %w", err)
 	}

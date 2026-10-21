@@ -8,6 +8,7 @@ import (
 )
 
 func TestInstallObsidianCopiesCompleteDirectory(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "obsidian")
@@ -47,6 +48,7 @@ func TestInstallObsidianCopiesCompleteDirectory(t *testing.T) {
 }
 
 func TestInstallObsidianPreservesExistingSymlink(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "obsidian")
@@ -69,7 +71,7 @@ func TestInstallObsidianPreservesExistingSymlink(t *testing.T) {
 	if err := installObsidian(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	target, err := os.Readlink(backup)
 	if err != nil {
 		t.Fatal(err)

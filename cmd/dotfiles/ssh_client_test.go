@@ -35,6 +35,7 @@ func installSSHClientTestIdentities(t *testing.T, home string) {
 }
 
 func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
 
 	err := installSSHClientConfig(dotfiles, home, time.Now())
@@ -52,6 +53,7 @@ func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 }
 
 func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
 	installSSHClientTestIdentities(t, home)
 
@@ -77,6 +79,7 @@ func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
 }
 
 func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
 	installSSHClientTestIdentities(t, home)
 	destination := filepath.Join(home, ".ssh", "config")
@@ -88,7 +91,7 @@ func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
 	if err := installSSHClientConfig(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	content, err := os.ReadFile(backup)
 	if err != nil || string(content) != "old" {
 		t.Fatalf("backup inesperado: %q err=%v", content, err)
@@ -96,6 +99,7 @@ func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
 }
 
 func TestInstallSSHClientConfigIsIdempotent(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
 	installSSHClientTestIdentities(t, home)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -106,13 +110,14 @@ func TestInstallSSHClientConfigIsIdempotent(t *testing.T) {
 	if err := installSSHClientConfig(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	matches, err := filepath.Glob(filepath.Join(home, ".ssh", "config.backup-*"))
+	matches, err := testBackupPaths(localBackupRoot(), "files", filepath.Join(home, ".ssh", "config"))
 	if err != nil || len(matches) != 0 {
 		t.Fatalf("backups inesperados: %v, err=%v", matches, err)
 	}
 }
 
 func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
+	testBackupStore(t)
 	model := newModel(t.TempDir())
 	model.screen = screenSSH
 	model.ssh.cfg = map[string]string{"port": "2222"}
@@ -134,6 +139,7 @@ func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
 }
 
 func TestFirewallMenuHasSingleLANConfigurationAction(t *testing.T) {
+	testBackupStore(t)
 	model := newModel(t.TempDir())
 	model.screen = screenFirewall
 	model.fw = fwStatus{port: "2222", lan: "10.20.30.0/24"}

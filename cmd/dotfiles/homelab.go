@@ -156,7 +156,7 @@ func serverDNSJob(setupDir string) job {
 	return job{title: "Liberar porta 53 (DNS)", steps: withSudo(sudoStep(
 		"Desativar DNSStubListener, preservar resolv.conf e reiniciar systemd-resolved", false,
 		"bash", configPath(setupDir, "dns", "disable-stub.sh"),
-		"/etc/systemd/resolved.conf", "/etc/resolv.conf", "/run/systemd/resolve/stub-resolv.conf", "/run/systemd/resolve/resolv.conf")),
+		"/etc/systemd/resolved.conf", "/etc/resolv.conf", "/run/systemd/resolve/stub-resolv.conf", "/run/systemd/resolve/resolv.conf", localBackupRoot())),
 		result: func() string {
 			return "DNSStubListener=no; systemd-resolved reiniciado. Nenhuma regra pública para a porta 53 foi criada."
 		}}

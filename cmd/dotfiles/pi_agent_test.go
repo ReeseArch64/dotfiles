@@ -32,6 +32,7 @@ func preparePiAgentTest(t *testing.T) (string, string) {
 }
 
 func TestRepositoryPiSettingsDeclareRequiredPackages(t *testing.T) {
+	testBackupStore(t)
 	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
 		content, err := os.ReadFile(configPath(setupDir, "pi", "agent", "settings.json"))
 		if err != nil {
@@ -51,6 +52,7 @@ func TestRepositoryPiSettingsDeclareRequiredPackages(t *testing.T) {
 }
 
 func TestInstallPiConfigCopiesRegularFilesAndPreservesExisting(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := preparePiAgentTest(t)
 	agentDir := piAgentDir(home)
 	if err := os.MkdirAll(filepath.Join(agentDir, "themes"), 0755); err != nil {
@@ -81,13 +83,14 @@ func TestInstallPiConfigCopiesRegularFilesAndPreservesExisting(t *testing.T) {
 		if !regularFileMatches(file.source, file.destination) {
 			t.Fatalf("%s não corresponde à origem", file.name)
 		}
-		if _, err := os.Lstat(file.destination + ".backup-20250102-030405"); err != nil {
+		if _, err := os.Lstat(testBackupFor(t, file.destination)); err != nil {
 			t.Fatalf("backup de %s ausente: %v", file.name, err)
 		}
 	}
 }
 
 func TestInstallPiConfigIsIdempotent(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := preparePiAgentTest(t)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 	if err := installPiConfig(dotfiles, home, now); err != nil {
@@ -97,7 +100,7 @@ func TestInstallPiConfigIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, file := range piConfigFiles(dotfiles, home) {
-		matches, err := filepath.Glob(file.destination + ".backup-*")
+		matches, err := testBackupPaths(localBackupRoot(), "files", file.destination)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -108,6 +111,7 @@ func TestInstallPiConfigIsIdempotent(t *testing.T) {
 }
 
 func TestPiAgentJobUpdatesPackagesInConfiguredAgentDir(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := preparePiAgentTest(t)
 	lookPath := func(name string) (string, error) {
 		if name != "pi" {
@@ -128,6 +132,7 @@ func TestPiAgentJobUpdatesPackagesInConfiguredAgentDir(t *testing.T) {
 }
 
 func TestPiAgentJobUsesExistingLocalBinaryAndSkipsPackages(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := preparePiAgentTest(t)
 	bin := filepath.Join(piAgentDir(home), "bin")
 	if err := os.MkdirAll(bin, 0755); err != nil {
@@ -154,6 +159,7 @@ func TestPiAgentJobUsesExistingLocalBinaryAndSkipsPackages(t *testing.T) {
 }
 
 func TestPiAgentJobInstallsPiWhenMissing(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := preparePiAgentTest(t)
 	configured := piAgentJobFor(dotfiles, home, func(string) (string, error) {
 		return "", errors.New("ausente")
@@ -186,6 +192,7 @@ func TestPiAgentJobInstallsPiWhenMissing(t *testing.T) {
 }
 
 func TestLoadPiAgentStatusCountsInstalledPackages(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := preparePiAgentTest(t)
 	if err := installPiConfig(dotfiles, home, time.Now()); err != nil {
 		t.Fatal(err)

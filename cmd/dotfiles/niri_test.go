@@ -10,6 +10,7 @@ import (
 )
 
 func TestInstallNiriCreatesRegularConfigDirectory(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "niri")
@@ -44,6 +45,7 @@ func TestInstallNiriCreatesRegularConfigDirectory(t *testing.T) {
 }
 
 func TestInstallNiriPreservesExistingConfiguration(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "niri")
@@ -65,7 +67,7 @@ func TestInstallNiriPreservesExistingConfiguration(t *testing.T) {
 	if err := installNiri(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	content, err := os.ReadFile(filepath.Join(backup, "config.kdl"))
 	if err != nil {
 		t.Fatal(err)
@@ -86,6 +88,7 @@ func TestInstallNiriPreservesExistingConfiguration(t *testing.T) {
 }
 
 func TestInstallNiriMigratesExistingSymlink(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "niri")
@@ -114,13 +117,14 @@ func TestInstallNiriMigratesExistingSymlink(t *testing.T) {
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		t.Fatalf("symlink não foi migrado: %v", info.Mode())
 	}
-	backup := destination + ".backup-20250102-030405"
+	backup := testBackupFor(t, destination)
 	if info, err := os.Lstat(backup); err != nil || info.Mode()&os.ModeSymlink == 0 {
 		t.Fatalf("backup do symlink ausente: info=%v err=%v", info, err)
 	}
 }
 
 func TestInstallNiriCursorCopiesThemeToIcons(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "cursor", "FrierenBLZ")
@@ -152,6 +156,7 @@ func TestInstallNiriCursorCopiesThemeToIcons(t *testing.T) {
 }
 
 func TestNiriJobCopiesConfigurationAndCursor(t *testing.T) {
+	testBackupStore(t)
 	configured := niriJobFor("/tmp/dotfiles", "/tmp/home", func() time.Time { return time.Time{} })
 	want := []string{
 		"Copiar configuração para ~/.config/niri",
@@ -163,6 +168,7 @@ func TestNiriJobCopiesConfigurationAndCursor(t *testing.T) {
 }
 
 func TestInstallNiriDeviceProfiles(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
@@ -201,7 +207,7 @@ func TestInstallNiriDeviceProfiles(t *testing.T) {
 			if strings.Contains(string(display), `output "eDP-1"`) != isLaptop || strings.Contains(string(display), `output "DP-1"`) == isLaptop || (isLaptop && strings.Count(string(display), `output "`) != 1) {
 				t.Fatalf("outputs incorretos para %s: %s", device, display)
 			}
-			if matches, err := filepath.Glob(destination + ".backup-*"); err != nil || len(matches) != 0 {
+			if matches, err := testBackupPaths(localBackupRoot(), "files", destination); err != nil || len(matches) != 0 {
 				t.Fatalf("reinstalação criou backups: %v, err=%v", matches, err)
 			}
 		})
@@ -209,6 +215,7 @@ func TestInstallNiriDeviceProfiles(t *testing.T) {
 }
 
 func TestInstallNiriMissingProfilePreservesDestination(t *testing.T) {
+	testBackupStore(t)
 	dotfiles, home := t.TempDir(), t.TempDir()
 	source := configPath(dotfiles, "niri")
 	destination := filepath.Join(home, ".config", "niri")
@@ -231,6 +238,7 @@ func TestInstallNiriMissingProfilePreservesDestination(t *testing.T) {
 }
 
 func TestInstallNiriIsIdempotent(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	source := configPath(dotfiles, "niri")
@@ -245,7 +253,7 @@ func TestInstallNiriIsIdempotent(t *testing.T) {
 	if err := installNiri(dotfiles, home, now); err != nil {
 		t.Fatal(err)
 	}
-	if matches, err := filepath.Glob(filepath.Join(home, ".config", "niri.backup-*")); err != nil || len(matches) != 0 {
+	if matches, err := testBackupPaths(localBackupRoot(), "files", filepath.Join(home, ".config", "niri")); err != nil || len(matches) != 0 {
 		t.Fatalf("backups inesperados: %v, err=%v", matches, err)
 	}
 }

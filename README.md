@@ -124,7 +124,7 @@ Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
 | `~/Android` | `/mnt/sdk/Android` |
 | `~/.gradle` | `/mnt/sdk/Gradle` |
 
-Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups adjacentes no formato `<nome>.sdk-backup-<data-UTC>-<identificador>/original`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
+Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups dentro de `/mnt/backups`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
 
 **Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links. Os backups são preservados para conferência; a CLI não os remove automaticamente.
 
@@ -261,7 +261,7 @@ id_gitlab_reesearch64.pub
 
 A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
 
-Uma configuração diferente recebe o sufixo `.backup-AAAAMMDD-HHMMSS`.
+Uma configuração diferente é preservada em `/mnt/backups`, identificada pela origem e pela data, sem criar arquivos de backup dentro de `~/.ssh`.
 
 ### Firewall
 
@@ -478,7 +478,7 @@ Cada equipamento tem sua configuração completa e independente. O `cfg/display.
 
 A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/autostart.kdl`. O laptop não inicia esse serviço.
 
-Quando o cursor de destino é diferente, a CLI preserva a versão anterior com um sufixo de backup datado.
+Quando o cursor de destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`.
 
 ### Noctalia
 
@@ -589,7 +589,9 @@ A ação substitui o destino existente. Faça uma cópia manual quando quiser pr
 
 Niri, o cursor FrierenBLZ, Ghostty, Obsidian, wallpapers e btop usam cópias regulares.
 
-Quando o destino é diferente, a CLI o renomeia com o sufixo `.backup-AAAAMMDD-HHMMSS`. Conteúdo idêntico não gera outro backup.
+Quando o destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`, com identificação da origem e da data e sem sobrescrever backups anteriores. Conteúdo idêntico não gera outro backup. O backup é concluído antes da substituição, inclusive quando o destino fica em outro disco.
+
+Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent, à migração SDK e aos arquivos DNS do mini-servidor. Não são criados backups permanentes nos diretórios dos programas. Backups antigos já existentes nesses locais não são movidos nem apagados automaticamente.
 
 ## Pi Agent
 
@@ -659,21 +661,31 @@ Para verificar a aceleração:
 
 ## Backup
 
-Os backups de arquivos armazenam os dados locais em `/mnt/backups`. Antes de executar os backups do navegador, SSH ou GPG, a CLI verifica esse diretório. Quando necessário, ela usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`.
+Todos os backups locais gerados pela CLI ficam em `/mnt/backups`, em registros únicos por categoria, origem e data UTC:
+
+```text
+/mnt/backups/<categoria>/<hash-SHA256-da-origem>/<data-UTC>-<identificador>/
+├── origin.json
+└── original
+```
+
+As categorias são `files` (configurações e migração SDK), `browser`, `ssh`, `gpg`, `dns` e `snapshots`. O conteúdo original fica em `original`; o arquivo `origin.json` informa o caminho de origem e a data (no DNS, `origin.path` registra a origem). A estrutura privada usa `0700`; configurações DNS e snapshots, executados via sudo, têm categorias próprias pertencentes ao root, sem alterar o dono do diretório principal.
+
+Cada execução cria uma nova geração e preserva as anteriores. A CLI prepara `/mnt/backups` com proprietário/grupo do usuário e permissão `0700`. Para execução isolada ou testes, `DOTFILES_BACKUP_DIR=/caminho/absoluto` substitui explicitamente a raiz; erros nunca causam fallback para o diretório do programa.
 
 ### Ponto de restauração
 
-`Backup > Ponto de Restauração` cria um snapshot Btrfs gravável do subvolume raiz em `/.snapshots`. O nome inclui a data e a hora locais no formato `ponto-restauracao-AAAA-MM-DD_HH-MM-SS`.
+`Backup > Ponto de Restauração` cria um snapshot Btrfs gravável do subvolume raiz dentro de `/mnt/backups`. O registro fica em `snapshots/<hash-da-origem>/<data-UTC>-<identificador>/original`.
 
-A ação cria `/.snapshots` quando necessário e executa `btrfs subvolume snapshot / <destino>` com privilégios de administrador. A raiz e `/.snapshots` precisam pertencer ao mesmo sistema de arquivos Btrfs.
+A ação prepara o destino centralizado e executa `btrfs subvolume snapshot / <destino>` com privilégios de administrador. O destino precisa pertencer ao mesmo sistema de arquivos Btrfs da raiz; se `/mnt/backups` estiver em outro disco ou sistema de arquivos, a criação do snapshot é recusada, sem gravá-lo em outro local.
 
 ### Backup do navegador
 
-`Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/zen-backup.tar`.
+`Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/browser/<hash>/<geração>/original/zen-backup.tar`.
 
 Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois de criar o arquivo.
 
-A ação cria um arquivo temporário antes de substituir o backup anterior. Em caso de falha, ela preserva o arquivo existente. O backup recebe permissão `0600` porque contém dados do navegador e do chaveiro.
+A ação cria o arquivo temporário na nova geração. Em caso de falha, as gerações anteriores permanecem intactas. O arquivo recebe permissão `0600` porque contém dados do navegador e do chaveiro.
 
 ### Backup de projetos locais
 
@@ -694,7 +706,7 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 
 ### Backup das chaves SSH
 
-`Backup > Backup das Chaves SSH` copia estas identidades de `~/.ssh` para `/mnt/backups/ssh`:
+`Backup > Backup das Chaves SSH` copia estas identidades de `~/.ssh` para `/mnt/backups/ssh/<hash>/<geração>/original/`:
 
 ```text
 id_github_reesearch64
@@ -705,7 +717,7 @@ id_gitlab_reesearch64.pub
 
 A CLI valida todos os quatro arquivos antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia.
 
-O diretório `/mnt/backups/ssh` recebe permissão `0700`. Cada arquivo é substituído de forma atômica e mantém a permissão da origem. Proteja as chaves privadas em `~/.ssh` com permissão `0600`.
+Os diretórios de backup SSH recebem permissão `0700`. Cada geração mantém a permissão dos arquivos da origem, sem substituir gerações anteriores. Proteja as chaves privadas em `~/.ssh` com permissão `0600`.
 
 ### Backup das chaves GPG
 
@@ -713,12 +725,12 @@ O diretório `/mnt/backups/ssh` recebe permissão `0700`. Cada arquivo é substi
 
 | Conteúdo | Destino | Permissão |
 | --- | --- | --- |
-| Chaves públicas | `/mnt/backups/gpg/minha_chave_publica.asc` | `0644` |
-| Chaves privadas | `/mnt/backups/gpg/minha_chave_privada.asc` | `0600` |
+| Chaves públicas | `/mnt/backups/gpg/<hash>/<geração>/original/minha_chave_publica.asc` | `0644` |
+| Chaves privadas | `/mnt/backups/gpg/<hash>/<geração>/original/minha_chave_privada.asc` | `0600` |
 
 A ação exige o comando `gpg`, normalmente fornecido pelo pacote `gnupg` instalado em `Desenvolvimento > GPG`. O diretório `/mnt/backups/gpg` recebe permissão `0700`.
 
-As duas exportações são concluídas antes da gravação dos arquivos. A CLI rejeita resultados sem os cabeçalhos OpenPGP esperados e usa arquivos temporários para substituir os backups existentes.
+As duas exportações são concluídas antes da gravação dos arquivos. A CLI rejeita resultados sem os cabeçalhos OpenPGP esperados e usa arquivos temporários dentro de uma nova geração, preservando todos os backups existentes.
 
 ## Estrutura do repositório
 

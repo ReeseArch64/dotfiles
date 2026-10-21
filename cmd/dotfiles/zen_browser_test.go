@@ -69,6 +69,7 @@ func validZenTestEntries() []zenTarEntry {
 }
 
 func TestValidateZenBackupRequiresRegularArchive(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := t.TempDir()
 	if err := validateZenBackup(dotfiles); err == nil || !strings.Contains(err.Error(), "zen-backup.tar") {
 		t.Fatalf("erro inesperado para backup ausente: %v", err)
@@ -82,6 +83,7 @@ func TestValidateZenBackupRequiresRegularArchive(t *testing.T) {
 }
 
 func TestExtractZenBackupAllowsExpectedDirectoriesAndSafeSymlink(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := t.TempDir()
 	writeZenTestArchive(t, filepath.Join(dotfiles, "zen-backup.tar"), validZenTestEntries())
 
@@ -105,6 +107,7 @@ func TestExtractZenBackupAllowsExpectedDirectoriesAndSafeSymlink(t *testing.T) {
 }
 
 func TestExtractZenBackupRejectsUnexpectedPaths(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := t.TempDir()
 	writeZenTestArchive(t, filepath.Join(dotfiles, "zen-backup.tar"), []zenTarEntry{
 		{name: "../outside", content: "unsafe", typeflag: tar.TypeReg},
@@ -120,6 +123,7 @@ func TestExtractZenBackupRejectsUnexpectedPaths(t *testing.T) {
 }
 
 func TestRestoreZenBackupReplacesCurrentDirectories(t *testing.T) {
+	testBackupStore(t)
 	dotfiles := t.TempDir()
 	home := t.TempDir()
 	writeZenTestArchive(t, filepath.Join(dotfiles, "zen-backup.tar"), validZenTestEntries())
@@ -164,6 +168,7 @@ func TestRestoreZenBackupReplacesCurrentDirectories(t *testing.T) {
 }
 
 func TestZenBrowserJobOrdersValidationInstallationAndRestore(t *testing.T) {
+	testBackupStore(t)
 	packageStep := nativeStep("Instalar zen-browser-bin via AUR", func() error { return nil })
 	configured := zenBrowserJobFor("/tmp/dotfiles", "/tmp/home", []step{packageStep})
 	want := []string{

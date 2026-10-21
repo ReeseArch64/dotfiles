@@ -8,13 +8,13 @@ import (
 	"testing"
 )
 
-type dnsFixture struct{ config, resolver, stub, upstream, log string }
+type dnsFixture struct{ config, resolver, stub, upstream, log, backups string }
 
 func prepareDNS(t *testing.T, content, resolverKind string) dnsFixture {
 	t.Helper()
 	bin, log := homelabMocks(t)
 	root := t.TempDir()
-	f := dnsFixture{filepath.Join(root, "resolved.conf"), filepath.Join(root, "resolv.conf"), filepath.Join(root, "stub-resolv.conf"), filepath.Join(root, "upstream-resolv.conf"), log}
+	f := dnsFixture{filepath.Join(root, "resolved.conf"), filepath.Join(root, "resolv.conf"), filepath.Join(root, "stub-resolv.conf"), filepath.Join(root, "upstream-resolv.conf"), log, t.TempDir()}
 	for path, content := range map[string]string{f.config: content, f.stub: "nameserver 127.0.0.53\n", f.upstream: "nameserver 192.168.1.1\n"} {
 		if err := os.WriteFile(path, []byte(content), 0640); err != nil {
 			t.Fatal(err)
@@ -52,7 +52,7 @@ if [ "${FAIL_RESTART:-}" = yes ]; then exit 7; fi`)
 
 func (f dnsFixture) run(t *testing.T) (string, error) {
 	t.Helper()
-	cmd := exec.Command("bash", configPath(homelabSetup(t), "dns", "disable-stub.sh"), f.config, f.resolver, f.stub, f.upstream, filepath.Join(filepath.Dir(f.config), "resolved.conf.d"))
+	cmd := exec.Command("bash", configPath(homelabSetup(t), "dns", "disable-stub.sh"), f.config, f.resolver, f.stub, f.upstream, f.backups, filepath.Join(filepath.Dir(f.config), "resolved.conf.d"))
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
@@ -70,7 +70,7 @@ func TestServerDNSSectionAwareBackupResolverAndIdempotence(t *testing.T) {
 			if got != want {
 				t.Fatalf("section-aware rewrite: %q", got)
 			}
-			if backup := readHomelabFile(t, f.config+".dotfiles-backup"); backup != original {
+			if backup := readHomelabFile(t, testBackupAt(t, f.backups, "dns", f.config)); backup != original {
 				t.Fatal(backup)
 			}
 			if info, err := os.Stat(f.config); err != nil || info.Mode().Perm() != 0640 {
@@ -80,10 +80,10 @@ func TestServerDNSSectionAwareBackupResolverAndIdempotence(t *testing.T) {
 				if target, err := os.Readlink(f.resolver); err != nil || target != f.upstream {
 					t.Fatalf("resolver not migrated: %s %v", target, err)
 				}
-				if target, err := os.Readlink(f.resolver + ".dotfiles-backup"); err != nil || target != filepath.Base(f.stub) {
+				if target, err := os.Readlink(testBackupAt(t, f.backups, "dns", f.resolver)); err != nil || target != filepath.Base(f.stub) {
 					t.Fatalf("symlink backup lost: %s %v", target, err)
 				}
-			} else if _, err := os.Lstat(f.resolver + ".dotfiles-backup"); !os.IsNotExist(err) {
+			} else if paths, err := testBackupPaths(f.backups, "dns", f.resolver); err != nil || len(paths) != 0 {
 				t.Fatal("externally managed resolver was modified")
 			}
 			if out, err := f.run(t); err != nil {
@@ -92,7 +92,7 @@ func TestServerDNSSectionAwareBackupResolverAndIdempotence(t *testing.T) {
 			if second := readHomelabFile(t, f.config); second != got {
 				t.Fatal("not idempotent", second)
 			}
-			if backup := readHomelabFile(t, f.config+".dotfiles-backup"); backup != original {
+			if backup := readHomelabFile(t, testBackupAt(t, f.backups, "dns", f.config)); backup != original {
 				t.Fatal("backup overwritten")
 			}
 			if commands := readHomelabFile(t, f.log); commands != strings.Repeat("systemctl restart systemd-resolved\n", 2) {
@@ -157,7 +157,7 @@ func TestServerDNSRefusesUnsafeResolutionAndPropagatesRestartFailure(t *testing.
 			if _, err := os.Stat(f.log); !os.IsNotExist(err) {
 				t.Fatal("restart happened after validation failure")
 			}
-			if _, err := os.Stat(f.config + ".dotfiles-backup"); !os.IsNotExist(err) {
+			if paths, err := testBackupPaths(f.backups, "dns", f.config); err != nil || len(paths) != 0 {
 				t.Fatal("config changed before validation")
 			}
 			if kind != "missing config" && readHomelabFile(t, f.config) != original {
