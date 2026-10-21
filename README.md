@@ -144,9 +144,19 @@ Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
 | `~/.railway` | `/mnt/sdk/Railway` |
 | `~/.tauri` | `/mnt/sdk/Tauri` |
 
+Também são migradas as pastas pessoais para `/mnt/storage`. Os caminhos no home são links simbólicos apontando para os destinos, assim como todos os diretórios SDK acima:
+
+| Link no home | Destino |
+| --- | --- |
+| `~/Documents` | `/mnt/storage/Documents` |
+| `~/Downloads` | `/mnt/storage/Downloads` |
+| `~/Pictures` | `/mnt/storage/Pictures` |
+| `~/Videos` | `/mnt/storage/Videos` |
+| `~/Music` | `/mnt/storage/Music` |
+
 Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups dentro de `/mnt/backups`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
 
-**Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links. Os backups são preservados para conferência; a CLI não os remove automaticamente.
+**Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links do grupo afetado (SDK ou storage). Os backups são preservados para conferência; a CLI não os remove automaticamente.
 
 Para compilar e executar sem instalar o comando:
 
@@ -611,7 +621,7 @@ Niri, o cursor FrierenBLZ, Ghostty, Obsidian, wallpapers e btop usam cópias reg
 
 Quando o destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`, com identificação da origem e da data e sem sobrescrever backups anteriores. Conteúdo idêntico não gera outro backup. O backup é concluído antes da substituição, inclusive quando o destino fica em outro disco.
 
-Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent, à migração SDK e aos arquivos DNS do mini-servidor. Não são criados backups permanentes nos diretórios dos programas. Backups antigos já existentes nesses locais não são movidos nem apagados automaticamente.
+Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent, às migrações SDK e storage e aos arquivos DNS do mini-servidor. Não são criados backups permanentes nos diretórios dos programas. Backups antigos já existentes nesses locais não são movidos nem apagados automaticamente.
 
 ## Pi Agent
 

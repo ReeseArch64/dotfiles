@@ -43,7 +43,11 @@ func copySDKTree(source, target string) error {
 	return nil
 }
 
-func prepareSDKDirectories(home, root string, ops sdkMigrationOps) (result error) {
+func prepareSDKDirectories(home, root string, ops sdkMigrationOps) error {
+	return prepareHomeDirectoryLinks(home, root, ops, sdkDirectoryMappings)
+}
+
+func prepareHomeDirectoryLinks(home, root string, ops sdkMigrationOps, mappings [][2]string) error {
 	home, err := filepath.Abs(home)
 	if err != nil {
 		return err
@@ -58,36 +62,25 @@ func prepareSDKDirectories(home, root string, ops sdkMigrationOps) (result error
 		}
 	}
 	if sdkPathWithin(home, root) || sdkPathWithin(root, home) {
-		return fmt.Errorf("HOME e SDK não podem se sobrepor: %s, %s", home, root)
+		return fmt.Errorf("HOME e destino não podem se sobrepor: %s, %s", home, root)
 	}
 
-	migrations := []sdkMigration{
-		{home: filepath.Join(home, ".aur"), target: filepath.Join(root, "Aur")},
-		{home: filepath.Join(home, ".local"), target: filepath.Join(root, "Local")},
-		{home: filepath.Join(home, ".cache"), target: filepath.Join(root, "Cache")},
-		{home: filepath.Join(home, "Android"), target: filepath.Join(root, "Android")},
-		{home: filepath.Join(home, ".gradle"), target: filepath.Join(root, "Gradle")},
-		{home: filepath.Join(home, ".bun"), target: filepath.Join(root, "Bun")},
-		{home: filepath.Join(home, ".pi"), target: filepath.Join(root, "Pi")},
-		{home: filepath.Join(home, ".codex"), target: filepath.Join(root, "Codex")},
-		{home: filepath.Join(home, ".npm"), target: filepath.Join(root, "Npm")},
-		{home: filepath.Join(home, ".rustup"), target: filepath.Join(root, "Rustup")},
-		{home: filepath.Join(home, ".agent-browser"), target: filepath.Join(root, "AgentBrowser")},
-		{home: filepath.Join(home, ".cargo"), target: filepath.Join(root, "Cargo")},
-		{home: filepath.Join(home, ".expo"), target: filepath.Join(root, "Expo")},
-		{home: filepath.Join(home, ".vscode"), target: filepath.Join(root, "Vscode")},
-		{home: filepath.Join(home, ".vite-plus"), target: filepath.Join(root, "VitePlus")},
-		{home: filepath.Join(home, "go"), target: filepath.Join(root, "Go")},
-		{home: filepath.Join(home, ".docker"), target: filepath.Join(root, "Docker")},
-		{home: filepath.Join(home, ".dotnet"), target: filepath.Join(root, "Dotnet")},
-		{home: filepath.Join(home, ".java"), target: filepath.Join(root, "Java")},
-		{home: filepath.Join(home, ".copilot"), target: filepath.Join(root, "Copilot")},
-		{home: filepath.Join(home, ".azure"), target: filepath.Join(root, "Azure")},
-		{home: filepath.Join(home, ".aws"), target: filepath.Join(root, "Aws")},
-		{home: filepath.Join(home, ".gemini"), target: filepath.Join(root, "Gemini")},
-		{home: filepath.Join(home, ".railway"), target: filepath.Join(root, "Railway")},
-		{home: filepath.Join(home, ".tauri"), target: filepath.Join(root, "Tauri")},
+	migrations := make([]sdkMigration, 0, len(mappings))
+	for _, mapping := range mappings {
+		migrations = append(migrations, sdkMigration{home: filepath.Join(home, mapping[0]), target: filepath.Join(root, mapping[1])})
 	}
+	return runDirectoryMigrations(migrations, ops)
+}
+
+var sdkDirectoryMappings = [][2]string{
+	{".aur", "Aur"}, {".local", "Local"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
+	{".bun", "Bun"}, {".pi", "Pi"}, {".codex", "Codex"}, {".npm", "Npm"}, {".rustup", "Rustup"},
+	{".agent-browser", "AgentBrowser"}, {".cargo", "Cargo"}, {".expo", "Expo"}, {".vscode", "Vscode"},
+	{".vite-plus", "VitePlus"}, {"go", "Go"}, {".docker", "Docker"}, {".dotnet", "Dotnet"}, {".java", "Java"},
+	{".copilot", "Copilot"}, {".azure", "Azure"}, {".aws", "Aws"}, {".gemini", "Gemini"}, {".railway", "Railway"}, {".tauri", "Tauri"},
+}
+
+func runDirectoryMigrations(migrations []sdkMigration, ops sdkMigrationOps) (result error) {
 	// Preflight every mapping before creating staging directories or backups.
 	for i := range migrations {
 		if err := migrations[i].preflight(); err != nil {
