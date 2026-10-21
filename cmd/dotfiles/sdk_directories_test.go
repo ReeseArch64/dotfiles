@@ -52,12 +52,20 @@ func sdkTestBackup(t *testing.T, path string) string {
 	return testBackupFor(t, path)
 }
 
+var sdkTestMappings = [][2]string{
+	{".aur", "Aur"}, {".local", "Local"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
+	{".bun", "Bun"}, {".pi", "Pi"}, {".codex", "Codex"}, {".npm", "Npm"}, {".rustup", "Rustup"},
+	{".agent-browser", "AgentBrowser"}, {".cargo", "Cargo"}, {".expo", "Expo"}, {".vscode", "Vscode"},
+	{".vite-plus", "VitePlus"}, {"go", "Go"}, {".docker", "Docker"}, {".dotnet", "Dotnet"}, {".java", "Java"},
+	{".copilot", "Copilot"}, {".azure", "Azure"}, {".aws", "Aws"}, {".gemini", "Gemini"}, {".railway", "Railway"}, {".tauri", "Tauri"},
+}
+
 func TestSDKMissingSourcesAndIdempotence(t *testing.T) {
 	home, root := sdkTestRoots(t)
 	if err := prepareSDKDirectories(home, root, sdkTestOps()); err != nil {
 		t.Fatal(err)
 	}
-	for _, pair := range [][2]string{{".aur", "Aur"}, {".local", "Local"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"}} {
+	for _, pair := range sdkTestMappings {
 		target := filepath.Join(root, pair[1])
 		link, err := os.Readlink(filepath.Join(home, pair[0]))
 		if err != nil || link != target {
@@ -88,7 +96,8 @@ func TestSDKMigrationPreservesAllSourcesMetadataAndSymlinks(t *testing.T) {
 	external := t.TempDir()
 	sdkTestWrite(t, filepath.Join(external, "untouched"), "external")
 	stamp := time.Unix(1700000000, 123456789)
-	for _, name := range []string{".aur", ".local", ".cache", "Android", ".gradle"} {
+	for _, pair := range sdkTestMappings {
+		name := pair[0]
 		source := filepath.Join(home, name)
 		sdkTestWrite(t, filepath.Join(source, "nested", "file"), name)
 		if err := os.Chmod(filepath.Join(source, "nested", "file"), 0751); err != nil {
@@ -115,7 +124,7 @@ func TestSDKMigrationPreservesAllSourcesMetadataAndSymlinks(t *testing.T) {
 	if err := prepareSDKDirectories(home, root, sdkTestOps()); err != nil {
 		t.Fatal(err)
 	}
-	for _, pair := range [][2]string{{".aur", "Aur"}, {".local", "Local"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"}} {
+	for _, pair := range sdkTestMappings {
 		source, target := filepath.Join(home, pair[0]), filepath.Join(root, pair[1])
 		backup := sdkTestBackup(t, source)
 		sdkTestContent(t, filepath.Join(target, "nested", "file"), pair[0])

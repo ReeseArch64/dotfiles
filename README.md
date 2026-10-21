@@ -123,6 +123,26 @@ Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
 | `~/.cache` | `/mnt/sdk/Cache` |
 | `~/Android` | `/mnt/sdk/Android` |
 | `~/.gradle` | `/mnt/sdk/Gradle` |
+| `~/.bun` | `/mnt/sdk/Bun` |
+| `~/.pi` | `/mnt/sdk/Pi` |
+| `~/.codex` | `/mnt/sdk/Codex` |
+| `~/.npm` | `/mnt/sdk/Npm` |
+| `~/.rustup` | `/mnt/sdk/Rustup` |
+| `~/.agent-browser` | `/mnt/sdk/AgentBrowser` |
+| `~/.cargo` | `/mnt/sdk/Cargo` |
+| `~/.expo` | `/mnt/sdk/Expo` |
+| `~/.vscode` | `/mnt/sdk/Vscode` |
+| `~/.vite-plus` | `/mnt/sdk/VitePlus` |
+| `~/go` | `/mnt/sdk/Go` |
+| `~/.docker` | `/mnt/sdk/Docker` |
+| `~/.dotnet` | `/mnt/sdk/Dotnet` |
+| `~/.java` | `/mnt/sdk/Java` |
+| `~/.copilot` | `/mnt/sdk/Copilot` |
+| `~/.azure` | `/mnt/sdk/Azure` |
+| `~/.aws` | `/mnt/sdk/Aws` |
+| `~/.gemini` | `/mnt/sdk/Gemini` |
+| `~/.railway` | `/mnt/sdk/Railway` |
+| `~/.tauri` | `/mnt/sdk/Tauri` |
 
 Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups dentro de `/mnt/backups`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
 
