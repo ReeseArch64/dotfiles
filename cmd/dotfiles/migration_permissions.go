@@ -14,8 +14,10 @@ func validateMigrationTree(root string) error {
 		if err != nil {
 			return err
 		}
+		// Special files (sockets, FIFOs, devices) são artefatos de runtime; o
+		// cp -a os recria sem conteúdo, então apenas ignoramos aqui.
 		if !entry.IsDir() && !entry.Type().IsRegular() && entry.Type()&os.ModeSymlink == 0 {
-			return fmt.Errorf("arquivo especial não suportado: %s", path)
+			return nil
 		}
 		// WalkDir checks directory access, but not whether files can be copied.
 		if entry.Type().IsRegular() {

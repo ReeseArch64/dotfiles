@@ -2,12 +2,27 @@ package main
 
 import (
 	"errors"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"testing"
 )
+
+func TestValidateMigrationTreeSkipsSpecialFiles(t *testing.T) {
+	root := t.TempDir()
+	sdkTestWrite(t, filepath.Join(root, "payload"), "keep")
+	sock := filepath.Join(root, "zed-stable.sock")
+	listener, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	if err := validateMigrationTree(root); err != nil {
+		t.Fatalf("socket rejected: %v", err)
+	}
+}
 
 func TestRepairMigrationPermissionCommands(t *testing.T) {
 	root := t.TempDir()
