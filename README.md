@@ -112,6 +112,8 @@ Adicione `~/.local/bin` ao `PATH`, se necessário. Depois, execute:
 dotfiles
 ```
 
+Antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
+
 Para compilar e executar sem instalar o comando:
 
 ```bash
