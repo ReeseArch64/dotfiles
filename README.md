@@ -223,10 +223,11 @@ O pacote `mesa-utils` fornece o comando `glxinfo`.
 - `firefox`
 - `alacritty`
 - `meld`
+- `shelly`
 
 A ação exige que o pacote `ghostty` esteja instalado antes de remover o Alacritty. Configure o Ghostty no menu `Desktop` primeiro.
 
-A CLI atualiza as bases e executa `pacman -Rns` somente com os três pacotes que ainda estão instalados. Confirme a lista apresentada pelo Pacman antes de continuar.
+A CLI atualiza as bases e executa `pacman -Rns` somente com os pacotes da lista que ainda estão instalados. Confirme a lista apresentada pelo Pacman antes de continuar.
 
 Após a desinstalação, a ação remove estes diretórios do usuário atual:
 

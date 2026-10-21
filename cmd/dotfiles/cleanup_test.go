@@ -25,7 +25,7 @@ func TestCleanupJobRefreshesPacmanBeforeRemoval(t *testing.T) {
 	if got := jobStepLabels(configured); !slices.Equal(got, []string{
 		"Verificar instalação do Ghostty",
 		"Atualizar bases do Pacman",
-		"Desinstalar firefox, alacritty, meld",
+		"Desinstalar firefox, alacritty, meld, shelly",
 		"Remover dados dos aplicativos",
 	}) {
 		t.Fatalf("passos inesperados: %v", got)
