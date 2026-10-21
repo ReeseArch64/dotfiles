@@ -8,9 +8,10 @@ func prepareSystemStorageDirectories() error {
 		return err
 	}
 	return prepareStorageDirectories(home, "/mnt/storage", sdkMigrationOps{
-		copyTree: copySDKTree,
-		rename:   os.Rename,
-		symlink:  os.Symlink,
+		copyTree:          copySDKTree,
+		repairPermissions: repairSystemMigrationPermissions,
+		rename:            os.Rename,
+		symlink:           os.Symlink,
 	})
 }
 

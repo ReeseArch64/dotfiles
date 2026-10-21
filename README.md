@@ -156,6 +156,8 @@ Também são migradas as pastas pessoais para `/mnt/storage`. Os caminhos no hom
 
 Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups dentro de `/mnt/backups`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
 
+Se uma pasta a migrar não puder ser lida por falta de permissão, a CLI solicita `sudo` para corrigir seu proprietário/grupo para o usuário atual (`chown -R -P --no-dereference`) e adicionar acesso ao dono (`chmod -R u+rwX`), antes de tentar novamente. Isso se limita à árvore afetada, no home ou no destino; não segue links simbólicos externos, não concede acesso a outros usuários e não apaga dados. As permissões corrigidas também ficam nos backups, mesmo se a migração falhar depois.
+
 **Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links do grupo afetado (SDK ou storage). Os backups são preservados para conferência; a CLI não os remove automaticamente.
 
 Para compilar e executar sem instalar o comando:

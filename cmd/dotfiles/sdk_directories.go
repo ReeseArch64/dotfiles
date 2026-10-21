@@ -12,9 +12,10 @@ import (
 )
 
 type sdkMigrationOps struct {
-	copyTree func(string, string) error
-	rename   func(string, string) error
-	symlink  func(string, string) error
+	copyTree          func(string, string) error
+	repairPermissions func(string) error
+	rename            func(string, string) error
+	symlink           func(string, string) error
 }
 
 type sdkMigration struct {
@@ -29,9 +30,10 @@ func prepareSystemSDKDirectories() error {
 		return err
 	}
 	return prepareSDKDirectories(home, "/mnt/sdk", sdkMigrationOps{
-		copyTree: copySDKTree,
-		rename:   os.Rename,
-		symlink:  os.Symlink,
+		copyTree:          copySDKTree,
+		repairPermissions: repairSystemMigrationPermissions,
+		rename:            os.Rename,
+		symlink:           os.Symlink,
 	})
 }
 
@@ -83,7 +85,7 @@ var sdkDirectoryMappings = [][2]string{
 func runDirectoryMigrations(migrations []sdkMigration, ops sdkMigrationOps) (result error) {
 	// Preflight every mapping before creating staging directories or backups.
 	for i := range migrations {
-		if err := migrations[i].preflight(); err != nil {
+		if err := migrations[i].preflight(ops); err != nil {
 			return err
 		}
 	}
@@ -139,7 +141,7 @@ func sdkRealDirectoryPath(path string) error {
 	}
 }
 
-func (m *sdkMigration) preflight() error {
+func (m *sdkMigration) preflight(ops sdkMigrationOps) error {
 	info, err := os.Lstat(m.target)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -178,15 +180,14 @@ func (m *sdkMigration) preflight() error {
 		exists bool
 	}{{m.home, m.hasHome}, {m.target, m.hasTarget}} {
 		if tree.exists {
-			if err := filepath.WalkDir(tree.path, func(path string, entry fs.DirEntry, err error) error {
-				if err != nil {
-					return err
+			err := validateMigrationTree(tree.path)
+			if errors.Is(err, fs.ErrPermission) && ops.repairPermissions != nil {
+				if repairErr := ops.repairPermissions(tree.path); repairErr != nil {
+					return fmt.Errorf("corrigir permissões de %s: %w", tree.path, repairErr)
 				}
-				if !entry.IsDir() && !entry.Type().IsRegular() && entry.Type()&os.ModeSymlink == 0 {
-					return fmt.Errorf("arquivo especial não suportado: %s", path)
-				}
-				return nil
-			}); err != nil {
+				err = validateMigrationTree(tree.path)
+			}
+			if err != nil {
 				return err
 			}
 		}
