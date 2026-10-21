@@ -2,7 +2,7 @@ config_version = 14
 
 [bar.default]
 background_opacity = 0.32999999262392521
-end = [ "group:g1", "network", "volume", "battery" ]
+end = [ "group:g1", "mini-docker", "network", "volume", "battery" ]
 start = [ "workspaces", "spacer_2", "weather", "spacer_3", "media" ]
 thickness = 35
 
@@ -227,13 +227,13 @@ fill_mode = "stretch"
 transition_on_startup = true
 
     [wallpaper.default]
-    path = "/home/alsgy/.wallpapers/anime-girls-student-sparkler-beach-hd-wallpaper-uhdpaper.com-700@5@s.jpg"
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
 
     [wallpaper.last]
-    path = "/home/alsgy/.wallpapers/anime-girls-student-sparkler-beach-hd-wallpaper-uhdpaper.com-700@5@s.jpg"
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
 
     [wallpaper.monitors.DP-1]
-    path = "/home/alsgy/.wallpapers/anime-girls-student-sparkler-beach-hd-wallpaper-uhdpaper.com-700@5@s.jpg"
+    path = "/home/alsgy/.wallpapers/desktop.jpg"
 
 [widget.bar]
 glyph = "brand-docker"
@@ -260,6 +260,12 @@ enabled = false
 
 [widget.media]
 album_art_only = true
+
+[widget.mini-docker]
+enable_scroll = false
+show_count = false
+status_mode = "hidden"
+type = "8bury/mini-docker:mini-docker"
 
 [widget.privacy]
 enabled = false
