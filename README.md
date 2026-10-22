@@ -503,6 +503,12 @@ Ela também copia `setup/<perfil>/btop/` para `~/.config/btop`. Uma configuraç�
 
 ## Desktop
 
+### Login automático
+
+Em desktop e notebook, execute `Desktop > Login automático` para entrar direto no Niri ao ligar, sem pedir senha no SDDM. A ação usa o usuário que executou a CLI (não execute com `sudo`), preserva as outras configurações e não reinicia a sessão atual. O efeito começa na próxima inicialização.
+
+A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente, é salvo uma única vez em `/etc/sddm.conf.before-autologin`. Para desfazer, restaure esse backup ou remova a seção `[Autologin]` criada pela ação. A senha da conta, o sudo, o bloqueio de tela e uma eventual senha de criptografia do disco não são alterados. Qualquer pessoa com acesso físico poderá entrar na sessão ao ligar o computador.
+
 ### Niri
 
 `Desktop > Niri` copia integralmente `setup/<perfil>/niri/` para `~/.config/niri`. O cursor de `setup/<perfil>/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`.
