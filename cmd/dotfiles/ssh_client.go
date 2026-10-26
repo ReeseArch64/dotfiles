@@ -98,6 +98,30 @@ func writeAuthorizedKeys(path string, content []byte) error {
 	return err
 }
 
+func ensureSSHKnownHosts(home string) error {
+	path := filepath.Join(home, ".ssh", "known_hosts")
+	info, err := os.Lstat(path)
+	switch {
+	case err == nil && !info.Mode().IsRegular():
+		return fmt.Errorf("%s não é um arquivo regular", path)
+	case err == nil:
+		if err := os.Chmod(path, 0600); err != nil {
+			return fmt.Errorf("ajustar permissões de %s: %w", path, err)
+		}
+		return nil
+	case !os.IsNotExist(err):
+		return fmt.Errorf("verificar %s: %w", path, err)
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return fmt.Errorf("criar %s: %w", path, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("fechar %s: %w", path, err)
+	}
+	return nil
+}
+
 func authorizeSSHIdentities(home string, publicNames []string, now time.Time) error {
 	sshDir := filepath.Join(home, ".ssh")
 	lines := make([]string, 0, len(publicNames))
@@ -188,6 +212,9 @@ func installSSHClientConfig(setupDir, home string, device deviceProfile, now tim
 	sshDir := filepath.Join(home, ".ssh")
 	if err := os.Chmod(sshDir, 0700); err != nil {
 		return fmt.Errorf("ajustar permissões de %s: %w", sshDir, err)
+	}
+	if err := ensureSSHKnownHosts(home); err != nil {
+		return err
 	}
 	destination := filepath.Join(sshDir, "config")
 	if regularFileMatches(source, destination) {

@@ -1,3 +1,8 @@
+# Hosts LAN gerenciados usam TOFU: a primeira chave é salva e mudanças futuras
+# continuam sendo recusadas.
+Host 192.168.1.103 192.168.1.107
+  StrictHostKeyChecking accept-new
+
 # ==============================
 # CONFIGURAÇÃO GLOBAL
 # ==============================

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -93,6 +94,34 @@ func TestSSHConfigsUseKeysFromTheirOriginDevice(t *testing.T) {
 	for _, forbidden := range []string{"id_pessoal_notebook", "Host 192.168.1.103", "Host 192.168.1.104", "Host 192.168.1.107"} {
 		if strings.Contains(notebook, forbidden) {
 			t.Fatalf("configuração notebook contém acesso não autorizado: %s", forbidden)
+		}
+	}
+}
+
+func TestDesktopAutomaticallyTrustsOnlyNewLANHostKeys(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := configPath(setupDirectory(root, deviceDesktop), "ssh", "config")
+	for host, want := range map[string]string{
+		"192.168.1.103": "accept-new",
+		"192.168.1.107": "accept-new",
+		"github.com":    "true",
+	} {
+		output, err := exec.Command("ssh", "-G", "-F", config, host).Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		setting := ""
+		for _, line := range strings.Split(string(output), "\n") {
+			if value, ok := strings.CutPrefix(line, "stricthostkeychecking "); ok {
+				setting = value
+				break
+			}
+		}
+		if setting != want {
+			t.Fatalf("%s: StrictHostKeyChecking=%q, esperado %q", host, setting, want)
 		}
 	}
 }
@@ -240,6 +269,10 @@ func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
 	sshDir := filepath.Join(home, ".ssh")
 	if info, err := os.Stat(sshDir); err != nil || info.Mode().Perm() != 0700 {
 		t.Fatalf("permissão inesperada para ~/.ssh: info=%v err=%v", info, err)
+	}
+	knownHosts := filepath.Join(sshDir, "known_hosts")
+	if info, err := os.Stat(knownHosts); err != nil || info.Mode().Perm() != 0600 {
+		t.Fatalf("known_hosts não preparado: info=%v err=%v", info, err)
 	}
 	destination := filepath.Join(sshDir, "config")
 	info, err := os.Lstat(destination)

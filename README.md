@@ -308,7 +308,7 @@ As identidades são separadas pelo dispositivo de origem:
 
 Desktop e notebook também exigem os pares compartilhados `id_github` e `id_gitlab`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
 
-A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
+A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. No desktop, notebook e mini-server usam `StrictHostKeyChecking accept-new`: a primeira conexão registra automaticamente a chave do host e qualquer mudança posterior continua sendo recusada. Os demais destinos mantêm `StrictHostKeyChecking yes`.
 
 O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → mini-server. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub`; o mini-server aceita somente `id_pessoal_desktop.pub`. Assim, a identidade pessoal não concede acesso ao equipamento de trabalho. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
 
