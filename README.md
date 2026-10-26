@@ -160,6 +160,10 @@ Se uma pasta a migrar não puder ser lida por falta de permissão, a CLI solicit
 
 **Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links do grupo afetado (SDK ou storage). Os backups são preservados para conferência; a CLI não os remove automaticamente.
 
+Após preparar os links SDK, a CLI prepara a lixeira principal: `$XDG_DATA_HOME/Trash` passa a ser um link absoluto para `~/.trash`, um diretório real no mesmo sistema de arquivos do home. Quando `XDG_DATA_HOME` estiver ausente, vazio ou relativo, usa `~/.local/share/Trash`. Isso mantém a lixeira do home funcionando mesmo com `~/.local` em outro disco. Não modifica `XDG_DATA_HOME` nem as lixeiras próprias de outros volumes, como `/mnt/storage/.Trash-1000`.
+
+Na primeira execução, feche também os gerenciadores de arquivos e demais aplicativos que usam a lixeira. Os itens existentes e seus metadados de restauração são copiados para `~/.trash`, preservando os originais em `/mnt/backups` pelo mesmo mecanismo das outras migrações. `~/.trash`, `files` e `info` recebem permissão `0700`. Se as duas lixeiras já tiverem conteúdo, os itens sem conflitos são reunidos; nomes conflitantes, inclusive entre arquivos e seus metadados, interrompem a preparação antes de substituir os originais. Resolva esses conflitos antes de executar novamente. Links inesperados, diretórios de outro proprietário ou `~/.trash` em outro sistema de arquivos são rejeitados. Falhas na ativação acionam a recuperação dos originais; execuções seguintes reutilizam o link correto.
+
 Para compilar e executar sem instalar o comando:
 
 ```bash

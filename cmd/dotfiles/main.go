@@ -516,6 +516,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}
+	if err := prepareSystemTrashDirectory(); err != nil {
+		fmt.Fprintln(os.Stderr, "erro: preparar lixeira:", err)
+		os.Exit(1)
+	}
 	if err := prepareSystemStorageDirectories(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
