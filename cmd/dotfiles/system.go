@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -159,7 +160,9 @@ type ifaceAddr struct {
 	net  *net.IPNet
 }
 
-var virtualIfPrefixes = []string{"lo", "docker", "br-", "veth", "virbr", "tailscale", "tun", "wg", "vnet"}
+var virtualIfPrefixes = []string{
+	"lo", "docker", "br-", "veth", "virbr", "podman", "cni", "incus", "lxc", "waydroid", "tailscale", "tun", "wg", "vnet", "zt",
+}
 
 // lanAddrs lista os IPv4 das interfaces físicas que estão de pé.
 func lanAddrs() []ifaceAddr {
@@ -179,14 +182,42 @@ func lanAddrs() []ifaceAddr {
 	return out
 }
 
-// lanSubnet devolve a rede (ex.: 192.168.1.0/24) da primeira interface com IP privado.
-func lanSubnet() string {
-	for _, a := range lanAddrs() {
+func defaultRouteInterface(content string) string {
+	best, bestMetric := "", int(^uint(0)>>1)
+	for _, line := range strings.Split(content, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 7 || fields[1] != "00000000" {
+			continue
+		}
+		flags, flagErr := strconv.ParseUint(fields[3], 16, 32)
+		metric, metricErr := strconv.Atoi(fields[6])
+		if flagErr != nil || metricErr != nil || flags&1 == 0 || metric >= bestMetric {
+			continue
+		}
+		best, bestMetric = fields[0], metric
+	}
+	return best
+}
+
+func subnetForLAN(addrs []ifaceAddr, preferred string) string {
+	for _, a := range addrs {
+		if a.name == preferred && a.net.IP.IsPrivate() {
+			return (&net.IPNet{IP: a.net.IP.Mask(a.net.Mask), Mask: a.net.Mask}).String()
+		}
+	}
+	for _, a := range addrs {
 		if a.net.IP.IsPrivate() {
 			return (&net.IPNet{IP: a.net.IP.Mask(a.net.Mask), Mask: a.net.Mask}).String()
 		}
 	}
 	return "192.168.1.0/24"
+}
+
+// lanSubnet prioriza a interface usada pela rota padrão, evitando redes de
+// containers quando existem várias interfaces com endereços privados.
+func lanSubnet() string {
+	routes, _ := os.ReadFile("/proc/net/route")
+	return subnetForLAN(lanAddrs(), defaultRouteInterface(string(routes)))
 }
 
 // ---- UFW ----

@@ -81,15 +81,7 @@ func firewallMissingPkgs(device deviceProfile) []string {
 }
 
 func profileLANSubnet(device deviceProfile) string {
-	if device != deviceServer {
-		return lanSubnet()
-	}
-	for _, addr := range lanAddrs() {
-		if addr.net.IP.IsPrivate() {
-			return (&net.IPNet{IP: addr.net.IP.Mask(addr.net.Mask), Mask: addr.net.Mask}).String()
-		}
-	}
-	return ""
+	return lanSubnet()
 }
 
 func aptSteps(packages ...string) []step {
