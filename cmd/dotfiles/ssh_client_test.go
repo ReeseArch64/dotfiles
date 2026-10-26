@@ -163,6 +163,54 @@ func TestDesktopRemovesAllIncomingSSHKeys(t *testing.T) {
 	}
 }
 
+func TestAuthorizeSSHIdentitiesCreatesMissingEmptyFile(t *testing.T) {
+	testBackupStore(t)
+	home := t.TempDir()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.Mkdir(sshDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := authorizeSSHIdentities(home, nil, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	authorized := filepath.Join(sshDir, "authorized_keys")
+	content, err := os.ReadFile(authorized)
+	if err != nil || len(content) != 0 {
+		t.Fatalf("authorized_keys vazio não foi criado: %q, %v", content, err)
+	}
+	if info, err := os.Stat(authorized); err != nil || info.Mode().Perm() != 0600 {
+		t.Fatalf("permissão de authorized_keys: %v, %v", info, err)
+	}
+}
+
+func TestNotebookCreatesMissingAuthorizedKeysWithDesktopKeys(t *testing.T) {
+	testBackupStore(t)
+	home := t.TempDir()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.Mkdir(sshDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	identities, err := incomingSSHIdentities(deviceNotebook)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected string
+	for _, name := range identities {
+		line := "ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte(name)) + " " + name + "\n"
+		expected += line
+		if err := os.WriteFile(filepath.Join(sshDir, name), []byte(line), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := authorizeSSHIdentities(home, identities, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(sshDir, "authorized_keys"))
+	if err != nil || string(content) != expected {
+		t.Fatalf("authorized_keys do notebook: %q, %v", content, err)
+	}
+}
+
 func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)

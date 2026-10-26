@@ -134,7 +134,9 @@ func authorizeSSHIdentities(home string, publicNames []string, now time.Time) er
 
 	authorizedPath := filepath.Join(sshDir, "authorized_keys")
 	var existing []byte
+	authorizedExists := false
 	if info, err := os.Lstat(authorizedPath); err == nil {
+		authorizedExists = true
 		if !info.Mode().IsRegular() {
 			return fmt.Errorf("%s não é um arquivo regular", authorizedPath)
 		}
@@ -150,7 +152,7 @@ func authorizeSSHIdentities(home string, publicNames []string, now time.Time) er
 	if len(lines) > 0 {
 		content = []byte(strings.Join(lines, "\n") + "\n")
 	}
-	if string(existing) == string(content) {
+	if authorizedExists && string(existing) == string(content) {
 		return os.Chmod(authorizedPath, 0600)
 	}
 
