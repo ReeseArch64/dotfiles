@@ -1,4 +1,5 @@
 bin/
+/.cloudflare/
 /dotfiles
 *.asc
 zen-backup.tar
