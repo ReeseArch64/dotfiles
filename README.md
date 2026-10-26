@@ -188,6 +188,27 @@ As demais ações ficam exclusivas do Desktop.
 
 O perfil oferece instalação do CasaOS e configuração de DNS, SSH e firewall, sem ações de desktop.
 
+#### Vaultwarden externo pelo Cloudflare Tunnel
+
+A ação `Vaultwarden Tunnel` publica somente o Vaultwarden em `https://vault.reesearch64.com`. Reutiliza os aplicativos Vaultwarden e Cloudflared instalados no CasaOS, encontrados pelas imagens `vaultwarden/server:*` e `cloudflare/cloudflared:*` e labels do Compose. É necessário exatamente um de cada; o Vaultwarden deve estar rodando. Cloudflared precisa oferecer `--token-file` (versão 2025.4.0 ou posterior). O script não instala uma segunda instância nem abre portas no roteador/firewall.
+
+Antes de executar, crie sua conta Vaultwarden e configure externamente na Cloudflare:
+
+1. Crie um Tunnel gerenciado remotamente, dedicado ao Vaultwarden.
+2. Antes de publicar a rota, crie uma aplicação Cloudflare Access específica para `vault.reesearch64.com/admin` e `/admin/*`, com política `Block Everyone`. Não proteja todo o hostname com login Access, pois os clientes Bitwarden precisam usar a autenticação do Vaultwarden.
+3. Configure a rota publicada `vault.reesearch64.com` com serviço HTTP `http://vaultwarden-origin:80`. O DNS deve apontar para esse Tunnel; resolva eventuais registros conflitantes somente para `vault`, sem reaproveitar o hostname `homelab`.
+4. Execute `Vaultwarden Tunnel` no menu e cole somente o token do Tunnel quando solicitado (entrada oculta). Não coloque credenciais no Git. O script pede confirmação das regras externas e da criação da conta; não configura nem audita automaticamente essas políticas na sua conta Cloudflare.
+
+A ação altera `DOMAIN` para `https://vault.reesearch64.com`, desabilita novos cadastros e a whitelist de domínios de cadastro, mantém os dados persistentes e restringe o HTTP publicado a `127.0.0.1:10380`. Se `/data/config.json` contiver valores conflitantes, o script interrompe: ajuste-os previamente pelo painel administrativo local, pois eles prevalecem sobre as variáveis de ambiente. As contas existentes permanecem. Ative 2FA e guarde os códigos de recuperação.
+
+Vaultwarden e Cloudflared passam a compartilhar `homelab-vault-tunnel`; o destino interno é `vaultwarden-origin:80`. O conector não publica portas e recebe somente um arquivo de token montado como leitura. Credencial e backups ficam em uma pasta privada `/etc/homelab-vault-tunnel.*`; não apague essa pasta, pois o Compose referencia o token ali. O script valida os Compose, aplica as alterações e consulta `https://vault.reesearch64.com/alive`. Em caso de falha na aplicação restaura os Compose anteriores, preservando backups. Essa consulta não substitui testar login, sincronização e bloqueio de `/admin` em uma rede externa.
+
+Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `https://vault.reesearch64.com`. O fluxo não cria VPN nem publica outros serviços. A configuração Caddy/DNS LAN antiga não é removida automaticamente; após conferir a migração, o hostname `homelab.reesearch64.com` pode ser liberado externamente para uso futuro. O menu HTTPS LAN antigo recusa reverter um Vaultwarden que já esteja usando o domínio `vault`.
+
+#### SSH por chave no HomeLab
+
+Execute o menu como seu usuário administrador (por exemplo, `alsgy`), com `~/.ssh/id_pessoal_desktop.pub` disponível. A ação autoriza essa pública, ativa o OpenSSH e pede que você teste uma segunda conexão usando a chave e `sudo -v`. Somente depois de digitar `CONFIRMO`, aplica uma política permitindo SSH apenas para esse usuário com chave pública, bloqueando senha, autenticação interativa e root. Valida a política com `sshd -t` e `sshd -T`, guarda backup em `/etc/ssh/homelab-backup.*` e recarrega o serviço. Mantenha a sessão atual aberta até testar novamente. A chave privada permanece no desktop.
+
 O instalador do CasaOS executa o comando solicitado, com detecção de falhas no download:
 
 ```bash

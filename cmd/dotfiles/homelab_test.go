@@ -91,7 +91,7 @@ func TestServerProfileHostnamePlatformAndMenu(t *testing.T) {
 		t.Fatal(m.setupDir)
 	}
 	for screen, titles := range map[screen][]string{
-		screenMain:   {"Sistema", "CasaOS", "Vaultwarden HTTPS", "Liberar porta 53 (DNS)", "Sair"},
+		screenMain:   {"Sistema", "CasaOS", "Vaultwarden Tunnel", "Vaultwarden HTTPS", "Liberar porta 53 (DNS)", "Sair"},
 		screenSystem: {"SSH", "Firewall"},
 		screenSSH:    {"Configurar SSH"}, screenFirewall: {"Configurar Firewall"},
 		screenDesktop: nil, screenDevelopment: nil, screenDocker: nil, screenCleanup: nil,
@@ -145,7 +145,7 @@ func TestDebianPackagesAndProfileUnits(t *testing.T) {
 	}
 }
 
-func TestUbuntuSSHJobAuthorizesPersonalKeyAndKeepsFallback(t *testing.T) {
+func TestUbuntuSSHJobAuthorizesPersonalKeyBeforeInteractiveHardening(t *testing.T) {
 	_, log := homelabMocks(t)
 	sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
 	if err := os.Mkdir(sshDir, 0700); err != nil {
@@ -157,6 +157,12 @@ func TestUbuntuSSHJobAuthorizesPersonalKeyAndKeepsFallback(t *testing.T) {
 	}
 	j := serverSSHJob(homelabSetup(t))
 	for _, current := range j.steps {
+		if current.label == "Exigir chave SSH após teste de acesso" {
+			if !slices.Contains(current.cmd().Args, configPath(homelabSetup(t), "ssh", "harden.sh")) {
+				t.Fatal("etapa de restrição SSH ausente")
+			}
+			continue
+		}
 		if current.cmd != nil {
 			if out, err := current.cmd().CombinedOutput(); err != nil {
 				t.Fatalf("%v: %s", err, out)
@@ -192,7 +198,7 @@ func TestUbuntuSSHValidationFailureAndExistingSocket(t *testing.T) {
 			t.Setenv("FAIL_SSHD", tc.fail)
 			t.Setenv("SOCKET_ACTIVE", tc.socket)
 			j := serverSSHJob(homelabSetup(t))
-			current := j.steps[len(j.steps)-1]
+			current := j.steps[len(j.steps)-2]
 			_, err := current.run()
 			if (err != nil) != (tc.fail == "yes") {
 				t.Fatal(err)

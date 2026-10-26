@@ -15,6 +15,9 @@ func (m model) serverItems() []item {
 		return []item{
 			{title: "Sistema", desc: "SSH e firewall para Ubuntu", goTo: screenSystem},
 			{title: "CasaOS", desc: "Instalar usando https://get.casaos.io (sudo)", job: casaOSJob},
+			{title: "Vaultwarden Tunnel", desc: "vault.reesearch64.com via cloudflared do CasaOS", job: func() job {
+				return job{title: "Vaultwarden Tunnel", steps: withSudo(terminalStep("Configurar Tunnel e migrar domínio do Vaultwarden", "sudo", "bash", configPath(m.setupDir, "tunnel", "configure.sh")))}
+			}},
 			{title: "Vaultwarden HTTPS", desc: "Caddy e Cloudflare para homelab.reesearch64.com somente na LAN", job: func() job {
 				return vaultwardenHTTPSJob(m.setupDir, profileLANSubnet(m.device))
 			}},
@@ -23,7 +26,7 @@ func (m model) serverItems() []item {
 		}
 	case screenSystem:
 		return []item{
-			{title: "SSH", desc: "Ativar servidor mantendo a configuração e o acesso atuais", goTo: screenSSH},
+			{title: "SSH", desc: "Autorizar chave pessoal e exigir autenticação por chave", goTo: screenSSH},
 			{title: "Firewall", desc: "UFW: SSH, CasaOS, DNS e serviços do homelab somente na LAN", goTo: screenFirewall},
 		}
 	case screenSSH:
@@ -95,12 +98,16 @@ func aptSteps(packages ...string) []step {
 func serverSSHJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
 	steps := []step{nativeStep("Autorizar somente id_pessoal_desktop.pub para conexões SSH recebidas", func() error {
+		if home == "/root" {
+			return fmt.Errorf("execute o menu como alsgy, não como root; os passos administrativos usam sudo")
+		}
 		return authorizeSSHIdentities(home, []string{"id_pessoal_desktop.pub"}, time.Now())
 	})}
 	privileged := aptSteps("openssh-server", "openssh-client")
 	privileged = append(privileged, sudoStep("Validar SSH e ativar serviço sem desativar autenticação de fallback", false,
 		"bash", configPath(setupDir, "ssh", "enable.sh")))
 	steps = append(steps, withSudo(privileged...)...)
+	steps = append(steps, terminalStep("Exigir chave SSH após teste de acesso", "sudo", "bash", configPath(setupDir, "ssh", "harden.sh")))
 	return job{title: "Configurar SSH (Ubuntu)", steps: steps, result: func() string { return sshResultForDevice(deviceServer) }}
 }
 

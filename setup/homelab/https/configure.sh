@@ -101,6 +101,16 @@ normalize_compose() {
 }
 normalize_compose "$caddy_compose" "$work/caddy.original.json"
 normalize_compose "$vault_compose" "$work/vaultwarden.original.json"
+python3 - "$work/vaultwarden.original.json" <<'PY' || fail 'Vaultwarden já usa vault.reesearch64.com; não reaplique o fluxo HTTPS LAN antigo.'
+import json, sys
+c = json.load(open(sys.argv[1]))
+for service in c.get('services', {}).values():
+    env = service.get('environment') or {}
+    if isinstance(env, list):
+        env = dict(item.split('=', 1) for item in env)
+    if env.get('DOMAIN') == 'https://vault.reesearch64.com':
+        raise SystemExit(1)
+PY
 python3 "$transformer" caddy "$work/caddy.original.json" "$work/caddy.json" --domain "$domain" --app-data "$caddy_root" --server-ip "$server_ip"
 python3 "$transformer" vaultwarden "$work/vaultwarden.original.json" "$work/vaultwarden.json" --domain "$domain" --app-data "$caddy_root"
 
