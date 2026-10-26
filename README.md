@@ -205,7 +205,7 @@ A ação altera `DOMAIN` para `https://vault.reesearch64.com`, desabilita novos 
 
 Vaultwarden e Cloudflared passam a compartilhar `homelab-vault-tunnel`; o destino interno é `vaultwarden-origin:80`. O conector não publica portas e recebe somente um arquivo de token montado como leitura. Credencial e backups ficam em uma pasta privada `/etc/homelab-vault-tunnel.*`; não apague essa pasta, pois o Compose referencia o token ali. O script valida os Compose, aplica as alterações e consulta `https://vault.reesearch64.com/alive`. Em caso de falha na aplicação restaura os Compose anteriores, preservando backups. Essa consulta não substitui testar login, sincronização e bloqueio de `/admin` em uma rede externa.
 
-Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `https://vault.reesearch64.com`. O fluxo não cria VPN nem publica outros serviços. A configuração Caddy/DNS LAN antiga não é removida automaticamente; após conferir a migração, o hostname `homelab.reesearch64.com` pode ser liberado externamente para uso futuro. O menu HTTPS LAN antigo recusa reverter um Vaultwarden que já esteja usando o domínio `vault`.
+Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `https://vault.reesearch64.com`. O Tunnel é o único fluxo de configuração do Vaultwarden no dotfiles; a opção HTTPS via Caddy e seus arquivos legados foram removidos. O fluxo não cria VPN nem publica outros serviços. Instalações Caddy, registros DNS, regras UFW e backups já existentes no servidor não são apagados por essa remoção do código. Depois de confirmar o Tunnel, esses recursos legados podem ser revisados separadamente e o hostname `homelab.reesearch64.com` reservado para uso futuro.
 
 #### SSH por chave no HomeLab
 
@@ -221,15 +221,6 @@ A configuração DNS altera `DNSStubListener=no` na seção `[Resolve]` de `/etc
 
 SSH usa os pacotes e unidades do Ubuntu. Antes de ser ativado, o firewall UFW libera somente para a LAN o SSH, a interface web do CasaOS (`80/TCP`), o DNS (`53/TCP` e `53/UDP`) e os serviços nas portas TCP `3001`, `3428`, `5000`, `5050`, `7575`, `8887`, `8888` e `9001`. A porta `10380` não é liberada: o HTTP direto do Vaultwarden permanece restrito ao loopback para impedir que o HTTPS seja contornado.
 
-`Vaultwarden HTTPS` configura os aplicativos Vaultwarden e Caddy já instalados pelo CasaOS para servir `https://homelab.reesearch64.com` somente no IPv4 privado do mini-server. A configuração permanente da Cloudflare é feita separadamente: crie um registro `A` DNS-only chamado `homelab` apontando para `192.168.1.107` e um API Token restrito à zona `reesearch64.com`, com permissões `Zone:Read` e `DNS:Edit`.
-
-Antes de executar a ação, grave manualmente uma única linha `CF_API_TOKEN=<token>` em `/DATA/AppData/caddy/config/cloudflare.env`. O arquivo deve pertencer ao root e ter permissão `0600`. Esse segredo permanece fora do repositório e precisa continuar disponível ao Caddy para criar os desafios DNS-01 e renovar o certificado. A ação apenas verifica a credencial e o DNS existentes; ela não cria nem altera registros permanentes na Cloudflare.
-
-A ação localiza os Compose ativos pelas labels dos containers e exige exatamente um `caddy:*` e um `vaultwarden/server:*` em execução. Ela usa temporariamente `caddy:2.11.7-builder` para gerar, com `xcaddy`, um binário Caddy 2.11.7 contendo `caddy-dns/cloudflare` 0.2.4. O container de compilação usa `--rm`; o binário final fica no volume persistente do aplicativo, em `/DATA/AppData/caddy/config/bin/caddy`. Nenhum pacote Caddy, Certbot ou xcaddy é instalado no Ubuntu.
-
-Os dois aplicativos passam a compartilhar a rede Docker externa `homelab-proxy`. O Caddy publica `443/tcp` apenas no IPv4 da LAN e encaminha para `vaultwarden:80`; sua porta administrativa 2019, as portas 48100/48101 do catálogo e a porta 80 não são publicadas. O Vaultwarden recebe `DOMAIN=https://homelab.reesearch64.com`; sua porta de diagnóstico 10380 fica vinculada somente a `127.0.0.1`, impedindo acesso HTTP direto pela LAN. O certificado público é emitido por DNS-01. Não é necessário encaminhar portas no roteador.
-
-Antes de ativar os novos containers, a ação valida o token, a resolução DNS, os Compose, o módulo Cloudflare e a disponibilidade da porta 443. Os Compose, o Caddyfile e o binário anterior são preservados em `/mnt/backups/homelab-https`. Se a ativação falhar, os arquivos anteriores são restaurados e os containers originais são recriados. A regra UFW libera `443/tcp` somente para a LAN; futuras execuções reutilizam o binário e a credencial fornecida externamente.
 
 ### Ações do HomeProd (Ubuntu)
 

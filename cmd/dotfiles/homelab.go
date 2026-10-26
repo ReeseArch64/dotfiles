@@ -17,9 +17,6 @@ func (m model) serverItems() []item {
 			{title: "Vaultwarden Tunnel", desc: "vault.reesearch64.com via cloudflared do CasaOS", job: func() job {
 				return job{title: "Vaultwarden Tunnel", steps: withSudo(terminalStep("Configurar Tunnel e migrar domínio do Vaultwarden", "sudo", "bash", configPath(m.setupDir, "tunnel", "configure.sh")))}
 			}},
-			{title: "Vaultwarden HTTPS", desc: "Caddy e Cloudflare para homelab.reesearch64.com somente na LAN", job: func() job {
-				return vaultwardenHTTPSJob(m.setupDir, profileLANSubnet(m.device))
-			}},
 			{title: "Liberar porta 53 (DNS)", desc: "Desativar o stub do systemd-resolved preservando a resolução", job: func() job { return serverDNSJob(m.setupDir) }},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
@@ -156,16 +153,6 @@ func casaOSJob() job {
 	steps = append(steps, terminalStep("Instalar CasaOS via curl (sudo)", "bash", "-c", casaOSInstallScript))
 	return job{title: "Instalar CasaOS", steps: withSudo(steps...), result: func() string {
 		return "CasaOS: acesse http://<IP-do-servidor> na LAN (porta 80). DNS/porta 53: ação independente no menu."
-	}}
-}
-
-func vaultwardenHTTPSJob(setupDir, lan string) job {
-	steps := withSudo(terminalStep("Configurar Caddy, Cloudflare e Vaultwarden", "sudo", "bash",
-		configPath(setupDir, "https", "configure.sh"),
-		"homelab.reesearch64.com", lan, localBackupRoot(),
-		configPath(setupDir, "https", "compose_https.py"), configPath(setupDir, "https", "Caddyfile")))
-	return job{title: "Configurar HTTPS do Vaultwarden", steps: steps, result: func() string {
-		return "Vaultwarden: https://homelab.reesearch64.com\nCaddy e Vaultwarden permanecem gerenciados pelo CasaOS; o token Cloudflare não fica no repositório."
 	}}
 }
 
