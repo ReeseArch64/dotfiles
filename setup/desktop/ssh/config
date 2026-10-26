@@ -1,25 +1,71 @@
 # ==============================
-# SSH SERVER GLOBAL
-# ==============================
-
-Host 192.168.1.100
-  HostName 192.168.1.104
-  User alsgy
-
-Host 192.168.1.104
-  HostName 192.168.1.105
-  User alsgy
-
-Host 192.168.1.105
-  HostName 192.168.1.107
-  User alsgy
-
-# ==============================
 # CONFIGURAÇÃO GLOBAL
 # ==============================
 Host *
   AddKeysToAgent yes
   IdentitiesOnly yes
+
+  PreferredAuthentications publickey
+  PasswordAuthentication no
+  KbdInteractiveAuthentication no
+  PubkeyAuthentication yes
+
+  ForwardAgent no
+  ForwardX11 no
+  ClearAllForwardings yes
+
+  ConnectTimeout 10
+  ServerAliveInterval 30
+  ServerAliveCountMax 3
+  TCPKeepAlive no
+
+  StrictHostKeyChecking yes
+  UpdateHostKeys yes
+  HashKnownHosts yes
+
+  ControlMaster no
+  ControlPath none
+  ControlPersist no
+
+  SendEnv -
+  RequestTTY no
+  LogLevel INFO
+
+# ==============================
+# SSH NOTEBOOK
+# ==============================
+Host 192.168.1.103
+  HostName 192.168.1.103
+  User alsgy
+  IdentityFile ~/.ssh/id_trabalho
+  IdentitiesOnly yes
+
+# ==============================
+# SSH DESKTOP
+# ==============================
+Host 192.168.1.104
+  HostName 192.168.1.104
+  User alsgy
+  IdentityFile ~/.ssh/id_trabalho
+  IdentitiesOnly yes
+
+# ==============================
+# SSH HOMELAB
+# ==============================
+Host 192.168.1.107
+  HostName 192.168.1.107
+  User alsgy
+  IdentityFile ~/.ssh/id_pessoal
+  IdentitiesOnly yes
+
+# ============================================
+# MACBOOK
+# ============================================
+# Host macbook
+#     HostName IP_DO_MACBOOK
+#     User USUARIO_DO_MACBOOK
+#     IdentityFile ~/.ssh/id_trabalho
+#     IdentitiesOnly yes
 
 # ==============================
 # GITHUB
@@ -27,12 +73,26 @@ Host *
 Host github.com
   HostName github.com
   User git
-  IdentityFile ~/.ssh/id_github_reesearch64
+  Port 22
+  IdentitiesOnly yes
+  ForwardAgent no
+  IdentityFile ~/.ssh/id_github
 
 # ==============================
 # GITLAB
 # ==============================
 Host gitlab.com
   HostName gitlab.com
+  Port 22
+  IdentitiesOnly yes
+  ForwardAgent no
   User git
-  IdentityFile ~/.ssh/id_gitlab_reesearch64
+  IdentityFile ~/.ssh/id_gitlab
+
+# ============================================================
+# PROFISSIONAL
+# ============================================================
+
+# ============================================================
+# PESSOAL
+# ============================================================
