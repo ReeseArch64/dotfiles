@@ -32,4 +32,4 @@ printf '\nUsuário %s preparado com acesso administrativo via sudo.\n' "$admin_u
 
 DEBIAN_FRONTEND=noninteractive apt-get install --yes curl ca-certificates
 printf '\nInstalando CasaOS pelo instalador oficial...\n'
-curl -fsSL https://get.casaos.io | sudo bash
+bash "$(dirname "$(readlink -f "$0")")/casaos/install.sh"

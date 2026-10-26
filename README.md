@@ -216,7 +216,11 @@ O hostname da VPS deve conter `homeprod`. A preparação inicial deve ser execut
 
 A primeira ação executa, nesta ordem, `apt-get update`, `apt-get upgrade --yes` e a instalação do pacote `sudo`. Em seguida cria interativamente o usuário `alsgy` com shell Bash e o adiciona ao grupo `sudo`. A senha é lida diretamente pelo `adduser`, não aparece em argumentos e não é armazenada pelo dotfiles. Se `alsgy` já existir, a execução preserva sua senha e apenas garante sua associação ao grupo administrativo.
 
-Após preparar o administrador, o bootstrap instala `curl` e `ca-certificates` e executa `curl -fsSL https://get.casaos.io | sudo bash`, o mesmo instalador usado no HomeLab. O script usa `pipefail` para detectar falhas no download. Essa etapa instala os componentes e serviços do CasaOS; não se limita mais à atualização do Ubuntu e à criação do usuário.
+Após preparar o administrador, o bootstrap instala `curl` e `ca-certificates` e chama `setup/homeprod/casaos/install.sh`. A ação independente `Instalar CasaOS` permite repetir somente essa instalação; como root, também pode executar `bash setup/homeprod/casaos/install.sh` diretamente.
+
+O wrapper baixa o instalador oficial de `https://get.casaos.io` antes de executá-lo e verifica sua sintaxe. Para contornar o HTTP 500 de `/uninstall/v0.4.16`, baixa antecipadamente o desinstalador e, se o endpoint falhar, usa `uninstall.sh` do repositório oficial `IceWhaleTech/get`, fixado na revisão `15d5563aef5e3628f2b2ac65d619d81228ab2f3e` e validado por SHA-256. Esse arquivo é apenas armazenado, nunca executado pelo wrapper. A declaração exata de URL do instalador é substituída por uma referência ao arquivo local validado; se a declaração oficial mudar, o wrapper interrompe para revisão. Não se presume equivalência de versões entre o endpoint e a alternativa do repositório.
+
+O instalador continua executando suas demais etapas, incluindo Rclone e inicialização/verificação dos serviços. Seus arquivos e o log de execução ficam no diretório `/tmp/dotfiles-casaos.*` informado na tela (podem desaparecer após reiniciar). Falhas indicam a etapa e preservam o código de saída. Quando o terminfo do terminal atual não estiver disponível, a execução usa `TERM=xterm`. A instalação pode reiniciar Docker e outros serviços, assim como o instalador oficial; não é apenas uma atualização de pacotes ou criação de usuário.
 
 Mantenha a sessão root aberta até instalar a chave pública do desktop e confirmar, em outro terminal, o acesso SSH e o funcionamento de `sudo` como `alsgy`.
 

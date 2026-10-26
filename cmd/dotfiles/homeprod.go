@@ -12,6 +12,9 @@ func (m model) homeProdItems() []item {
 				return homeProdBootstrapJob(m.setupDir)
 			},
 		},
+		{title: "Instalar CasaOS", desc: "Executar somente o instalador CasaOS com log; como root", job: func() job {
+			return job{title: "Instalar CasaOS", steps: []step{terminalStep("Instalar CasaOS com verificação dos downloads", "bash", configPath(m.setupDir, "casaos", "install.sh"))}}
+		}},
 		{title: "Configurar SSH", desc: "Colar chave pública de alsgy no terminal; executar como root", job: func() job {
 			return job{title: "SSH HomeProd", steps: []step{terminalStep("Autorizar chave e restringir SSH após teste de acesso", "bash", configPath(m.setupDir, "ssh", "configure.sh"))}}
 		}},

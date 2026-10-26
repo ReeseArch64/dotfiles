@@ -36,7 +36,7 @@ func TestHomeProdProfileDetectionPlatformAndMenu(t *testing.T) {
 	if m.setupDir != "/repo/setup/homeprod" {
 		t.Fatal(m.setupDir)
 	}
-	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Configurar SSH", "Configurar Swap", "Sair"}) {
+	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", titles)
 	}
 }
@@ -58,7 +58,7 @@ func TestHomeProdBootstrapOrderAndPasswordHandling(t *testing.T) {
 
 	scriptPath := configPath(setupDir, "bootstrap.sh")
 	script := readHomelabFile(t, scriptPath)
-	ordered := []string{"apt-get update", "apt-get upgrade --yes", "apt-get install --yes sudo", "adduser --gecos", "usermod --append --groups sudo", "apt-get install --yes curl ca-certificates", "curl -fsSL https://get.casaos.io | sudo bash"}
+	ordered := []string{"apt-get update", "apt-get upgrade --yes", "apt-get install --yes sudo", "adduser --gecos", "usermod --append --groups sudo", "apt-get install --yes curl ca-certificates", "/casaos/install.sh"}
 	previous := -1
 	for _, command := range ordered {
 		current := strings.Index(script, command)
