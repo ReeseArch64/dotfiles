@@ -129,6 +129,23 @@ func TestDesktopAutomaticallyTrustsOnlyNewLANHostKeys(t *testing.T) {
 	}
 }
 
+func TestSSHConfigsAllowInteractiveTTY(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+		config := configPath(setupDirectory(root, device), "ssh", "config")
+		output, err := exec.Command("ssh", "-G", "-F", config, "github.com").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(output), "requesttty auto\n") {
+			t.Fatalf("%s: RequestTTY deve manter o padrão auto", device)
+		}
+	}
+}
+
 func TestAuthorizeSSHIdentitiesEnforcesDeviceSetAndIsIdempotent(t *testing.T) {
 	testBackupStore(t)
 	home := t.TempDir()

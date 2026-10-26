@@ -3,34 +3,26 @@
 # ==============================
 Host *
   AddKeysToAgent yes
-  IdentityAgent ${XDG_RUNTIME_DIR}/ssh-agent.socket
   IdentitiesOnly yes
 
   PreferredAuthentications publickey
-  PasswordAuthentication no
-  KbdInteractiveAuthentication no
-  PubkeyAuthentication yes
 
-  ForwardAgent no
-  ForwardX11 no
-  ClearAllForwardings yes
-
-  ConnectTimeout 10
-  ServerAliveInterval 30
-  ServerAliveCountMax 3
-  TCPKeepAlive no
+  LogLevel INFO
 
   StrictHostKeyChecking yes
   UpdateHostKeys yes
   HashKnownHosts yes
 
-  ControlMaster no
-  ControlPath none
-  ControlPersist no
+  TCPKeepAlive no
 
-  SendEnv -
-  RequestTTY no
-  LogLevel INFO
+  ServerAliveCountMax 3
+  ServerAliveInterval 30
+
+  KbdInteractiveAuthentication no
+
+  ControlPersist no
+  ControlPath none
+  ControlMaster no
 
 # ==============================
 # GITHUB
@@ -53,11 +45,3 @@ Host gitlab.com
   ForwardAgent no
   User git
   IdentityFile ~/.ssh/id_gitlab
-
-# ============================================================
-# PROFISSIONAL
-# ============================================================
-
-# ============================================================
-# PESSOAL
-# ============================================================

@@ -1,44 +1,31 @@
-# Hosts LAN gerenciados usam TOFU: a primeira chave é salva e mudanças futuras
-# continuam sendo recusadas.
-Host 192.168.1.103 192.168.1.107
-  StrictHostKeyChecking accept-new
-
 # ==============================
 # CONFIGURAÇÃO GLOBAL
 # ==============================
 Host *
   AddKeysToAgent yes
-  IdentityAgent ${XDG_RUNTIME_DIR}/ssh-agent.socket
   IdentitiesOnly yes
 
   PreferredAuthentications publickey
-  PasswordAuthentication no
-  KbdInteractiveAuthentication no
-  PubkeyAuthentication yes
 
-  ForwardAgent no
-  ForwardX11 no
-  ClearAllForwardings yes
-
-  ConnectTimeout 10
-  ServerAliveInterval 30
-  ServerAliveCountMax 3
-  TCPKeepAlive no
+  LogLevel INFO
 
   StrictHostKeyChecking yes
   UpdateHostKeys yes
   HashKnownHosts yes
 
-  ControlMaster no
-  ControlPath none
-  ControlPersist no
+  TCPKeepAlive no
 
-  SendEnv -
-  RequestTTY no
-  LogLevel INFO
+  ServerAliveCountMax 3
+  ServerAliveInterval 30
+
+  KbdInteractiveAuthentication no
+
+  ControlPersist no
+  ControlPath none
+  ControlMaster no
 
 # ==============================
-# SSH NOTEBOOK
+# NOTEBOOK
 # ==============================
 Host 192.168.1.103
   HostName 192.168.1.103
@@ -47,12 +34,21 @@ Host 192.168.1.103
   IdentitiesOnly yes
 
 # ==============================
-# SSH HOMELAB
+# HOMELAB
 # ==============================
 Host 192.168.1.107
   HostName 192.168.1.107
   User alsgy
   IdentityFile ~/.ssh/id_pessoal_desktop
+  IdentitiesOnly yes
+
+# ==============================
+# HOMEPROD
+# ==============================
+Host ***.**.***.** 
+  HostName homprod
+  User alsgy
+  #IdentityFile ~/.ssh/id_pessoal_desktop
   IdentitiesOnly yes
 
 # ==============================
@@ -76,11 +72,3 @@ Host gitlab.com
   ForwardAgent no
   User git
   IdentityFile ~/.ssh/id_gitlab
-
-# ============================================================
-# PROFISSIONAL
-# ============================================================
-
-# ============================================================
-# PESSOAL
-# ============================================================
