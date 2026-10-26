@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -89,7 +90,7 @@ func TestServerProfileHostnamePlatformAndMenu(t *testing.T) {
 		t.Fatal(m.setupDir)
 	}
 	for screen, titles := range map[screen][]string{
-		screenMain:   {"Sistema", "CasaOS", "Liberar porta 53 (DNS)", "Sair"},
+		screenMain:   {"Sistema", "CasaOS", "Vaultwarden HTTPS", "Liberar porta 53 (DNS)", "Sair"},
 		screenSystem: {"SSH", "Firewall"},
 		screenSSH:    {"Configurar SSH"}, screenFirewall: {"Configurar Firewall"},
 		screenDesktop: nil, screenDevelopment: nil, screenDocker: nil, screenCleanup: nil,
@@ -274,5 +275,111 @@ printf 'exit 0\n'`)
 	want := []string{"bash", "-c", casaOSInstallScript}
 	if got := commandTail(t, j.steps[len(j.steps)-1], len(want)); !slices.Equal(got, want) {
 		t.Fatal(got)
+	}
+}
+
+func TestVaultwardenHTTPSComposeTransformation(t *testing.T) {
+	transformer := configPath(homelabSetup(t), "https", "compose_https.py")
+	for _, tc := range []struct {
+		name, kind string
+		compose    map[string]any
+		check      func(*testing.T, map[string]any)
+	}{
+		{
+			name: "caddy", kind: "caddy",
+			compose: map[string]any{
+				"name": "big-bear-caddy", "services": map[string]any{"app": map[string]any{
+					"image": "caddy:2.11.7", "environment": map[string]any{"CF_API_TOKEN": "must-not-survive"},
+					"ports": []any{map[string]any{"target": float64(80), "published": "48100"}},
+				}}, "x-casaos": map[string]any{"port_map": "48100"},
+			},
+			check: func(t *testing.T, got map[string]any) {
+				service := got["services"].(map[string]any)["app"].(map[string]any)
+				ports := service["ports"].([]any)
+				port := ports[0].(map[string]any)
+				if len(ports) != 1 || port["target"] != float64(443) || port["published"] != "443" || port["host_ip"] != "192.168.1.107" {
+					t.Fatalf("portas Caddy inseguras: %#v", ports)
+				}
+				if service["entrypoint"].([]any)[0] != "/config/bin/caddy" {
+					t.Fatal(service["entrypoint"])
+				}
+				if _, present := service["environment"].(map[string]any)["CF_API_TOKEN"]; present {
+					t.Fatal("token Cloudflare permaneceu no Compose")
+				}
+				if got["x-casaos"].(map[string]any)["scheme"] != "https" {
+					t.Fatal(got["x-casaos"])
+				}
+			},
+		},
+		{
+			name: "vaultwarden", kind: "vaultwarden",
+			compose: map[string]any{"services": map[string]any{"vaultwarden": map[string]any{
+				"image": "vaultwarden/server:1.36.0", "environment": map[string]any{"SIGNUPS_ALLOWED": "true"},
+				"ports": []any{map[string]any{"target": float64(80), "published": "10380"}},
+			}}},
+			check: func(t *testing.T, got map[string]any) {
+				service := got["services"].(map[string]any)["vaultwarden"].(map[string]any)
+				if service["environment"].(map[string]any)["DOMAIN"] != "https://homelab.reesearch64.com" {
+					t.Fatal(service["environment"])
+				}
+				port := service["ports"].([]any)[0].(map[string]any)
+				if port["host_ip"] != "127.0.0.1" || port["published"] != "10380" {
+					t.Fatalf("Vaultwarden ainda exposto na LAN: %#v", port)
+				}
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			source, destination := filepath.Join(t.TempDir(), "source.json"), filepath.Join(t.TempDir(), "destination.json")
+			content, _ := json.Marshal(tc.compose)
+			if err := os.WriteFile(source, content, 0600); err != nil {
+				t.Fatal(err)
+			}
+			args := []string{transformer, tc.kind, source, destination, "--domain", "homelab.reesearch64.com", "--app-data", "/DATA/AppData/caddy"}
+			if tc.kind == "caddy" {
+				args = append(args, "--server-ip", "192.168.1.107")
+			}
+			if output, err := exec.Command("python3", args...).CombinedOutput(); err != nil {
+				t.Fatalf("transformar Compose: %v: %s", err, output)
+			}
+			var got map[string]any
+			result, err := os.ReadFile(destination)
+			if err != nil || json.Unmarshal(result, &got) != nil {
+				t.Fatalf("resultado inválido: %v: %s", err, result)
+			}
+			service := got["services"].(map[string]any)
+			for _, raw := range service {
+				networks := raw.(map[string]any)["networks"].(map[string]any)
+				if _, ok := networks["homelab_proxy"]; !ok {
+					t.Fatal("rede privada ausente")
+				}
+			}
+			tc.check(t, got)
+		})
+	}
+}
+
+func TestVaultwardenHTTPSJobRunsInteractiveRootScript(t *testing.T) {
+	bin, _ := homelabMocks(t)
+	writeTestExecutable(t, bin, "sudo", `exit 1`)
+	j := vaultwardenHTTPSJob("/repo/setup/homelab", "192.168.1.0/24")
+	current := j.steps[len(j.steps)-1]
+	want := []string{
+		"sudo", "bash", "/repo/setup/homelab/https/configure.sh", "homelab.reesearch64.com", "192.168.1.0/24",
+		localBackupRoot(), "/repo/setup/homelab/https/compose_https.py", "/repo/setup/homelab/https/Caddyfile",
+	}
+	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
+		t.Fatalf("comando HTTPS: %v", got)
+	}
+	script := readHomelabFile(t, configPath(homelabSetup(t), "https", "configure.sh"))
+	for _, forbidden := range []string{"/dns_records", "-X POST", "-X PUT", "read -rsp"} {
+		if strings.Contains(script, forbidden) {
+			t.Fatalf("configuração permanente da Cloudflare dentro dos dotfiles: %s", forbidden)
+		}
+	}
+	for _, required := range []string{"cloudflare.env", "/user/tokens/verify", "DNS deve apontar somente"} {
+		if !strings.Contains(script, required) {
+			t.Fatalf("pré-requisito externo não validado: %s", required)
+		}
 	}
 }
