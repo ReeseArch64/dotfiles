@@ -98,13 +98,14 @@ func TestBackupExportsRetainEveryGeneration(t *testing.T) {
 					payloadName = "zen-backup.tar"
 				case "ssh":
 					origin = filepath.Join(home, ".ssh")
-					for _, name := range requiredSSHIdentityFiles {
+					names := requiredSSHIdentityFiles(deviceDesktop)
+					for _, name := range names {
 						sdkTestWrite(t, filepath.Join(origin, name), value)
 					}
-					if err := backupSSHKeys(origin, store); err != nil {
+					if err := backupSSHKeys(origin, store, names); err != nil {
 						t.Fatal(err)
 					}
-					payloadName = requiredSSHIdentityFiles[0]
+					payloadName = names[0]
 				case "gpg":
 					origin = filepath.Join(home, ".gnupg")
 					if err := backupGPGKeys(context.Background(), store, func(context.Context, bool) ([]byte, error) { return []byte(value), nil }); err != nil {

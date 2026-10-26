@@ -124,9 +124,15 @@ func (m model) items() []item {
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
+		sshDescription := "Configurar cliente e servidor permanente com acesso pela LAN"
+		firewallDescription := "Ativar o UFW e liberar o SSH somente na LAN"
+		if m.device == deviceDesktop {
+			sshDescription = "Configurar somente o cliente e bloquear conexões recebidas"
+			firewallDescription = "Ativar o UFW sem liberar SSH de entrada"
+		}
 		items := []item{
-			{title: "SSH", desc: "Configurar cliente, servidor permanente e acesso pela LAN", goTo: screenSSH},
-			{title: "Firewall", desc: "Ativar o UFW e liberar o SSH somente na LAN", goTo: screenFirewall},
+			{title: "SSH", desc: sshDescription, goTo: screenSSH},
+			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall},
 			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
 		}
 		if m.device == deviceDesktop {
@@ -181,7 +187,7 @@ func (m model) items() []item {
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
 			{title: "Backup do Navegador", desc: "Salvar Zen em /mnt/backups/browser por origem e data", job: browserBackupJob},
 			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub e depois ao GitLab", job: projectsBackupJob},
-			{title: "Backup das Chaves SSH", desc: "Copiar chaves de ~/.ssh para /mnt/backups/ssh", job: sshKeysBackupJob},
+			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
 			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/gpg", job: gpgBackupJob},
 		}
 	case screenPiAgent:

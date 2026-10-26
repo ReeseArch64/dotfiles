@@ -31,7 +31,7 @@ func TestBackupJobsRejectSymlinkStoreBeforePrivilegedSetup(t *testing.T) {
 			if backupDestinationReady(destination, os.Getuid(), os.Getgid()) {
 				t.Fatal("symlink aceito como diretório de backup pronto")
 			}
-			for _, configured := range []job{browserBackupJob(), sshKeysBackupJob(), gpgBackupJob()} {
+			for _, configured := range []job{browserBackupJob(), sshKeysBackupJob(deviceDesktop), gpgBackupJob()} {
 				if len(configured.steps) == 0 || configured.steps[0].run == nil {
 					t.Fatalf("%s não valida o caminho antes dos comandos privilegiados", configured.title)
 				}

@@ -73,7 +73,7 @@ func TestValidateGitSSHAcceptsConfiguredClient(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, ".ssh"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range requiredSSHIdentityFiles {
+	for _, name := range gitSSHIdentityFiles {
 		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte(name), 0600); err != nil {
 			t.Fatal(err)
 		}

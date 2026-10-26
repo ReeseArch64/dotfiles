@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (m model) serverItems() []item {
@@ -26,7 +27,7 @@ func (m model) serverItems() []item {
 			{title: "Firewall", desc: "UFW: SSH, CasaOS, DNS e serviços do homelab somente na LAN", goTo: screenFirewall},
 		}
 	case screenSSH:
-		return []item{{title: "Configurar SSH", desc: "Instalar OpenSSH, validar e ativar ssh.service ou ssh.socket", job: func() job {
+		return []item{{title: "Configurar SSH", desc: "Autorizar id_pessoal_desktop.pub, instalar OpenSSH e ativar o servidor", job: func() job {
 			return serverSSHJob(m.setupDir)
 		}}}
 	case screenFirewall:
@@ -100,10 +101,15 @@ func aptSteps(packages ...string) []step {
 }
 
 func serverSSHJob(setupDir string) job {
-	steps := aptSteps("openssh-server", "openssh-client")
-	steps = append(steps, sudoStep("Validar SSH e ativar serviço sem alterar autenticação", false,
+	home, _ := os.UserHomeDir()
+	steps := []step{nativeStep("Autorizar somente id_pessoal_desktop.pub para conexões SSH recebidas", func() error {
+		return authorizeSSHIdentities(home, []string{"id_pessoal_desktop.pub"}, time.Now())
+	})}
+	privileged := aptSteps("openssh-server", "openssh-client")
+	privileged = append(privileged, sudoStep("Validar SSH e ativar serviço sem desativar autenticação de fallback", false,
 		"bash", configPath(setupDir, "ssh", "enable.sh")))
-	return job{title: "Configurar SSH (Ubuntu)", steps: withSudo(steps...), result: func() string { return sshResultForDevice(deviceServer) }}
+	steps = append(steps, withSudo(privileged...)...)
+	return job{title: "Configurar SSH (Ubuntu)", steps: steps, result: func() string { return sshResultForDevice(deviceServer) }}
 }
 
 func validateServerFirewall(port, lan, connection string) error {

@@ -155,7 +155,8 @@ func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
 	testBackupStore(t)
 	sshDir := t.TempDir()
 	destination := filepath.Join(t.TempDir(), "ssh")
-	for _, name := range requiredSSHIdentityFiles {
+	names := requiredSSHIdentityFiles(deviceDesktop)
+	for _, name := range names {
 		mode := os.FileMode(0600)
 		if strings.HasSuffix(name, ".pub") {
 			mode = 0644
@@ -164,7 +165,7 @@ func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := backupSSHKeys(sshDir, destination); err != nil {
+	if err := backupSSHKeys(sshDir, destination, names); err != nil {
 		t.Fatal(err)
 	}
 	destination = testBackupAt(t, destination, "ssh", sshDir)
@@ -175,7 +176,7 @@ func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
 	if info.Mode().Perm() != 0700 {
 		t.Fatalf("permiss\u00e3o do destino: %v", info.Mode())
 	}
-	for _, name := range requiredSSHIdentityFiles {
+	for _, name := range names {
 		content, err := os.ReadFile(filepath.Join(destination, name))
 		if err != nil || string(content) != name {
 			t.Fatalf("chave ausente ou alterada: %s (%v)", name, err)
@@ -187,7 +188,7 @@ func TestBackupSSHKeysFailsWhenKeysMissing(t *testing.T) {
 	testBackupStore(t)
 	sshDir := t.TempDir()
 	destination := filepath.Join(t.TempDir(), "ssh")
-	if err := backupSSHKeys(sshDir, destination); err == nil || !strings.Contains(err.Error(), "chaves ausentes") {
+	if err := backupSSHKeys(sshDir, destination, requiredSSHIdentityFiles(deviceNotebook)); err == nil || !strings.Contains(err.Error(), "chaves ausentes") {
 		t.Fatalf("deveria falhar sem chaves: %v", err)
 	}
 	if _, err := os.Stat(destination); !os.IsNotExist(err) {

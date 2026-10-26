@@ -177,7 +177,7 @@ func writeGitSigningKey(path, signingKey string) error {
 }
 
 func validateGitSSH(setupDir, home string) error {
-	if missing := missingSSHIdentityFiles(home); len(missing) > 0 {
+	if missing := missingSSHIdentityFiles(home, gitSSHIdentityFiles); len(missing) > 0 {
 		return errors.New("configure o SSH antes de autenticar GitHub e GitLab: chaves ausentes: " + strings.Join(missing, ", "))
 	}
 	source := configPath(setupDir, "ssh", "config")

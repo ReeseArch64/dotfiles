@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -144,8 +145,16 @@ func TestDebianPackagesAndProfileUnits(t *testing.T) {
 	}
 }
 
-func TestUbuntuSSHJobKeepsSettingsAndDoesNotRequireClientKeys(t *testing.T) {
+func TestUbuntuSSHJobAuthorizesPersonalKeyAndKeepsFallback(t *testing.T) {
 	_, log := homelabMocks(t)
+	sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
+	if err := os.Mkdir(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	publicKey := "ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte("personal-key")) + " pessoal@example\n"
+	if err := os.WriteFile(filepath.Join(sshDir, "id_pessoal_desktop.pub"), []byte(publicKey), 0644); err != nil {
+		t.Fatal(err)
+	}
 	j := serverSSHJob(homelabSetup(t))
 	for _, current := range j.steps {
 		if current.cmd != nil {
@@ -170,8 +179,9 @@ func TestUbuntuSSHJobKeepsSettingsAndDoesNotRequireClientKeys(t *testing.T) {
 			t.Fatal(commands)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".ssh")); !os.IsNotExist(err) {
-		t.Fatal("personal client files should not be required or changed")
+	authorized, err := os.ReadFile(filepath.Join(sshDir, "authorized_keys"))
+	if err != nil || string(authorized) != publicKey {
+		t.Fatalf("id_pessoal_desktop.pub não autorizada: %q, %v", authorized, err)
 	}
 }
 

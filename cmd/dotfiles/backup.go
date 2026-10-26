@@ -245,17 +245,17 @@ func browserBackupJob() job {
 	})
 }
 
-func runSSHKeysBackup() error {
+func runSSHKeysBackup(device deviceProfile) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("localizar diretório pessoal: %w", err)
 	}
-	return backupSSHKeys(filepath.Join(home, ".ssh"), localBackupRoot())
+	return backupSSHKeys(filepath.Join(home, ".ssh"), localBackupRoot(), requiredSSHIdentityFiles(device))
 }
 
-func backupSSHKeys(sshDir, root string) error {
+func backupSSHKeys(sshDir, root string, names []string) error {
 	var missing []string
-	for _, name := range requiredSSHIdentityFiles {
+	for _, name := range names {
 		info, err := os.Stat(filepath.Join(sshDir, name))
 		if err != nil || !info.Mode().IsRegular() {
 			missing = append(missing, name)
@@ -278,7 +278,7 @@ func backupSSHKeys(sshDir, root string) error {
 		}
 	}()
 
-	for _, name := range requiredSSHIdentityFiles {
+	for _, name := range names {
 		if err := copyFileAtomic(filepath.Join(sshDir, name), filepath.Join(destination, name)); err != nil {
 			return fmt.Errorf("copiar %s: %w", name, err)
 		}
@@ -299,9 +299,9 @@ func sshKeysBackupJobFor(setup []step, run func() error) job {
 	}
 }
 
-func sshKeysBackupJob() job {
+func sshKeysBackupJob(device deviceProfile) job {
 	setup := backupDestinationSetupSteps(localBackupRoot(), os.Getuid(), os.Getgid())
-	return sshKeysBackupJobFor(setup, runSSHKeysBackup)
+	return sshKeysBackupJobFor(setup, func() error { return runSSHKeysBackup(device) })
 }
 
 type gpgExporter func(context.Context, bool) ([]byte, error)

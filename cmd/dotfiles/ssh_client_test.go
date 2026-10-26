@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"slices"
@@ -25,24 +26,140 @@ func prepareSSHClientTest(t *testing.T) (string, string) {
 	return dotfiles, home
 }
 
-func installSSHClientTestIdentities(t *testing.T, home string) {
+func installSSHClientTestIdentities(t *testing.T, home string, device deviceProfile) {
 	t.Helper()
-	for _, name := range requiredSSHIdentityFiles {
-		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte(name), 0600); err != nil {
+	for _, name := range requiredSSHIdentityFiles(device) {
+		content := name
+		if strings.HasSuffix(name, ".pub") {
+			content = "ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte(name)) + " " + name + "\n"
+		}
+		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte(content), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
 }
 
-func TestRequiredSSHIdentityFilesAreFourCompletePairs(t *testing.T) {
-	want := []string{
-		"id_trabalho", "id_trabalho.pub",
-		"id_pessoal", "id_pessoal.pub",
-		"id_gitlab", "id_gitlab.pub",
-		"id_github", "id_github.pub",
+func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
+	for device, want := range map[deviceProfile][]string{
+		deviceDesktop: {
+			"id_trabalho_desktop", "id_trabalho_desktop.pub", "id_pessoal_desktop", "id_pessoal_desktop.pub",
+			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub",
+		},
+		deviceNotebook: {
+			"id_trabalho_notebook", "id_trabalho_notebook.pub", "id_trabalho_desktop.pub", "id_pessoal_desktop.pub",
+			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub",
+		},
+		deviceServer: {"id_pessoal_desktop.pub"},
+	} {
+		if got := requiredSSHIdentityFiles(device); !slices.Equal(got, want) {
+			t.Fatalf("%s: identidades SSH inesperadas: %v", device, got)
+		}
 	}
-	if !slices.Equal(requiredSSHIdentityFiles, want) {
-		t.Fatalf("identidades SSH inesperadas: %v", requiredSSHIdentityFiles)
+}
+
+func TestIncomingSSHIdentitiesMatchDeviceRole(t *testing.T) {
+	for device, want := range map[deviceProfile][]string{
+		deviceDesktop:  nil,
+		deviceNotebook: {"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"},
+		deviceServer:   {"id_pessoal_desktop.pub"},
+	} {
+		if got, err := incomingSSHIdentities(device); err != nil || !slices.Equal(got, want) {
+			t.Fatalf("%s: identidade=%q erro=%v", device, got, err)
+		}
+	}
+	if _, err := incomingSSHIdentities(deviceMacBook); err == nil {
+		t.Fatal("perfil sem configuração de entrada aceito")
+	}
+}
+
+func TestSSHConfigsUseKeysFromTheirOriginDevice(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	desktop := readHomelabFile(t, configPath(setupDirectory(root, deviceDesktop), "ssh", "config"))
+	for _, want := range []string{
+		"IdentityFile ~/.ssh/id_trabalho_desktop",
+		"IdentityFile ~/.ssh/id_pessoal_desktop",
+	} {
+		if !strings.Contains(desktop, want) {
+			t.Fatalf("configuração desktop sem %s", want)
+		}
+	}
+	if strings.Contains(desktop, "Host 192.168.1.104") {
+		t.Fatal("desktop não deve configurar conexão SSH para si mesmo")
+	}
+	notebook := readHomelabFile(t, configPath(setupDirectory(root, deviceNotebook), "ssh", "config"))
+	for _, forbidden := range []string{"id_pessoal_notebook", "Host 192.168.1.103", "Host 192.168.1.104", "Host 192.168.1.107"} {
+		if strings.Contains(notebook, forbidden) {
+			t.Fatalf("configuração notebook contém acesso não autorizado: %s", forbidden)
+		}
+	}
+}
+
+func TestAuthorizeSSHIdentitiesEnforcesDeviceSetAndIsIdempotent(t *testing.T) {
+	testBackupStore(t)
+	home := t.TempDir()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.Mkdir(sshDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	var expected string
+	for _, name := range []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"} {
+		line := "ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte(name)) + " " + name + "\n"
+		expected += line
+		if err := os.WriteFile(filepath.Join(sshDir, name), []byte(line), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	existing := "restrict ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte("existing-key")) + " existing@example\n"
+	authorized := filepath.Join(sshDir, "authorized_keys")
+	if err := os.WriteFile(authorized, []byte(existing), 0644); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
+	if err := authorizeSSHIdentities(home, []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"}, now); err != nil {
+		t.Fatal(err)
+	}
+	first, err := os.ReadFile(authorized)
+	if err != nil || string(first) != expected || strings.Contains(string(first), "existing-key") {
+		t.Fatalf("authorized_keys inesperado: %q, %v", first, err)
+	}
+	backup := testBackupFor(t, authorized)
+	if previous, err := os.ReadFile(backup); err != nil || string(previous) != existing {
+		t.Fatalf("authorized_keys anterior não preservado: %q, %v", previous, err)
+	}
+	if err := authorizeSSHIdentities(home, []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"}, now); err != nil {
+		t.Fatal(err)
+	}
+	second, _ := os.ReadFile(authorized)
+	if string(second) != string(first) {
+		t.Fatalf("chave duplicada: %q", second)
+	}
+	if info, _ := os.Stat(sshDir); info.Mode().Perm() != 0700 {
+		t.Fatalf("permissão de ~/.ssh: %v", info.Mode())
+	}
+	if info, _ := os.Stat(authorized); info.Mode().Perm() != 0600 {
+		t.Fatalf("permissão de authorized_keys: %v", info.Mode())
+	}
+}
+
+func TestDesktopRemovesAllIncomingSSHKeys(t *testing.T) {
+	testBackupStore(t)
+	home := t.TempDir()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.Mkdir(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	authorized := filepath.Join(sshDir, "authorized_keys")
+	if err := os.WriteFile(authorized, []byte("ssh-ed25519 AAAA antiga\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := authorizeSSHIdentities(home, nil, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if content, err := os.ReadFile(authorized); err != nil || len(content) != 0 {
+		t.Fatalf("desktop ainda aceita chaves: %q, %v", content, err)
 	}
 }
 
@@ -50,11 +167,11 @@ func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
 
-	err := installSSHClientConfig(dotfiles, home, time.Now())
+	err := installSSHClientConfig(dotfiles, home, deviceDesktop, time.Now())
 	if err == nil {
 		t.Fatal("esperava erro para identidades ausentes")
 	}
-	for _, name := range requiredSSHIdentityFiles {
+	for _, name := range requiredSSHIdentityFiles(deviceDesktop) {
 		if !strings.Contains(err.Error(), name) {
 			t.Fatalf("erro não menciona %s: %v", name, err)
 		}
@@ -67,9 +184,9 @@ func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
-	installSSHClientTestIdentities(t, home)
+	installSSHClientTestIdentities(t, home, deviceDesktop)
 
-	if err := installSSHClientConfig(dotfiles, home, time.Now()); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	sshDir := filepath.Join(home, ".ssh")
@@ -93,14 +210,14 @@ func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
 func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
-	installSSHClientTestIdentities(t, home)
+	installSSHClientTestIdentities(t, home, deviceDesktop)
 	destination := filepath.Join(home, ".ssh", "config")
 	if err := os.WriteFile(destination, []byte("old"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 
-	if err := installSSHClientConfig(dotfiles, home, now); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, now); err != nil {
 		t.Fatal(err)
 	}
 	backup := testBackupFor(t, destination)
@@ -113,13 +230,13 @@ func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
 func TestInstallSSHClientConfigIsIdempotent(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
-	installSSHClientTestIdentities(t, home)
+	installSSHClientTestIdentities(t, home, deviceDesktop)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 
-	if err := installSSHClientConfig(dotfiles, home, now); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, now); err != nil {
 		t.Fatal(err)
 	}
-	if err := installSSHClientConfig(dotfiles, home, now); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, now); err != nil {
 		t.Fatal(err)
 	}
 	matches, err := testBackupPaths(localBackupRoot(), "files", filepath.Join(home, ".ssh", "config"))
@@ -137,15 +254,21 @@ func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
 	if titles := itemTitles(items); len(items) != 1 || titles[0] != "Configurar SSH" {
 		t.Fatalf("ações SSH inesperadas: %v", titles)
 	}
-	labels := jobStepLabels(configureSSHJob(model.dotfiles, "2222", "192.168.1.0/24"))
+	labels := jobStepLabels(configureSSHJob(model.dotfiles, "2222", "192.168.1.0/24", deviceDesktop))
 	for _, want := range []string{
 		"Validar chaves e copiar ~/.ssh/config",
-		"Liberar 2222/tcp para 192.168.1.0/24",
+		"Autorizar chave para conexões SSH recebidas",
+		"Remover liberação LAN anterior de 2222/tcp",
 		"Desabilitar sshd.socket",
-		"Habilitar e iniciar sshd.service",
+		"Desabilitar sshd.service no desktop",
 	} {
 		if !slices.Contains(labels, want) {
 			t.Fatalf("passo SSH %q ausente: %v", want, labels)
+		}
+	}
+	for _, label := range labels {
+		if strings.HasPrefix(label, "Liberar 2222/tcp") || label == "Habilitar e iniciar sshd.service" {
+			t.Fatalf("desktop aceita SSH recebido: %v", labels)
 		}
 	}
 }
@@ -153,6 +276,7 @@ func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
 func TestFirewallMenuHasSingleLANConfigurationAction(t *testing.T) {
 	testBackupStore(t)
 	model := newModel(t.TempDir())
+	model.device = deviceNotebook
 	model.screen = screenFirewall
 	model.fw = fwStatus{port: "2222", lan: "10.20.30.0/24"}
 	items := model.items()

@@ -290,27 +290,29 @@ O menu `Sistema > SSH` oferece somente a ação `Configurar SSH`.
 A ação executa a configuração completa:
 
 1. Valida as identidades e copia `setup/<perfil>/ssh/config` para `~/.ssh/config`.
-2. Instala `openssh`, `ufw` e `iptables-nft` quando necessário.
-3. Define as políticas padrão do UFW.
-4. Libera a porta do SSH somente para a rede local.
-5. Ativa o UFW permanentemente.
-6. Desabilita `sshd.socket`.
-7. Habilita e inicia `sshd.service` permanentemente.
+2. Substitui `~/.ssh/authorized_keys` pelo conjunto permitido para o dispositivo.
+3. Instala `openssh`, `ufw` e `iptables-nft` quando necessário.
+4. Define as políticas padrão do UFW.
+5. Libera a porta do SSH somente para a rede local.
+6. Ativa o UFW permanentemente.
+7. Desabilita `sshd.socket`.
+8. Habilita e inicia `sshd.service` permanentemente.
 
-A configuração do cliente exige estes arquivos regulares em `~/.ssh`:
+As identidades são separadas pelo dispositivo de origem:
 
-```text
-id_trabalho
-id_trabalho.pub
-id_pessoal
-id_pessoal.pub
-id_gitlab
-id_gitlab.pub
-id_github
-id_github.pub
-```
+| Perfil configurado | Chaves próprias | Chaves públicas recebidas |
+| --- | --- | --- |
+| Desktop | `id_trabalho_desktop`, `id_pessoal_desktop` e respectivos `.pub` | nenhuma |
+| Notebook | `id_trabalho_notebook` e seu `.pub` | `id_trabalho_desktop.pub`, `id_pessoal_desktop.pub` |
+| Mini-server | nenhuma chave privada | `id_pessoal_desktop.pub` |
+
+Desktop e notebook também exigem os pares compartilhados `id_github` e `id_gitlab`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
 
 A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
+
+O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → mini-server. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub` e `id_pessoal_desktop.pub`; o mini-server aceita somente `id_pessoal_desktop.pub`. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
+
+A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups`. A autenticação por senha permanece disponível como recuperação no notebook e no mini-server; clientes com a chave privada correspondente entram diretamente por chave pública.
 
 Uma configuração diferente é preservada em `/mnt/backups`, identificada pela origem e pela data, sem criar arquivos de backup dentro de `~/.ssh`.
 
@@ -763,20 +765,9 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 
 ### Backup das chaves SSH
 
-`Backup > Backup das Chaves SSH` copia estas identidades de `~/.ssh` para `/mnt/backups/ssh/<hash>/<geração>/original/`:
+`Backup > Backup das Chaves SSH` copia para `/mnt/backups/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github` e `id_gitlab`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab` e as públicas `id_trabalho_desktop.pub` e `id_pessoal_desktop.pub`.
 
-```text
-id_trabalho
-id_trabalho.pub
-id_pessoal
-id_pessoal.pub
-id_gitlab
-id_gitlab.pub
-id_github
-id_github.pub
-```
-
-A CLI valida os oito arquivos dos quatro pares antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia.
+A CLI valida todos os arquivos do perfil antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia. Chaves privadas de outro dispositivo nunca são exigidas nem copiadas.
 
 Os diretórios de backup SSH recebem permissão `0700`. Cada geração mantém a permissão dos arquivos da origem, sem substituir gerações anteriores. Proteja as chaves privadas em `~/.ssh` com permissão `0600`.
 

@@ -37,16 +37,8 @@ Host *
 Host 192.168.1.103
   HostName 192.168.1.103
   User alsgy
-  IdentityFile ~/.ssh/id_trabalho
-  IdentitiesOnly yes
-
-# ==============================
-# SSH DESKTOP
-# ==============================
-Host 192.168.1.104
-  HostName 192.168.1.104
-  User alsgy
-  IdentityFile ~/.ssh/id_trabalho
+  IdentityFile ~/.ssh/id_trabalho_desktop
+  IdentityFile ~/.ssh/id_pessoal_desktop
   IdentitiesOnly yes
 
 # ==============================
@@ -55,17 +47,8 @@ Host 192.168.1.104
 Host 192.168.1.107
   HostName 192.168.1.107
   User alsgy
-  IdentityFile ~/.ssh/id_pessoal
+  IdentityFile ~/.ssh/id_pessoal_desktop
   IdentitiesOnly yes
-
-# ============================================
-# MACBOOK
-# ============================================
-# Host macbook
-#     HostName IP_DO_MACBOOK
-#     User USUARIO_DO_MACBOOK
-#     IdentityFile ~/.ssh/id_trabalho
-#     IdentitiesOnly yes
 
 # ==============================
 # GITHUB
