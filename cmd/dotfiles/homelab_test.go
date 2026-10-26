@@ -213,6 +213,16 @@ func TestServerFirewallRulesPrecedeEnablingAndPreserveAdmin(t *testing.T) {
 		"ufw insert 1 allow from 192.168.10.0/24 to any port 22 proto tcp",
 		"ufw insert 1 allow from 192.168.10.0/24 to any port 2222 proto tcp",
 		"ufw insert 1 allow from 192.168.10.0/24 to any port 80 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 53 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 53 proto udp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 3001 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 3428 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 5000 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 5050 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 7575 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 8887 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 8888 proto tcp",
+		"ufw insert 1 allow from 192.168.10.0/24 to any port 9001 proto tcp",
 		"ufw insert 1 allow from 203.0.113.7 to any port 2200 proto tcp",
 	} {
 		if index := strings.Index(commands, want); index < 0 || index > strings.Index(commands, "ufw default deny incoming") {
@@ -222,7 +232,7 @@ func TestServerFirewallRulesPrecedeEnablingAndPreserveAdmin(t *testing.T) {
 	if strings.Index(commands, "ufw default deny") > strings.Index(commands, "systemctl enable --now ufw.service") || strings.Index(commands, "systemctl enable --now ufw.service") > strings.Index(commands, "ufw --force enable") {
 		t.Fatal(commands)
 	}
-	for _, forbidden := range []string{"delete", "reset", "port 53", "iptables-nft", "pacman"} {
+	for _, forbidden := range []string{"delete", "reset", "port 10380", "iptables-nft", "pacman"} {
 		if strings.Contains(commands, forbidden) {
 			t.Fatal(commands)
 		}

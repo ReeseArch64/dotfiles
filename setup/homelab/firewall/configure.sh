@@ -19,6 +19,10 @@ for ssh_port in "${ports[@]}"; do
     ufw insert 1 allow from "$lan" to any port "$ssh_port" proto tcp comment 'SSH LAN'
 done
 ufw insert 1 allow from "$lan" to any port 80 proto tcp comment 'CasaOS LAN'
+for service_port in 53 3001 3428 5000 5050 7575 8887 8888 9001; do
+    ufw insert 1 allow from "$lan" to any port "$service_port" proto tcp comment 'Homelab LAN'
+done
+ufw insert 1 allow from "$lan" to any port 53 proto udp comment 'DNS LAN'
 if [[ -n $connection ]]; then
     read -r client client_port server server_port <<< "$connection"
     ufw insert 1 allow from "$client" to any port "$server_port" proto tcp comment 'SSH admin atual'

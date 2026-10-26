@@ -194,7 +194,7 @@ curl -fsSL https://get.casaos.io | sudo bash
 
 A configuração DNS altera `DNSStubListener=no` na seção `[Resolve]` de `/etc/systemd/resolved.conf` e reinicia `systemd-resolved` para liberar a porta 53. Se `/etc/resolv.conf` apontar para o stub do systemd, o link é ajustado para `/run/systemd/resolve/resolv.conf`, mantendo a resolução de nomes sem o listener local. Drop-ins que habilitem o stub são rejeitados antes de qualquer alteração; ajuste esses arquivos antes de repetir a ação.
 
-SSH usa os pacotes e unidades do Ubuntu. O firewall UFW libera SSH e a interface web do CasaOS (porta 80/TCP) somente para a LAN antes de ser ativado. A configuração não abre a porta 53 para a internet.
+SSH usa os pacotes e unidades do Ubuntu. Antes de ser ativado, o firewall UFW libera somente para a LAN o SSH, a interface web do CasaOS (`80/TCP`), o DNS (`53/TCP` e `53/UDP`) e os serviços nas portas TCP `3001`, `3428`, `5000`, `5050`, `7575`, `8887`, `8888` e `9001`. A porta `10380` não é liberada: o HTTP direto do Vaultwarden permanece restrito ao loopback para impedir que o HTTPS seja contornado.
 
 `Vaultwarden HTTPS` configura os aplicativos Vaultwarden e Caddy já instalados pelo CasaOS para servir `https://homelab.reesearch64.com` somente no IPv4 privado do mini-server. A configuração permanente da Cloudflare é feita separadamente: crie um registro `A` DNS-only chamado `homelab` apontando para `192.168.1.107` e um API Token restrito à zona `reesearch64.com`, com permissões `Zone:Read` e `DNS:Edit`.
 
