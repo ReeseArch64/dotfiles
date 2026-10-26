@@ -303,14 +303,14 @@ As identidades são separadas pelo dispositivo de origem:
 | Perfil configurado | Chaves próprias | Chaves públicas recebidas |
 | --- | --- | --- |
 | Desktop | `id_trabalho_desktop`, `id_pessoal_desktop` e respectivos `.pub` | nenhuma |
-| Notebook | `id_trabalho_notebook` e seu `.pub` | `id_trabalho_desktop.pub`, `id_pessoal_desktop.pub` |
+| Notebook | `id_trabalho_notebook` e seu `.pub` | `id_trabalho_desktop.pub` |
 | Mini-server | nenhuma chave privada | `id_pessoal_desktop.pub` |
 
 Desktop e notebook também exigem os pares compartilhados `id_github` e `id_gitlab`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
 
 A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
 
-O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → mini-server. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub` e `id_pessoal_desktop.pub`; o mini-server aceita somente `id_pessoal_desktop.pub`. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
+O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → mini-server. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub`; o mini-server aceita somente `id_pessoal_desktop.pub`. Assim, a identidade pessoal não concede acesso ao equipamento de trabalho. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
 
 A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups`. A autenticação por senha permanece disponível como recuperação no notebook e no mini-server; clientes com a chave privada correspondente entram diretamente por chave pública.
 
@@ -765,7 +765,7 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 
 ### Backup das chaves SSH
 
-`Backup > Backup das Chaves SSH` copia para `/mnt/backups/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github` e `id_gitlab`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab` e as públicas `id_trabalho_desktop.pub` e `id_pessoal_desktop.pub`.
+`Backup > Backup das Chaves SSH` copia para `/mnt/backups/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github` e `id_gitlab`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab` e a pública `id_trabalho_desktop.pub`.
 
 A CLI valida todos os arquivos do perfil antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia. Chaves privadas de outro dispositivo nunca são exigidas nem copiadas.
 

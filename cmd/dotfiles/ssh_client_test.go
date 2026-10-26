@@ -46,7 +46,7 @@ func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub",
 		},
 		deviceNotebook: {
-			"id_trabalho_notebook", "id_trabalho_notebook.pub", "id_trabalho_desktop.pub", "id_pessoal_desktop.pub",
+			"id_trabalho_notebook", "id_trabalho_notebook.pub", "id_trabalho_desktop.pub",
 			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub",
 		},
 		deviceServer: {"id_pessoal_desktop.pub"},
@@ -60,7 +60,7 @@ func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 func TestIncomingSSHIdentitiesMatchDeviceRole(t *testing.T) {
 	for device, want := range map[deviceProfile][]string{
 		deviceDesktop:  nil,
-		deviceNotebook: {"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"},
+		deviceNotebook: {"id_trabalho_desktop.pub"},
 		deviceServer:   {"id_pessoal_desktop.pub"},
 	} {
 		if got, err := incomingSSHIdentities(device); err != nil || !slices.Equal(got, want) {
@@ -105,7 +105,7 @@ func TestAuthorizeSSHIdentitiesEnforcesDeviceSetAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var expected string
-	for _, name := range []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"} {
+	for _, name := range []string{"id_trabalho_desktop.pub"} {
 		line := "ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte(name)) + " " + name + "\n"
 		expected += line
 		if err := os.WriteFile(filepath.Join(sshDir, name), []byte(line), 0644); err != nil {
@@ -118,7 +118,7 @@ func TestAuthorizeSSHIdentitiesEnforcesDeviceSetAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
-	if err := authorizeSSHIdentities(home, []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"}, now); err != nil {
+	if err := authorizeSSHIdentities(home, []string{"id_trabalho_desktop.pub"}, now); err != nil {
 		t.Fatal(err)
 	}
 	first, err := os.ReadFile(authorized)
@@ -129,7 +129,7 @@ func TestAuthorizeSSHIdentitiesEnforcesDeviceSetAndIsIdempotent(t *testing.T) {
 	if previous, err := os.ReadFile(backup); err != nil || string(previous) != existing {
 		t.Fatalf("authorized_keys anterior não preservado: %q, %v", previous, err)
 	}
-	if err := authorizeSSHIdentities(home, []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"}, now); err != nil {
+	if err := authorizeSSHIdentities(home, []string{"id_trabalho_desktop.pub"}, now); err != nil {
 		t.Fatal(err)
 	}
 	second, _ := os.ReadFile(authorized)

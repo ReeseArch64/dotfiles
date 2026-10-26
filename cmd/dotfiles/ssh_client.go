@@ -28,7 +28,7 @@ func requiredSSHIdentityFiles(device deviceProfile) []string {
 	case deviceNotebook:
 		deviceFiles = []string{
 			"id_trabalho_notebook", "id_trabalho_notebook.pub",
-			"id_trabalho_desktop.pub", "id_pessoal_desktop.pub",
+			"id_trabalho_desktop.pub",
 		}
 	case deviceServer:
 		return []string{"id_pessoal_desktop.pub"}
@@ -54,7 +54,7 @@ func incomingSSHIdentities(device deviceProfile) ([]string, error) {
 	case deviceDesktop:
 		return nil, nil
 	case deviceNotebook:
-		return []string{"id_trabalho_desktop.pub", "id_pessoal_desktop.pub"}, nil
+		return []string{"id_trabalho_desktop.pub"}, nil
 	case deviceServer:
 		return []string{"id_pessoal_desktop.pub"}, nil
 	default:
