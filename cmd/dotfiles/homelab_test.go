@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -147,14 +146,6 @@ func TestDebianPackagesAndProfileUnits(t *testing.T) {
 
 func TestUbuntuSSHJobAuthorizesPersonalKeyBeforeInteractiveHardening(t *testing.T) {
 	_, log := homelabMocks(t)
-	sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
-	if err := os.Mkdir(sshDir, 0700); err != nil {
-		t.Fatal(err)
-	}
-	publicKey := "ssh-ed25519 " + base64.StdEncoding.EncodeToString([]byte("personal-key")) + " pessoal@example\n"
-	if err := os.WriteFile(filepath.Join(sshDir, "id_pessoal_desktop.pub"), []byte(publicKey), 0644); err != nil {
-		t.Fatal(err)
-	}
 	j := serverSSHJob(homelabSetup(t))
 	for _, current := range j.steps {
 		if current.label == "Exigir chave SSH após teste de acesso" {
@@ -185,9 +176,8 @@ func TestUbuntuSSHJobAuthorizesPersonalKeyBeforeInteractiveHardening(t *testing.
 			t.Fatal(commands)
 		}
 	}
-	authorized, err := os.ReadFile(filepath.Join(sshDir, "authorized_keys"))
-	if err != nil || string(authorized) != publicKey {
-		t.Fatalf("id_pessoal_desktop.pub não autorizada: %q, %v", authorized, err)
+	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".ssh")); !os.IsNotExist(err) {
+		t.Fatal("etapas anteriores ao prompt não devem exigir nem criar arquivos de chave")
 	}
 }
 

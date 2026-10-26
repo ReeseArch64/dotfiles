@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func (m model) serverItems() []item {
@@ -30,7 +29,7 @@ func (m model) serverItems() []item {
 			{title: "Firewall", desc: "UFW: SSH, CasaOS, DNS e serviços do homelab somente na LAN", goTo: screenFirewall},
 		}
 	case screenSSH:
-		return []item{{title: "Configurar SSH", desc: "Autorizar id_pessoal_desktop.pub, instalar OpenSSH e ativar o servidor", job: func() job {
+		return []item{{title: "Configurar SSH", desc: "Colar chave pública pessoal e configurar OpenSSH", job: func() job {
 			return serverSSHJob(m.setupDir)
 		}}}
 	case screenFirewall:
@@ -97,11 +96,11 @@ func aptSteps(packages ...string) []step {
 
 func serverSSHJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
-	steps := []step{nativeStep("Autorizar somente id_pessoal_desktop.pub para conexões SSH recebidas", func() error {
+	steps := []step{nativeStep("Validar usuário administrador", func() error {
 		if home == "/root" {
 			return fmt.Errorf("execute o menu como alsgy, não como root; os passos administrativos usam sudo")
 		}
-		return authorizeSSHIdentities(home, []string{"id_pessoal_desktop.pub"}, time.Now())
+		return nil
 	})}
 	privileged := aptSteps("openssh-server", "openssh-client")
 	privileged = append(privileged, sudoStep("Validar SSH e ativar serviço sem desativar autenticação de fallback", false,

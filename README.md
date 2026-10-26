@@ -207,7 +207,7 @@ Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `http
 
 #### SSH por chave no HomeLab
 
-Execute o menu como seu usuário administrador (por exemplo, `alsgy`), com `~/.ssh/id_pessoal_desktop.pub` disponível. A ação autoriza essa pública, ativa o OpenSSH e pede que você teste uma segunda conexão usando a chave e `sudo -v`. Somente depois de digitar `CONFIRMO`, aplica uma política permitindo SSH apenas para esse usuário com chave pública, bloqueando senha, autenticação interativa e root. Valida a política com `sshd -t` e `sshd -T`, guarda backup em `/etc/ssh/homelab-backup.*` e recarrega o serviço. Mantenha a sessão atual aberta até testar novamente. A chave privada permanece no desktop.
+Execute o menu como seu usuário administrador (por exemplo, `alsgy`). A ação instala e ativa OpenSSH e solicita que você cole o conteúdo de `id_pessoal_desktop.pub` em uma única linha no terminal; não exige arquivo de chave no HomeLab nem no repositório. Valida a pública Ed25519, mostra seu fingerprint, cria `authorized_keys` se necessário e adiciona a chave preservando as existentes durante o teste. Teste uma segunda conexão usando essa chave e `sudo -v`. Somente depois de digitar `CONFIRMO`, mantém apenas a chave colada e aplica uma política permitindo SSH apenas para esse usuário com chave pública, bloqueando senha, autenticação interativa e root. Valida a política com `sshd -t` e `sshd -T`, guarda backup em `/etc/ssh/homelab-backup.*` e recarrega o serviço. Em caso de falha na aplicação, restaura a configuração e as chaves disponíveis durante o teste. Mantenha a sessão atual aberta até testar novamente. A chave privada permanece no desktop.
 
 O instalador do CasaOS executa o comando solicitado, com detecção de falhas no download:
 
