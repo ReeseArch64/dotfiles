@@ -89,7 +89,7 @@ cd ~/.dotfiles
 
 As configurações são cópias independentes em `setup/desktop/` e `setup/laptop/`, selecionadas pelo hostname (`desktop` e `notebook`, respectivamente). Não há base compartilhada nem sobreposição. Discord, Obsidian, Ollama e Turing Smart Screen são exclusivos de `setup/desktop/` e não estão presentes no laptop. Nos caminhos abaixo, `setup/<perfil>/` representa a pasta selecionada.
 
-Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. O hostname `mini-server` usa `setup/homelab/`. Homeprod e MacBook ainda não têm ações suportadas.
+Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. O hostname `mini-server` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas.
 
 A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
@@ -112,7 +112,9 @@ Adicione `~/.local/bin` ao `PATH`, se necessário. Depois, execute:
 dotfiles
 ```
 
-Antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
+Somente nos perfis Desktop e Notebook, antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
+
+HomeLab e HomeProd não executam essa preparação automática, as migrações de diretórios nem a criação dos links simbólicos de SDK, pastas pessoais e lixeira descritos abaixo. Essa exclusão não desfaz migrações realizadas anteriormente.
 
 Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
 
@@ -205,6 +207,22 @@ A ação localiza os Compose ativos pelas labels dos containers e exige exatamen
 Os dois aplicativos passam a compartilhar a rede Docker externa `homelab-proxy`. O Caddy publica `443/tcp` apenas no IPv4 da LAN e encaminha para `vaultwarden:80`; sua porta administrativa 2019, as portas 48100/48101 do catálogo e a porta 80 não são publicadas. O Vaultwarden recebe `DOMAIN=https://homelab.reesearch64.com`; sua porta de diagnóstico 10380 fica vinculada somente a `127.0.0.1`, impedindo acesso HTTP direto pela LAN. O certificado público é emitido por DNS-01. Não é necessário encaminhar portas no roteador.
 
 Antes de ativar os novos containers, a ação valida o token, a resolução DNS, os Compose, o módulo Cloudflare e a disponibilidade da porta 443. Os Compose, o Caddyfile e o binário anterior são preservados em `/mnt/backups/homelab-https`. Se a ativação falhar, os arquivos anteriores são restaurados e os containers originais são recriados. A regra UFW libera `443/tcp` somente para a LAN; futuras execuções reutilizam o binário e a credencial fornecida externamente.
+
+### Ações do HomeProd (Ubuntu)
+
+`Configurar Swap` executa como root a criação de `/swapfile-homeprod` com 8 GiB, permissão `0600`, ativa a swap e registra sua ativação no `/etc/fstab` com backup prévio. Requer ext4 ou XFS e espaço para manter pelo menos 4 GiB livres após a alocação. A ação preserva outras swaps e reutiliza seu arquivo se ele já tiver o tamanho e formato esperados; não redimensiona nem sobrescreve arquivos incompatíveis. Para optar por 12 GiB na primeira criação, execute `bash setup/homeprod/swap/configure.sh 12`. Não altera `swappiness` nem configura hibernação. Se houver falha durante a criação, o arquivo temporário é preservado e seu caminho é informado.
+
+O hostname da VPS deve conter `homeprod`. A preparação inicial deve ser executada na sessão temporária de `root`; esse perfil não prepara `/mnt`, SDKs, storage nem a lixeira do root.
+
+A primeira ação executa, nesta ordem, `apt-get update`, `apt-get upgrade --yes` e a instalação do pacote `sudo`. Em seguida cria interativamente o usuário `alsgy` com shell Bash e o adiciona ao grupo `sudo`. A senha é lida diretamente pelo `adduser`, não aparece em argumentos e não é armazenada pelo dotfiles. Se `alsgy` já existir, a execução preserva sua senha e apenas garante sua associação ao grupo administrativo.
+
+Após preparar o administrador, o bootstrap instala `curl` e `ca-certificates` e executa `curl -fsSL https://get.casaos.io | sudo bash`, o mesmo instalador usado no HomeLab. O script usa `pipefail` para detectar falhas no download. Essa etapa instala os componentes e serviços do CasaOS; não se limita mais à atualização do Ubuntu e à criação do usuário.
+
+Mantenha a sessão root aberta até instalar a chave pública do desktop e confirmar, em outro terminal, o acesso SSH e o funcionamento de `sudo` como `alsgy`.
+
+Depois do bootstrap, a ação independente `Configurar SSH` do HomeProd deve ser executada como root. Cole o conteúdo de `id_pessoal_desktop.pub` diretamente no prompt do terminal, em uma única linha; nenhum arquivo de chave precisa ser colocado no repositório. Também é possível executar `bash setup/homeprod/ssh/configure.sh`. A ação aceita uma única pública Ed25519, valida seu formato, mostra seu fingerprint e adiciona a chave ao usuário `alsgy` para teste. A chave privada permanece no desktop. Em outro terminal, teste o acesso com a chave privada correspondente, `PasswordAuthentication=no` e `IdentityAgent=none`, seguido de `sudo -v`.
+
+Somente após digitar `CONFIRMO`, atestando o teste e a disponibilidade de recuperação, a ação restringe o SSH a `alsgy`, exige chave pública e proíbe login SSH de root e autenticação por senha. A única fonte de chaves passa a ser `/etc/ssh/homeprod_authorized_keys/alsgy`, gerenciada por root. A política é validada com `sshd -t` e `sshd -T` antes de recarregar o serviço. O backup fica em `/etc/ssh/homeprod-backup.*`; falhas na aplicação restauram a configuração anterior. Teste uma nova conexão antes de encerrar a sessão administrativa. Console/rescue do provedor e backup da chave precisam ser providenciados separadamente. Essa ação não configura o firewall.
 
 ## Navegação
 
@@ -798,7 +816,7 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 │   ├── desktop/          # Configurações completas CachyOS
 │   ├── laptop/           # Cópia independente CachyOS
 │   ├── homelab/          # Mini-server Ubuntu
-│   ├── homeprod/         # Reservado para Ubuntu
+│   ├── homeprod/         # Bootstrap da VPS Ubuntu
 │   └── macbook/          # Reservado para macOS
 ├── go.mod
 ├── go.sum

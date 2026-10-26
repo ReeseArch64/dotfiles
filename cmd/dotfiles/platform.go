@@ -30,12 +30,12 @@ func checkPlatformForDevice(device deviceProfile, path string, lookPath func(str
 	if device == deviceMacBook {
 		return errors.New("MacBook ainda não é suportado")
 	}
-	if device != deviceServer {
+	if device != deviceServer && device != deviceHomeProd {
 		return checkPlatform(path, lookPath)
 	}
 	id, err := osReleaseID(path)
 	if err != nil || id != "ubuntu" {
-		return errors.New("ambiente incompatível: Mini-server requer Ubuntu")
+		return fmt.Errorf("ambiente incompatível: %s requer Ubuntu", device)
 	}
 	return nil
 }

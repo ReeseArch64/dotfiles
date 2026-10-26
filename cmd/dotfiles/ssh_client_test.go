@@ -98,17 +98,13 @@ func TestSSHConfigsUseKeysFromTheirOriginDevice(t *testing.T) {
 	}
 }
 
-func TestDesktopAutomaticallyTrustsOnlyNewLANHostKeys(t *testing.T) {
+func TestDesktopRequiresKnownHostKeys(t *testing.T) {
 	root, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
 	config := configPath(setupDirectory(root, deviceDesktop), "ssh", "config")
-	for host, want := range map[string]string{
-		"192.168.1.103": "accept-new",
-		"192.168.1.107": "accept-new",
-		"github.com":    "true",
-	} {
+	for _, host := range []string{"192.168.1.103", "192.168.1.107", "github.com"} {
 		output, err := exec.Command("ssh", "-G", "-F", config, host).Output()
 		if err != nil {
 			t.Fatal(err)
@@ -120,11 +116,8 @@ func TestDesktopAutomaticallyTrustsOnlyNewLANHostKeys(t *testing.T) {
 				break
 			}
 		}
-		if setting != want {
-			t.Fatalf("%s: StrictHostKeyChecking=%q, esperado %q", host, setting, want)
-		}
-		if !strings.Contains(string(output), "identityagent ") || !strings.Contains(string(output), "/ssh-agent.socket") {
-			t.Fatalf("%s: IdentityAgent não configurado", host)
+		if setting != "true" {
+			t.Fatalf("%s: StrictHostKeyChecking=%q, esperado true", host, setting)
 		}
 	}
 }

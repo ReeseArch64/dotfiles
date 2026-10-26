@@ -113,6 +113,9 @@ func (m model) items() []item {
 	if m.device == deviceServer {
 		return m.serverItems()
 	}
+	if m.device == deviceHomeProd {
+		return m.homeProdItems()
+	}
 	switch m.screen {
 	case screenMain:
 		return []item{
@@ -381,7 +384,7 @@ func (m model) View() string {
 		Render(header + "\n\n" + body)
 
 	environment := "CachyOS · Niri · Noctalia Shell"
-	if m.device == deviceServer {
+	if m.device == deviceServer || m.device == deviceHomeProd {
 		environment = "Ubuntu"
 	}
 	subtitle := lipgloss.NewStyle().Foreground(colDim).Render(environment + " · " + m.device.String() + " · v" + version)
@@ -514,21 +517,23 @@ func main() {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)
 	}
-	if err := prepareSystemMountDirectories(); err != nil {
-		fmt.Fprintln(os.Stderr, "erro:", err)
-		os.Exit(1)
-	}
-	if err := prepareSystemSDKDirectories(); err != nil {
-		fmt.Fprintln(os.Stderr, "erro:", err)
-		os.Exit(1)
-	}
-	if err := prepareSystemTrashDirectory(); err != nil {
-		fmt.Fprintln(os.Stderr, "erro: preparar lixeira:", err)
-		os.Exit(1)
-	}
-	if err := prepareSystemStorageDirectories(); err != nil {
-		fmt.Fprintln(os.Stderr, "erro:", err)
-		os.Exit(1)
+	if device == deviceDesktop || device == deviceNotebook {
+		if err := prepareSystemMountDirectories(); err != nil {
+			fmt.Fprintln(os.Stderr, "erro:", err)
+			os.Exit(1)
+		}
+		if err := prepareSystemSDKDirectories(); err != nil {
+			fmt.Fprintln(os.Stderr, "erro:", err)
+			os.Exit(1)
+		}
+		if err := prepareSystemTrashDirectory(); err != nil {
+			fmt.Fprintln(os.Stderr, "erro: preparar lixeira:", err)
+			os.Exit(1)
+		}
+		if err := prepareSystemStorageDirectories(); err != nil {
+			fmt.Fprintln(os.Stderr, "erro:", err)
+			os.Exit(1)
+		}
 	}
 	p := tea.NewProgram(newModelForDevice(dotfiles, device), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

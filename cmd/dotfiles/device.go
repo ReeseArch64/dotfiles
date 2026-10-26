@@ -13,6 +13,7 @@ const (
 	deviceNotebook
 	deviceMacBook
 	deviceServer
+	deviceHomeProd
 )
 
 func (d deviceProfile) String() string {
@@ -25,6 +26,8 @@ func (d deviceProfile) String() string {
 		return "MacBook"
 	case deviceServer:
 		return "Mini-server"
+	case deviceHomeProd:
+		return "HomeProd"
 	default:
 		return "Desconhecido"
 	}
@@ -39,25 +42,28 @@ func setupDirectory(dotfiles string, device deviceProfile) string {
 		profile = "macbook"
 	case deviceServer:
 		profile = "homelab"
+	case deviceHomeProd:
+		profile = "homeprod"
 	}
 	return filepath.Join(dotfiles, "setup", profile)
 }
 
 func detectDevice(hostname string) (deviceProfile, error) {
 	normalized := strings.ToLower(hostname)
-	matches := make([]deviceProfile, 0, 4)
+	matches := make([]deviceProfile, 0, 5)
 	for marker, profile := range map[string]deviceProfile{
 		"desktop":     deviceDesktop,
 		"notebook":    deviceNotebook,
 		"macbook":     deviceMacBook,
 		"mini-server": deviceServer,
+		"homeprod":    deviceHomeProd,
 	} {
 		if strings.Contains(normalized, marker) {
 			matches = append(matches, profile)
 		}
 	}
 	if len(matches) != 1 {
-		return 0, fmt.Errorf("hostname %q deve conter exatamente um destes identificadores: desktop, notebook, macbook ou mini-server", hostname)
+		return 0, fmt.Errorf("hostname %q deve conter exatamente um destes identificadores: desktop, notebook, macbook, mini-server ou homeprod", hostname)
 	}
 	return matches[0], nil
 }
