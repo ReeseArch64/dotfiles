@@ -4,13 +4,22 @@ import json
 import sys
 
 
+def image_repository(image):
+    for registry in ('docker.io/', 'index.docker.io/'):
+        if image.startswith(registry):
+            image = image[len(registry):]
+    return image.split('@', 1)[0].split(':', 1)[0]
+
+
 def transform(compose, kind, token_file):
-    prefix = 'vaultwarden/server:' if kind == 'vault' else 'cloudflare/cloudflared:'
-    matches = [s for s in compose['services'].values() if s.get('image', '').startswith(prefix)]
+    repositories = ('vaultwarden/server',) if kind == 'vault' else ('cloudflare/cloudflared', 'wisdomsky/cloudflared-web')
+    matches = [s for s in compose['services'].values() if image_repository(s.get('image', '')) in repositories]
     if len(matches) != 1:
-        raise ValueError('Esperado exatamente um serviço ' + prefix)
+        raise ValueError('Esperado exatamente um serviço: ' + ', '.join(repositories))
     service = matches[0]
-    if service.get('network_mode'):
+    if kind == 'tunnel' and service.get('network_mode') == 'host':
+        del service['network_mode']
+    elif service.get('network_mode'):
         raise ValueError('network_mode personalizado não suportado')
     compose.setdefault('networks', {})['vault_tunnel'] = {'external': True, 'name': 'homelab-vault-tunnel'}
     networks = service.setdefault('networks', {})

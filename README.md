@@ -190,7 +190,9 @@ O perfil oferece instalação do CasaOS e configuração de DNS, SSH e firewall,
 
 #### Vaultwarden externo pelo Cloudflare Tunnel
 
-A ação `Vaultwarden Tunnel` publica somente o Vaultwarden em `https://vault.reesearch64.com`. Reutiliza os aplicativos Vaultwarden e Cloudflared instalados no CasaOS, encontrados pelas imagens `vaultwarden/server:*` e `cloudflare/cloudflared:*` e labels do Compose. É necessário exatamente um de cada; o Vaultwarden deve estar rodando. Cloudflared precisa oferecer `--token-file` (versão 2025.4.0 ou posterior). O script não instala uma segunda instância nem abre portas no roteador/firewall.
+A ação `Vaultwarden Tunnel` publica somente o Vaultwarden em `https://vault.reesearch64.com`. Reutiliza os aplicativos Vaultwarden e Cloudflared instalados no CasaOS, encontrados pelas imagens `vaultwarden/server`, `cloudflare/cloudflared` ou `wisdomsky/cloudflared-web` (loja CasaOS) e labels do Compose. Aceita tags, digests e prefixos Docker Hub. É necessário exatamente um Vaultwarden e um conector; o Vaultwarden deve estar rodando. Cloudflared precisa oferecer `--token-file` (versão 2025.4.0 ou posterior). O script não instala uma segunda instância nem abre portas no roteador/firewall.
+
+Para `wisdomsky/cloudflared-web`, a imagem e o app CasaOS são preservados, mas a execução passa a iniciar diretamente o binário `cloudflared`, sem sua interface web Node. A rede `host` é substituída por `homelab-vault-tunnel` e a porta 14333 deixa de ser publicada. Os arquivos antigos de `/config` não são apagados; deixam de ser montados, pois a credencial passa a ser o arquivo de token protegido. Essa instância deve ser dedicada ao Vaultwarden. O Compose original fica no backup para restauração.
 
 Antes de executar, crie sua conta Vaultwarden e configure externamente na Cloudflare:
 

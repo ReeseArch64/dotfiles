@@ -6,12 +6,18 @@ directory=$(dirname "$(readlink -f "$0")")
 for tool in docker python3 curl; do command -v "$tool" >/dev/null; done
 
 container() {
-  local prefix=$1
+  local prefix image id
   local -a matches=()
   while read -r id image; do
-    [[ "$image" == "$prefix":* ]] && matches+=("$id")
+    image=${image#docker.io/}
+    image=${image#index.docker.io/}
+    for prefix in "$@"; do
+      case "$image" in
+        "$prefix"|"$prefix":*|"$prefix"@*) matches+=("$id"); break ;;
+      esac
+    done
   done < <(docker ps -a --format '{{.ID}} {{.Image}}')
-  [[ ${#matches[@]} == 1 ]] || { echo "Instale exatamente um app $prefix pelo CasaOS antes de continuar." >&2; return 1; }
+  [[ ${#matches[@]} == 1 ]] || { echo "Esperado exatamente um app CasaOS com imagem $*; encontrados: ${#matches[@]}." >&2; return 1; }
   printf '%s\n' "${matches[0]}"
 }
 compose_path() {
@@ -21,7 +27,7 @@ compose_path() {
   realpath -e "$path"
 }
 vault=$(container vaultwarden/server)
-connector=$(container cloudflare/cloudflared)
+connector=$(container cloudflare/cloudflared wisdomsky/cloudflared-web)
 vault_compose=$(compose_path "$vault")
 tunnel_compose=$(compose_path "$connector")
 [[ "$vault_compose" != "$tunnel_compose" ]]

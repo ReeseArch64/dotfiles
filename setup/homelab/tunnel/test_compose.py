@@ -43,6 +43,32 @@ class TunnelComposeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 transform({'services': services}, 'vault', '/secret')
 
+    def test_casaos_wrapper_migrates_host_network_without_replacing_image(self):
+        for image in ('wisdomsky/cloudflared-web:2026.5.0',
+                      'docker.io/wisdomsky/cloudflared-web:2026.5.0@sha256:abc',
+                      'index.docker.io/cloudflare/cloudflared@sha256:abc'):
+            with self.subTest(image=image):
+                source = {'services': {'cloudflared': {
+                    'image': image, 'network_mode': 'host',
+                    'entrypoint': ['node', '/var/app/backend/app.js'],
+                    'ports': ['14333:14333'], 'volumes': ['/DATA/config:/config'],
+                }}, 'x-casaos': {'main': 'cloudflared'}}
+                result = transform(source, 'tunnel', '/etc/private/token')
+                service = result['services']['cloudflared']
+                self.assertEqual(service['image'], image)
+                self.assertNotIn('network_mode', service)
+                self.assertEqual(service['entrypoint'], ['cloudflared'])
+                self.assertEqual(service['ports'], [])
+                self.assertEqual(service['networks'], {'vault_tunnel': None})
+                self.assertEqual(result['x-casaos']['main'], 'cloudflared')
+
+    def test_rejects_two_supported_connectors_or_unrelated_image(self):
+        for images in [('cloudflare/cloudflared:latest', 'wisdomsky/cloudflared-web:latest'),
+                       ('untrusted/cloudflared:latest',)]:
+            with self.assertRaises(ValueError):
+                transform({'services': {str(i): {'image': image} for i, image in enumerate(images)}},
+                          'tunnel', '/secret')
+
 
 if __name__ == '__main__':
     unittest.main()
