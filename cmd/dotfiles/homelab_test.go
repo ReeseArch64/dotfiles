@@ -205,7 +205,13 @@ func TestUbuntuSSHValidationFailureAndExistingSocket(t *testing.T) {
 }
 
 func TestServerFirewallRulesPrecedeEnablingAndPreserveAdmin(t *testing.T) {
-	_, log := homelabMocks(t)
+	bin, log := homelabMocks(t)
+	// Reproduce the UFW error on a fresh ruleset instead of accepting every command.
+	writeTestExecutable(t, bin, "ufw", `printf 'ufw %s\n' "$*" >> "$COMMAND_LOG"
+if [ "$1" = insert ]; then
+  printf "ERROR: Invalid position '1'\n" >&2
+  exit 1
+fi`)
 	j := serverFirewallJob(homelabSetup(t), "22", "192.168.10.0/24", "203.0.113.7 51000 192.168.10.5 2200")
 	for _, current := range j.steps {
 		if current.run != nil {
@@ -216,20 +222,20 @@ func TestServerFirewallRulesPrecedeEnablingAndPreserveAdmin(t *testing.T) {
 	}
 	commands := readHomelabFile(t, log)
 	for _, want := range []string{
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 22 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 2222 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 80 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 53 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 53 proto udp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 3001 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 3428 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 5000 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 5050 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 7575 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 8887 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 8888 proto tcp",
-		"ufw insert 1 allow from 192.168.10.0/24 to any port 9001 proto tcp",
-		"ufw insert 1 allow from 203.0.113.7 to any port 2200 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 22 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 2222 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 80 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 53 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 53 proto udp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 3001 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 3428 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 5000 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 5050 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 7575 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 8887 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 8888 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any port 9001 proto tcp",
+		"ufw prepend allow from 203.0.113.7 to any port 2200 proto tcp",
 	} {
 		if index := strings.Index(commands, want); index < 0 || index > strings.Index(commands, "ufw default deny incoming") {
 			t.Fatalf("missing/late %s: %s", want, commands)
@@ -254,7 +260,7 @@ func TestServerFirewallRejectsUnknownNetworkAndStopsOnRuleFailure(t *testing.T) 
 		}
 	}
 	_, log := homelabMocks(t)
-	t.Setenv("FAIL_COMMAND", "ufw insert 1 allow from 192.168.1.0/24 to any port 22 proto tcp comment SSH LAN")
+	t.Setenv("FAIL_COMMAND", "ufw prepend allow from 192.168.1.0/24 to any port 22 proto tcp comment SSH LAN")
 	j := serverFirewallJob(homelabSetup(t), "22", "192.168.1.0/24", "")
 	if _, err := j.steps[len(j.steps)-1].run(); err == nil {
 		t.Fatal("rule failure ignored")

@@ -256,7 +256,7 @@ done
 ${tls_ready:-false} || { docker logs --tail 80 "$caddy_name" >&2; fail 'HTTPS não ficou disponível'; }
 
 if ! ufw status | grep -Eq "443/tcp +ALLOW IN +$lan"; then
-    ufw insert 1 allow from "$lan" to any port 443 proto tcp comment 'Vaultwarden HTTPS LAN'
+    ufw prepend allow from "$lan" to any port 443 proto tcp comment 'Vaultwarden HTTPS LAN'
 fi
 
 changed=false
