@@ -1,10 +1,32 @@
 import copy
+import tempfile
 import unittest
 
-from compose import transform
+from compose import transform, verify_vault_data_mount
 
 
 class TunnelComposeTests(unittest.TestCase):
+    def test_casaos_bridge_migrates_without_changing_data(self):
+        source = {'services': {'vault': {'image': 'vaultwarden/server:1.36.0',
+                  'network_mode': 'bridge',
+                  'volumes': [{'type': 'bind', 'source': '/DATA/AppData/vaultwarden/data', 'target': '/data'}]}}}
+        original = copy.deepcopy(source['services']['vault']['volumes'])
+        service = transform(source, 'vault', '/token')['services']['vault']
+        self.assertNotIn('network_mode', service)
+        self.assertEqual(service['volumes'], original)
+        self.assertEqual(service['networks']['vault_tunnel']['aliases'], ['vaultwarden-origin'])
+
+    def test_vault_mount_matches_running_container(self):
+        with tempfile.TemporaryDirectory() as data:
+            source = {'services': {'vault': {'image': 'vaultwarden/server:latest',
+                      'volumes': [{'type': 'bind', 'source': data, 'target': '/data'}]}}}
+            verify_vault_data_mount(source, [{'Type': 'bind', 'Source': data, 'Destination': '/data'}])
+            self.assertFalse(source['services']['vault']['volumes'][0]['bind']['create_host_path'])
+            for mounts in [[], [{'Type': 'bind', 'Source': '/wrong/data', 'Destination': '/data'}],
+                           [{'Type': 'volume', 'Source': data, 'Destination': '/data'}]]:
+                with self.assertRaises(ValueError):
+                    verify_vault_data_mount(source, mounts)
+
     def test_vault_preserves_data_and_restricts_http(self):
         source = {'services': {'vault': {'image': 'vaultwarden/server:1.36.0',
                   'volumes': [{'source': '/DATA/vault', 'target': '/data', 'type': 'bind'}],

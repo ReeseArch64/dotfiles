@@ -50,6 +50,16 @@ connector=$(container cloudflare/cloudflared wisdomsky/cloudflared-web)
 vault_compose=$(compose_path "$vault")
 tunnel_compose=$(compose_path "$connector")
 [[ "$vault_compose" != "$tunnel_compose" ]]
+vault_project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$vault")
+tunnel_project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$connector")
+for project in "$vault_project" "$tunnel_project"; do
+  [[ "$project" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || { echo 'Projeto Compose CasaOS ausente ou inválido.' >&2; exit 1; }
+done
+compose_run() {
+  local file=$1 project=$2
+  shift 2
+  (cd "$(dirname "$file")" && AppID="$project" docker compose -p "$project" -f "$file" "$@")
+}
 phase='verificar suporte do cloudflared a token-file'
 image=$(docker inspect -f '{{.Config.Image}}' "$connector")
 help=$(docker run --rm --network none --entrypoint cloudflared "$image" tunnel run --help)
@@ -87,26 +97,28 @@ chown 65532:65532 "$token_file"
 chmod 0400 "$token_file"
 cp -a "$vault_compose" "$work/vault.original"
 cp -a "$tunnel_compose" "$work/tunnel.original"
-normalize() { (cd "$(dirname "$1")" && docker compose -f "$1" config --format json) > "$2"; }
+normalize() { compose_run "$1" "$3" config --format json > "$2"; }
 phase='normalizar Compose do Vaultwarden'
-normalize "$vault_compose" "$work/vault.json"
+normalize "$vault_compose" "$work/vault.json" "$vault_project"
 phase='normalizar Compose do Cloudflared'
-normalize "$tunnel_compose" "$work/tunnel.json"
+normalize "$tunnel_compose" "$work/tunnel.json" "$tunnel_project"
+phase='verificar volume persistente do Vaultwarden'
+docker inspect -f '{{json .Mounts}}' "$vault" > "$work/vault-mounts.json"
 phase='transformar Compose para o Tunnel'
-python3 "$directory/compose.py" vault "$work/vault.json" "$work/vault.new" "$token_file"
+python3 "$directory/compose.py" vault "$work/vault.json" "$work/vault.new" "$token_file" "$work/vault-mounts.json"
 python3 "$directory/compose.py" tunnel "$work/tunnel.json" "$work/tunnel.new" "$token_file"
 phase='validar Compose do Vaultwarden'
-docker compose -f "$work/vault.new" config -q
+compose_run "$work/vault.new" "$vault_project" config -q
 phase='validar Compose do Cloudflared'
-docker compose -f "$work/tunnel.new" config -q
+compose_run "$work/tunnel.new" "$tunnel_project" config -q
 phase='preparar rede Docker'
 docker network inspect homelab-vault-tunnel >/dev/null 2>&1 || docker network create homelab-vault-tunnel >/dev/null
 
 rollback() {
   cp -a "$work/vault.original" "$vault_compose"
   cp -a "$work/tunnel.original" "$tunnel_compose"
-  docker compose -f "$vault_compose" up -d || true
-  docker compose -f "$tunnel_compose" up -d || true
+  compose_run "$vault_compose" "$vault_project" up -d || true
+  compose_run "$tunnel_compose" "$tunnel_project" up -d || true
   echo "Falha; Compose anteriores restaurados. Backup: $work" >&2
 }
 phase='aplicar Compose'
@@ -114,9 +126,9 @@ changed=true
 install -m 0600 "$work/vault.new" "$vault_compose"
 install -m 0600 "$work/tunnel.new" "$tunnel_compose"
 phase='iniciar Vaultwarden'
-docker compose -f "$vault_compose" up -d
+compose_run "$vault_compose" "$vault_project" up -d
 phase='iniciar Cloudflared'
-docker compose -f "$tunnel_compose" up -d
+compose_run "$tunnel_compose" "$tunnel_project" up -d
 phase='testar HTTPS público do Vaultwarden'
 curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 3 --connect-timeout 5 --max-time 10 https://vault.reesearch64.com/alive >/dev/null
 trap - ERR

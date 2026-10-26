@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Transform normalized CasaOS Compose without embedding tunnel credentials."""
 import json
+import os
 import sys
 
 
@@ -17,7 +18,7 @@ def transform(compose, kind, token_file):
     if len(matches) != 1:
         raise ValueError('Esperado exatamente um serviço: ' + ', '.join(repositories))
     service = matches[0]
-    if kind == 'tunnel' and service.get('network_mode') == 'host':
+    if service.get('network_mode') == 'bridge' or (kind == 'tunnel' and service.get('network_mode') == 'host'):
         del service['network_mode']
     elif service.get('network_mode'):
         raise ValueError('network_mode personalizado não suportado')
@@ -52,10 +53,33 @@ def transform(compose, kind, token_file):
     return compose
 
 
+def verify_vault_data_mount(compose, mounts):
+    services = [s for s in compose['services'].values()
+                if image_repository(s.get('image', '')) == 'vaultwarden/server']
+    if len(services) != 1:
+        raise ValueError('Esperado exatamente um Vaultwarden para validar os dados')
+    configured = [v for v in services[0].get('volumes', [])
+                  if isinstance(v, dict) and v.get('target') == '/data']
+    actual = [m for m in mounts if m.get('Destination') == '/data']
+    if (len(configured) != 1 or len(actual) != 1
+            or configured[0].get('type') != 'bind' or actual[0].get('Type') != 'bind'):
+        raise ValueError('Requer um único bind mount /data existente; migração automática recusada')
+    source = configured[0].get('source', '')
+    if (not os.path.isabs(source) or not os.path.isdir(source)
+            or os.path.realpath(source) != os.path.realpath(actual[0]['Source'])):
+        raise ValueError('Volume /data do Compose diverge do container existente; confira AppID. Nenhum dado foi movido.')
+    # Never let Compose silently create a new empty data directory.
+    configured[0].setdefault('bind', {})['create_host_path'] = False
+
+
 if __name__ == '__main__':
-    kind, source, destination, token_file = sys.argv[1:]
+    kind, source, destination, token_file = sys.argv[1:5]
     with open(source) as stream:
-        result = transform(json.load(stream), kind, token_file)
+        compose = json.load(stream)
+    if kind == 'vault' and len(sys.argv) == 6:
+        with open(sys.argv[5]) as stream:
+            verify_vault_data_mount(compose, json.load(stream))
+    result = transform(compose, kind, token_file)
     with open(destination, 'w') as stream:
         json.dump(result, stream, indent=2)
         stream.write('\n')
