@@ -175,6 +175,7 @@ func configureSSHJob(setupDir, port, lan string, device deviceProfile) job {
 	})}
 	acceptIncoming := device != deviceDesktop
 	setup := ensurePkgs("openssh")
+	setup = append(setup, terminalStep("Habilitar ssh-agent do usuário", "systemctl", "--user", "enable", "--now", "ssh-agent.socket"))
 	setup = append(setup, configureFirewallSteps(port, lan, acceptIncoming)...)
 	setup = append(setup, sudoStep("Desabilitar sshd.socket", true, "systemctl", "disable", "--now", "sshd.socket"))
 	if acceptIncoming {

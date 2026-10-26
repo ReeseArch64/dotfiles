@@ -8,6 +8,7 @@ Host 192.168.1.103 192.168.1.107
 # ==============================
 Host *
   AddKeysToAgent yes
+  IdentityAgent ${XDG_RUNTIME_DIR}/ssh-agent.socket
   IdentitiesOnly yes
 
   PreferredAuthentications publickey

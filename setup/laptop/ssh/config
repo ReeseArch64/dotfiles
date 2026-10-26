@@ -3,6 +3,7 @@
 # ==============================
 Host *
   AddKeysToAgent yes
+  IdentityAgent ${XDG_RUNTIME_DIR}/ssh-agent.socket
   IdentitiesOnly yes
 
   PreferredAuthentications publickey

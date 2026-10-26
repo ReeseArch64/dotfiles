@@ -123,6 +123,9 @@ func TestDesktopAutomaticallyTrustsOnlyNewLANHostKeys(t *testing.T) {
 		if setting != want {
 			t.Fatalf("%s: StrictHostKeyChecking=%q, esperado %q", host, setting, want)
 		}
+		if !strings.Contains(string(output), "identityagent ") || !strings.Contains(string(output), "/ssh-agent.socket") {
+			t.Fatalf("%s: IdentityAgent não configurado", host)
+		}
 	}
 }
 
@@ -339,6 +342,7 @@ func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
 	for _, want := range []string{
 		"Validar chaves e copiar ~/.ssh/config",
 		"Autorizar chave para conexões SSH recebidas",
+		"Habilitar ssh-agent do usuário",
 		"Remover liberação LAN anterior de 2222/tcp",
 		"Desabilitar sshd.socket",
 		"Desabilitar sshd.service no desktop",
