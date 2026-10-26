@@ -237,3 +237,52 @@ func TestServerDNSJobUsesSudoAndIndependentAction(t *testing.T) {
 		t.Fatal("DNS must be independently selectable")
 	}
 }
+
+func TestServerDNSCreatesMissingBackupRootOnDemand(t *testing.T) {
+	f := prepareDNS(t, "[Resolve]\nDNSStubListener=yes\n", "stub")
+	f.backups = filepath.Join(t.TempDir(), "mnt", "backups")
+	if out, err := f.run(t); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	info, err := os.Stat(f.backups)
+	if err != nil || info.Mode().Perm() != 0700 {
+		t.Fatalf("backup root não foi criado privado: %v %v", info, err)
+	}
+	if got := readHomelabFile(t, testBackupAt(t, f.backups, "dns", f.config)); got != "[Resolve]\nDNSStubListener=yes\n" {
+		t.Fatal("backup original não preservado")
+	}
+}
+
+func TestServerDNSPreservesExistingBackupRootPermissions(t *testing.T) {
+	f := prepareDNS(t, "[Resolve]\nDNSStubListener=yes\n", "stub")
+	if err := os.Chmod(f.backups, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := f.run(t); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	info, err := os.Stat(f.backups)
+	if err != nil || info.Mode().Perm() != 0750 {
+		t.Fatalf("permissões alteradas: %v %v", info, err)
+	}
+}
+
+func TestServerDNSRejectsSymlinkBackupParentBeforeCreatingRoot(t *testing.T) {
+	original := "[Resolve]\nDNSStubListener=yes\n"
+	f := prepareDNS(t, original, "stub")
+	parent, target := t.TempDir(), t.TempDir()
+	link := filepath.Join(parent, "linked")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	f.backups = filepath.Join(link, "backups")
+	if out, err := f.run(t); err == nil {
+		t.Fatalf("symlink aceito: %s", out)
+	}
+	if got := readHomelabFile(t, f.config); got != original {
+		t.Fatal("DNS alterado sem backup seguro")
+	}
+	if _, err := os.Stat(filepath.Join(target, "backups")); !os.IsNotExist(err) {
+		t.Fatal("diretório criado através de symlink")
+	}
+}

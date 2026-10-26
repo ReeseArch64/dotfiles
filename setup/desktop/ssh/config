@@ -3,6 +3,7 @@
 # ==============================
 Host *
   AddKeysToAgent yes
+  IdentityAgent /run/user/%i/ssh-agent.socket
   IdentitiesOnly yes
 
   PreferredAuthentications publickey

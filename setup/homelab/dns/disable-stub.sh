@@ -68,16 +68,23 @@ awk '
     END { if (!found) print "\n[Resolve]\nDNSStubListener=no" }
 ' "$config" > "$staging/resolved.conf"
 
-# Never chown/chmod the shared top-level store: startup owns that policy.
-# Only this root-run category and its records belong to the current EUID.
+# Prepare backups on demand: server profiles do not run home/directory migrations.
+# Preserve ownership and permissions of an existing shared top-level store.
 reserve_backup() {
     local origin hash parent record path
-    [[ $backup_root = /* && -d $backup_root ]] || { printf 'Backup root deve ser um diretório absoluto existente: %s\n' "$backup_root" >&2; return 1; }
+    [[ $backup_root = /* && ! $backup_root =~ (^|/)\.\.?(/|$) ]] || { printf 'Backup root deve ser um caminho absoluto sem . ou ..: %s\n' "$backup_root" >&2; return 1; }
+    backup_root=$(realpath -ms -- "$backup_root")
+    [[ $backup_root != / ]] || { printf 'A raiz do sistema não pode ser usada como backup root.\n' >&2; return 1; }
     path=$backup_root
     while [[ $path != / ]]; do
         [[ ! -L $path ]] || { printf 'Backup root não pode conter symlink: %s\n' "$path" >&2; return 1; }
         path=$(dirname -- "$path")
     done
+    if [[ -e $backup_root ]]; then
+        [[ -d $backup_root ]] || { printf 'Backup root não é diretório: %s\n' "$backup_root" >&2; return 1; }
+    else
+        (umask 077; mkdir -p -- "$backup_root") || return 1
+    fi
     origin=$(realpath -ms -- "$1")
     hash=$(printf '%s' "$origin" | sha256sum)
     hash=${hash%% *}
