@@ -21,6 +21,8 @@ func TestHomeProdCasaOSInstallerFailures(t *testing.T) {
 			t.Setenv("TEST_WORK", work)
 			t.Setenv("SCENARIO", scenario)
 			writeTestExecutable(t, bin, "id", `echo 0`)
+			writeTestExecutable(t, bin, "usermod", `[[ "$*" == '--append --groups docker alsgy' ]] || exit 99
+touch "$TEST_WORK/docker-group"`)
 			writeTestExecutable(t, bin, "mktemp", `printf '%s\n' "$TEST_WORK"`)
 			writeTestExecutable(t, bin, "infocmp", `exit 1`)
 			writeTestExecutable(t, bin, "sha256sum", `cat > "$TEST_WORK/checksum-input"
@@ -51,6 +53,9 @@ fi`)
 			success := scenario == "success" || scenario == "fallback"
 			if (err == nil) != success {
 				t.Fatalf("err=%v output=%s", err, output)
+			}
+			if _, groupErr := os.Stat(filepath.Join(work, "docker-group")); (groupErr == nil) != success {
+				t.Fatalf("grupo docker deve ser alterado somente após instalação bem-sucedida: %s", output)
 			}
 			_, executedErr := os.Stat(filepath.Join(work, "executed"))
 			if (executedErr == nil) != (success || scenario == "installer-failure") {

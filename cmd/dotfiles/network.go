@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"slices"
 	"strings"
 	"time"
@@ -175,7 +176,23 @@ func configureSSHJob(setupDir, port, lan string, device deviceProfile) job {
 	})}
 	acceptIncoming := device != deviceDesktop
 	setup := ensurePkgs("openssh")
-	setup = append(setup, terminalStep("Habilitar ssh-agent do usuário", "systemctl", "--user", "enable", "--now", "ssh-agent.socket"))
+	if device == deviceDesktop || device == deviceNotebook {
+		setup = append(setup, step{label: "Habilitar ssh-agent do usuário", run: func() (string, error) {
+			var output strings.Builder
+			for _, args := range [][]string{
+				{"--user", "enable", "--now", "ssh-agent.socket"},
+				{"--user", "is-enabled", "ssh-agent.socket"},
+				{"--user", "is-active", "ssh-agent.socket"},
+			} {
+				out, err := exec.Command("systemctl", args...).CombinedOutput()
+				output.Write(out)
+				if err != nil {
+					return output.String(), fmt.Errorf("systemctl %s: %w", strings.Join(args, " "), err)
+				}
+			}
+			return output.String(), nil
+		}})
+	}
 	setup = append(setup, configureFirewallSteps(port, lan, acceptIncoming)...)
 	setup = append(setup, sudoStep("Desabilitar sshd.socket", true, "systemctl", "disable", "--now", "sshd.socket"))
 	if acceptIncoming {

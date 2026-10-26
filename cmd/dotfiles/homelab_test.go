@@ -294,7 +294,10 @@ printf 'exit 0\n'`)
 	}
 	j := casaOSJob()
 	want := []string{"bash", "-c", casaOSInstallScript}
-	if got := commandTail(t, j.steps[len(j.steps)-1], len(want)); !slices.Equal(got, want) {
+	if got := commandTail(t, j.steps[len(j.steps)-2], len(want)); !slices.Equal(got, want) {
 		t.Fatal(got)
+	}
+	if j.steps[len(j.steps)-1].label != "Adicionar alsgy ao grupo docker" {
+		t.Fatal("grupo docker deve ser configurado após instalar CasaOS")
 	}
 }

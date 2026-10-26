@@ -151,8 +151,9 @@ const casaOSInstallScript = "set -o pipefail\ncurl -fsSL https://get.casaos.io |
 func casaOSJob() job {
 	steps := aptSteps("curl", "ca-certificates")
 	steps = append(steps, terminalStep("Instalar CasaOS via curl (sudo)", "bash", "-c", casaOSInstallScript))
+	steps = append(steps, sudoStep("Adicionar alsgy ao grupo docker", false, "usermod", "-aG", "docker", "alsgy"))
 	return job{title: "Instalar CasaOS", steps: withSudo(steps...), result: func() string {
-		return "CasaOS: acesse http://<IP-do-servidor> na LAN (porta 80). DNS/porta 53: ação independente no menu."
+		return "CasaOS: acesse http://<IP-do-servidor> na LAN (porta 80). alsgy adicionado ao grupo docker; saia e entre novamente na sessão para usar Docker sem sudo. DNS/porta 53: ação independente no menu."
 	}}
 }
 

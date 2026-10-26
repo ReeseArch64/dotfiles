@@ -42,4 +42,7 @@ fi
 
 stage='execução do instalador CasaOS'
 bash "$work/install.sh" 2>&1 | tee "$work/install.log"
+stage='adicionar alsgy ao grupo docker'
+usermod --append --groups docker alsgy
+printf '\nalsgy adicionado ao grupo docker. Reconecte à sessão para usar Docker sem sudo.\n'
 printf '\nInstalador CasaOS concluído. Log: %s/install.log\n' "$work"
