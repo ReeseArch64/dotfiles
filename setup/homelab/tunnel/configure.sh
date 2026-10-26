@@ -42,7 +42,8 @@ for key, expected in {'domain': 'https://vault.reesearch64.com', 'signups_allowe
 PY
 printf '\nNa Cloudflare, prepare um Tunnel dedicado ao Vaultwarden, sem rotas para outros serviços.\n'
 printf 'Hostname: vault.reesearch64.com -> HTTP http://vaultwarden-origin:80\n'
-printf 'Bloqueie /admin e /admin/* com uma aplicação Cloudflare Access separada (Block Everyone).\n'
+printf 'Antes da rota HTTP, bloqueie /admin e subcaminhos com ingress path (?i)^/+admin(/.*)?$ -> http_status:403.\n'
+printf 'Alternativamente, use uma aplicação Cloudflare Access específica para /admin (Block Everyone).\n'
 printf 'Não coloque login Access no restante do hostname, usado pelos clientes Bitwarden.\n'
 read -r -p 'Já criou sua conta Vaultwarden e preparou essas regras? Digite CONFIRMO: ' answer
 [[ "$answer" == CONFIRMO ]] || exit 1

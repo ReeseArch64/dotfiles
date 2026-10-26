@@ -195,7 +195,7 @@ A ação `Vaultwarden Tunnel` publica somente o Vaultwarden em `https://vault.re
 Antes de executar, crie sua conta Vaultwarden e configure externamente na Cloudflare:
 
 1. Crie um Tunnel gerenciado remotamente, dedicado ao Vaultwarden.
-2. Antes de publicar a rota, crie uma aplicação Cloudflare Access específica para `vault.reesearch64.com/admin` e `/admin/*`, com política `Block Everyone`. Não proteja todo o hostname com login Access, pois os clientes Bitwarden precisam usar a autenticação do Vaultwarden.
+2. Antes da rota HTTP no Tunnel, adicione uma regra para `vault.reesearch64.com` com `path: (?i)^/+admin(/.*)?$` e serviço `http_status:403`, bloqueando `/admin` e seus subcaminhos. Termine a lista com uma regra sem hostname de serviço `http_status:404`. Isso funciona sem habilitar Cloudflare Access. Alternativamente, crie uma aplicação Access específica para `/admin` e `/admin/*`, com política `Block Everyone`. Não proteja todo o hostname com login Access, pois os clientes Bitwarden precisam usar a autenticação do Vaultwarden.
 3. Configure a rota publicada `vault.reesearch64.com` com serviço HTTP `http://vaultwarden-origin:80`. O DNS deve apontar para esse Tunnel; resolva eventuais registros conflitantes somente para `vault`, sem reaproveitar o hostname `homelab`.
 4. Execute `Vaultwarden Tunnel` no menu e cole somente o token do Tunnel quando solicitado (entrada oculta). Não coloque credenciais no Git. O script pede confirmação das regras externas e da criação da conta; não configura nem audita automaticamente essas políticas na sua conta Cloudflare.
 
