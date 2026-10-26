@@ -10,10 +10,14 @@ import (
 )
 
 var requiredSSHIdentityFiles = []string{
-	"id_github_reesearch64",
-	"id_github_reesearch64.pub",
-	"id_gitlab_reesearch64",
-	"id_gitlab_reesearch64.pub",
+	"id_trabalho",
+	"id_trabalho.pub",
+	"id_pessoal",
+	"id_pessoal.pub",
+	"id_gitlab",
+	"id_gitlab.pub",
+	"id_github",
+	"id_github.pub",
 }
 
 func missingSSHIdentityFiles(home string) []string {

@@ -34,6 +34,18 @@ func installSSHClientTestIdentities(t *testing.T, home string) {
 	}
 }
 
+func TestRequiredSSHIdentityFilesAreFourCompletePairs(t *testing.T) {
+	want := []string{
+		"id_trabalho", "id_trabalho.pub",
+		"id_pessoal", "id_pessoal.pub",
+		"id_gitlab", "id_gitlab.pub",
+		"id_github", "id_github.pub",
+	}
+	if !slices.Equal(requiredSSHIdentityFiles, want) {
+		t.Fatalf("identidades SSH inesperadas: %v", requiredSSHIdentityFiles)
+	}
+}
+
 func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)

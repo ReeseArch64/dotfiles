@@ -300,10 +300,14 @@ A ação executa a configuração completa:
 A configuração do cliente exige estes arquivos regulares em `~/.ssh`:
 
 ```text
-id_github_reesearch64
-id_github_reesearch64.pub
-id_gitlab_reesearch64
-id_gitlab_reesearch64.pub
+id_trabalho
+id_trabalho.pub
+id_pessoal
+id_pessoal.pub
+id_gitlab
+id_gitlab.pub
+id_github
+id_github.pub
 ```
 
 A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`. Ela aplica `0700` ao diretório e `0600` ao arquivo.
@@ -762,13 +766,17 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 `Backup > Backup das Chaves SSH` copia estas identidades de `~/.ssh` para `/mnt/backups/ssh/<hash>/<geração>/original/`:
 
 ```text
-id_github_reesearch64
-id_github_reesearch64.pub
-id_gitlab_reesearch64
-id_gitlab_reesearch64.pub
+id_trabalho
+id_trabalho.pub
+id_pessoal
+id_pessoal.pub
+id_gitlab
+id_gitlab.pub
+id_github
+id_github.pub
 ```
 
-A CLI valida todos os quatro arquivos antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia.
+A CLI valida os oito arquivos dos quatro pares antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia.
 
 Os diretórios de backup SSH recebem permissão `0700`. Cada geração mantém a permissão dos arquivos da origem, sem substituir gerações anteriores. Proteja as chaves privadas em `~/.ssh` com permissão `0600`.
 
