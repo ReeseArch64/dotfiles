@@ -187,7 +187,11 @@ As demais ações ficam exclusivas do Desktop.
 
 ### Ações do Homelab (Ubuntu)
 
-O perfil oferece instalação do CasaOS e configuração de DNS, SSH e firewall, sem ações de desktop.
+O perfil oferece instalação do CasaOS e configuração de DNS, SSH, firewall e swap, sem ações de desktop.
+
+#### Swap de 2 GiB
+
+A ação `Configurar Swap` cria `/swapfile-homelab` com 2 GiB, permissão `0600`, ativa a swap e registra sua ativação no `/etc/fstab` com backup prévio. Usa sudo no menu; para execução direta, use `sudo bash setup/homelab/swap/configure.sh`. Requer ext4 ou XFS e mantém pelo menos 4 GiB livres após a alocação. Preserva outras swaps, reutiliza o arquivo compatível sem duplicar a entrada no fstab e recusa arquivos incompatíveis em vez de sobrescrevê-los. Não altera `swappiness` nem configura hibernação. Arquivos temporários são preservados e informados em caso de falha na criação. O HomeProd continua com sua configuração independente de 8 GiB.
 
 #### SSH por chave no HomeLab
 
@@ -201,7 +205,7 @@ curl -fsSL https://get.casaos.io | sudo bash
 
 A configuração DNS altera `DNSStubListener=no` na seção `[Resolve]` de `/etc/systemd/resolved.conf` e reinicia `systemd-resolved` para liberar a porta 53. Se `/etc/resolv.conf` apontar para o stub do systemd, o link é ajustado para `/run/systemd/resolve/resolv.conf`, mantendo a resolução de nomes sem o listener local. Drop-ins que habilitem o stub são rejeitados antes de qualquer alteração; ajuste esses arquivos antes de repetir a ação.
 
-SSH usa os pacotes e unidades do Ubuntu. Antes de ser ativado, o firewall UFW libera somente para a LAN o SSH, a interface web do CasaOS (`80/TCP`), o DNS (`53/TCP` e `53/UDP`) e os serviços nas portas TCP `3001`, `3428`, `5000`, `5050`, `7575`, `8887`, `8888` e `9001`. A porta `10380` não é liberada: o HTTP direto do Vaultwarden permanece restrito ao loopback para impedir que o HTTPS seja contornado.
+SSH usa os pacotes e unidades do Ubuntu. No Homelab, antes de ser ativado, o firewall UFW libera todas as portas e protocolos de entrada para a sub-rede LAN IPv4 privada detectada. A regra é adicionada no início para prevalecer sobre bloqueios anteriores. Todos os dispositivos dessa sub-rede passam a poder acessar serviços escutando na LAN: use apenas em uma rede confiável. A política padrão continua sendo negar entrada e permitir saída; a conexão SSH administrativa atual recebe uma exceção para preservar o acesso. Regras existentes não são apagadas, inclusive eventuais liberações externas anteriores. A ação não abre portas no roteador, não configura encaminhamento para containers e não expõe serviços vinculados somente a `127.0.0.1`. Esta política é exclusiva do Homelab, não do HomeProd.
 
 
 ### Ações do HomeProd (Ubuntu)

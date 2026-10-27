@@ -15,19 +15,22 @@ func (m model) serverItems() []item {
 			{title: "Sistema", desc: "SSH e firewall para Ubuntu", goTo: screenSystem},
 			{title: "CasaOS", desc: "Instalar usando https://get.casaos.io (sudo)", job: casaOSJob},
 			{title: "Liberar porta 53 (DNS)", desc: "Desativar o stub do systemd-resolved preservando a resolução", job: func() job { return serverDNSJob(m.setupDir) }},
+			{title: "Configurar Swap", desc: "Ativar 2 GiB de swap persistente (sudo)", job: func() job {
+				return job{title: "Swap Homelab", steps: withSudo(terminalStep("Configurar swap de 2 GiB", "sudo", "bash", configPath(m.setupDir, "swap", "configure.sh"), "2"))}
+			}},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
 		return []item{
 			{title: "SSH", desc: "Autorizar chave pessoal e exigir autenticação por chave", goTo: screenSSH},
-			{title: "Firewall", desc: "UFW: SSH, CasaOS, DNS e serviços do homelab somente na LAN", goTo: screenFirewall},
+			{title: "Firewall", desc: "UFW: todas as portas e protocolos liberados para a LAN", goTo: screenFirewall},
 		}
 	case screenSSH:
 		return []item{{title: "Configurar SSH", desc: "Colar chave pública pessoal e configurar OpenSSH", job: func() job {
 			return serverSSHJob(m.setupDir)
 		}}}
 	case screenFirewall:
-		return []item{{title: "Configurar Firewall", desc: "Liberar SSH e serviços do homelab na LAN " + m.fw.lan + " antes de ativar o UFW", job: func() job {
+		return []item{{title: "Configurar Firewall", desc: "Liberar todas as portas e protocolos na LAN " + m.fw.lan + " antes de ativar o UFW", job: func() job {
 			return serverFirewallJob(m.setupDir, m.fw.port, m.fw.lan, os.Getenv("SSH_CONNECTION"))
 		}}}
 	}
@@ -138,7 +141,7 @@ func validateServerFirewall(port, lan, connection string) error {
 func serverFirewallJob(setupDir, port, lan, connection string) job {
 	steps := []step{nativeStep("Validar LAN e conexão administrativa", func() error { return validateServerFirewall(port, lan, connection) })}
 	steps = append(steps, aptSteps("ufw")...)
-	steps = append(steps, sudoStep("Liberar SSH e serviços do homelab na LAN, preservar acesso e ativar UFW", false,
+	steps = append(steps, sudoStep("Liberar toda a LAN, preservar acesso SSH e ativar UFW", false,
 		"bash", configPath(setupDir, "firewall", "configure.sh"), port, lan, connection))
 	return job{title: "Configurar Firewall (Ubuntu)", steps: withSudo(steps...)}
 }

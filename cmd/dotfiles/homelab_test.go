@@ -89,7 +89,7 @@ func TestServerProfileHostnamePlatformAndMenu(t *testing.T) {
 		t.Fatal(m.setupDir)
 	}
 	for screen, titles := range map[screen][]string{
-		screenMain:   {"Sistema", "CasaOS", "Liberar porta 53 (DNS)", "Sair"},
+		screenMain:   {"Sistema", "CasaOS", "Liberar porta 53 (DNS)", "Configurar Swap", "Sair"},
 		screenSystem: {"SSH", "Firewall"},
 		screenSSH:    {"Configurar SSH"}, screenFirewall: {"Configurar Firewall"},
 		screenDesktop: nil, screenDevelopment: nil, screenDocker: nil, screenCleanup: nil,
@@ -221,19 +221,7 @@ fi`)
 	}
 	commands := readHomelabFile(t, log)
 	for _, want := range []string{
-		"ufw prepend allow from 192.168.10.0/24 to any port 22 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 2222 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 80 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 53 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 53 proto udp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 3001 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 3428 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 5000 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 5050 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 7575 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 8887 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 8888 proto tcp",
-		"ufw prepend allow from 192.168.10.0/24 to any port 9001 proto tcp",
+		"ufw prepend allow from 192.168.10.0/24 to any comment Homelab LAN\n",
 		"ufw prepend allow from 203.0.113.7 to any port 2200 proto tcp",
 	} {
 		if index := strings.Index(commands, want); index < 0 || index > strings.Index(commands, "ufw default deny incoming") {
@@ -243,7 +231,7 @@ fi`)
 	if strings.Index(commands, "ufw default deny") > strings.Index(commands, "systemctl enable --now ufw.service") || strings.Index(commands, "systemctl enable --now ufw.service") > strings.Index(commands, "ufw --force enable") {
 		t.Fatal(commands)
 	}
-	for _, forbidden := range []string{"delete", "reset", "port 10380", "iptables-nft", "pacman"} {
+	for _, forbidden := range []string{"delete", "reset", "ufw default allow incoming", "ufw allow to any", "iptables-nft", "pacman"} {
 		if strings.Contains(commands, forbidden) {
 			t.Fatal(commands)
 		}
@@ -259,7 +247,7 @@ func TestServerFirewallRejectsUnknownNetworkAndStopsOnRuleFailure(t *testing.T) 
 		}
 	}
 	_, log := homelabMocks(t)
-	t.Setenv("FAIL_COMMAND", "ufw prepend allow from 192.168.1.0/24 to any port 22 proto tcp comment SSH LAN")
+	t.Setenv("FAIL_COMMAND", "ufw prepend allow from 192.168.1.0/24 to any comment Homelab LAN")
 	j := serverFirewallJob(homelabSetup(t), "22", "192.168.1.0/24", "")
 	if _, err := j.steps[len(j.steps)-1].run(); err == nil {
 		t.Fatal("rule failure ignored")
