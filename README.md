@@ -189,6 +189,14 @@ As demais ações ficam exclusivas do Desktop.
 
 O perfil oferece instalação do CasaOS e configuração de DNS, SSH, firewall e swap, sem ações de desktop.
 
+#### Ferramentas de administração (sem GUI)
+
+A ação `Ferramentas de Administração` instala LazyDocker, jq, ripgrep (`rg`), fd, fzf, bat, Git e ncdu no Ubuntu Server. Usa APT com os nomes Ubuntu (`fd-find` e `bat`) e disponibiliza `fd` e `bat` por links em `/usr/local/bin` para `fdfind` e `batcat` quando esses comandos ainda não existem. Não substitui comandos existentes.
+
+O LazyDocker 0.25.2 é baixado da release oficial, com SHA-256 fixado para amd64 ou arm64. Outras arquiteturas e sistemas diferentes de Ubuntu são recusados antes da instalação. Não instala GUI, não reinstala Docker e não altera o daemon ou o socket do CasaOS. Para usá-lo sem sudo, o usuário precisa ter acesso ao Docker (grupo `docker`, equivalente a privilégios administrativos); após alterar grupos, abra uma nova sessão.
+
+Também é possível executar `sudo bash setup/homelab/tools/install.sh`. A instalação requer internet e repositórios APT habilitados para os pacotes; não habilita repositórios automaticamente. Reexecutar reaplica a instalação e baixa novamente a versão fixada do LazyDocker. Esse conjunto não altera o perfil Desktop nem o HomeProd.
+
 #### Swap de 2 GiB
 
 A ação `Configurar Swap` cria `/swapfile-homelab` com 2 GiB, permissão `0600`, ativa a swap e registra sua ativação no `/etc/fstab` com backup prévio. Usa sudo no menu; para execução direta, use `sudo bash setup/homelab/swap/configure.sh`. Requer ext4 ou XFS e mantém pelo menos 4 GiB livres após a alocação. Preserva outras swaps, reutiliza o arquivo compatível sem duplicar a entrada no fstab e recusa arquivos incompatíveis em vez de sobrescrevê-los. Não altera `swappiness` nem configura hibernação. Arquivos temporários são preservados e informados em caso de falha na criação. O HomeProd continua com sua configuração independente de 8 GiB.

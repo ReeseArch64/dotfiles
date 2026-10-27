@@ -18,6 +18,9 @@ func (m model) serverItems() []item {
 			{title: "Configurar Swap", desc: "Ativar 2 GiB de swap persistente (sudo)", job: func() job {
 				return job{title: "Swap Homelab", steps: withSudo(terminalStep("Configurar swap de 2 GiB", "sudo", "bash", configPath(m.setupDir, "swap", "configure.sh"), "2"))}
 			}},
+			{title: "Ferramentas de Administração", desc: "LazyDocker, jq, ripgrep, fd, fzf, bat, Git e ncdu para Ubuntu Server", job: func() job {
+				return job{title: "Ferramentas de Administração", steps: withSudo(terminalStep("Instalar ferramentas para Ubuntu Server", "sudo", "bash", configPath(m.setupDir, "tools", "install.sh")))}
+			}},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
