@@ -54,13 +54,13 @@ func readHomelabFile(t *testing.T, path string) string {
 }
 
 func TestServerProfileHostnamePlatformAndMenu(t *testing.T) {
-	for _, name := range []string{"mini-server", "home-MINI-SERVER-01"} {
+	for _, name := range []string{"homelab", "home-HOMELAB-01"} {
 		device, err := detectDevice(name)
 		if err != nil || device != deviceServer {
 			t.Fatalf("server detection: %v %v", device, err)
 		}
 	}
-	for _, name := range []string{"server", "mini", "miniserver", "mini-server-desktop", "notebook-mini-server", "macbook-mini-server"} {
+	for _, name := range []string{"server", "mini", "miniserver", "mini-server", "homelab-desktop", "notebook-homelab", "macbook-homelab", "homelab-homeprod"} {
 		if _, err := detectDevice(name); err == nil {
 			t.Fatalf("accepted hostname %s", name)
 		}
@@ -89,7 +89,7 @@ func TestServerProfileHostnamePlatformAndMenu(t *testing.T) {
 		t.Fatal(m.setupDir)
 	}
 	for screen, titles := range map[screen][]string{
-		screenMain:   {"Sistema", "CasaOS", "Vaultwarden Tunnel", "Liberar porta 53 (DNS)", "Sair"},
+		screenMain:   {"Sistema", "CasaOS", "Liberar porta 53 (DNS)", "Sair"},
 		screenSystem: {"SSH", "Firewall"},
 		screenSSH:    {"Configurar SSH"}, screenFirewall: {"Configurar Firewall"},
 		screenDesktop: nil, screenDevelopment: nil, screenDocker: nil, screenCleanup: nil,

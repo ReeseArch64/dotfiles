@@ -110,6 +110,11 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 }
 
 func (m model) items() []item {
+	switch m.device {
+	case deviceDesktop, deviceNotebook, deviceServer, deviceHomeProd:
+	default:
+		return nil
+	}
 	if m.device == deviceServer {
 		return m.serverItems()
 	}

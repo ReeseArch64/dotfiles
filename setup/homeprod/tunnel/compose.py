@@ -22,7 +22,7 @@ def transform(compose, kind, token_file):
         del service['network_mode']
     elif service.get('network_mode'):
         raise ValueError('network_mode personalizado não suportado')
-    compose.setdefault('networks', {})['vault_tunnel'] = {'external': True, 'name': 'homelab-vault-tunnel'}
+    compose.setdefault('networks', {})['vault_tunnel'] = {'external': True, 'name': 'homeprod-vault-tunnel'}
     networks = service.setdefault('networks', {})
     if isinstance(networks, list):
         networks = {name: None for name in networks}

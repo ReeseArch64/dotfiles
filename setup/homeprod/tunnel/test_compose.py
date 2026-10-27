@@ -11,7 +11,10 @@ class TunnelComposeTests(unittest.TestCase):
                   'network_mode': 'bridge',
                   'volumes': [{'type': 'bind', 'source': '/DATA/AppData/vaultwarden/data', 'target': '/data'}]}}}
         original = copy.deepcopy(source['services']['vault']['volumes'])
-        service = transform(source, 'vault', '/token')['services']['vault']
+        result = transform(source, 'vault', '/token')
+        self.assertEqual(result['networks']['vault_tunnel'],
+                         {'external': True, 'name': 'homeprod-vault-tunnel'})
+        service = result['services']['vault']
         self.assertNotIn('network_mode', service)
         self.assertEqual(service['volumes'], original)
         self.assertEqual(service['networks']['vault_tunnel']['aliases'], ['vaultwarden-origin'])

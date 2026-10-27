@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 [[ $EUID == 0 ]] || { echo 'Execute via sudo.' >&2; exit 1; }
-work=$(mktemp -d /etc/homelab-vault-tunnel.XXXXXXXX)
+work=$(mktemp -d /etc/homeprod-vault-tunnel.XXXXXXXX)
 exec 2> >(tee -a "$work/configure.log" >&2)
 phase='verificar dependências'
 changed=false
@@ -112,7 +112,7 @@ compose_run "$work/vault.new" "$vault_project" config -q
 phase='validar Compose do Cloudflared'
 compose_run "$work/tunnel.new" "$tunnel_project" config -q
 phase='preparar rede Docker'
-docker network inspect homelab-vault-tunnel >/dev/null 2>&1 || docker network create homelab-vault-tunnel >/dev/null
+docker network inspect homeprod-vault-tunnel >/dev/null 2>&1 || docker network create homeprod-vault-tunnel >/dev/null
 
 rollback() {
   cp -a "$work/vault.original" "$vault_compose"

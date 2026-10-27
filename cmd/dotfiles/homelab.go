@@ -14,9 +14,6 @@ func (m model) serverItems() []item {
 		return []item{
 			{title: "Sistema", desc: "SSH e firewall para Ubuntu", goTo: screenSystem},
 			{title: "CasaOS", desc: "Instalar usando https://get.casaos.io (sudo)", job: casaOSJob},
-			{title: "Vaultwarden Tunnel", desc: "vault.reesearch64.com via cloudflared do CasaOS", job: func() job {
-				return job{title: "Vaultwarden Tunnel", steps: withSudo(terminalStep("Configurar Tunnel e migrar domínio do Vaultwarden", "sudo", "bash", configPath(m.setupDir, "tunnel", "configure.sh")))}
-			}},
 			{title: "Liberar porta 53 (DNS)", desc: "Desativar o stub do systemd-resolved preservando a resolução", job: func() job { return serverDNSJob(m.setupDir) }},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}

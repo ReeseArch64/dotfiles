@@ -2,7 +2,7 @@
 
 Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
 
-O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente. As ações são selecionadas automaticamente para Desktop, Notebook ou Mini-server pelo hostname; o MacBook ainda não possui suporte.
+O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente. As ações são selecionadas automaticamente para Desktop, Notebook, Homelab ou HomeProd pelo hostname; o MacBook ainda não possui suporte.
 
 ## Visão geral
 
@@ -46,7 +46,8 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 
 - `desktop`: disponibiliza todas as ações;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
-- `mini-server`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
+- `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
+- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e Vaultwarden Tunnel;
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
@@ -59,7 +60,7 @@ Nos perfis Desktop e Notebook, a CLI exige este ambiente:
 
 Ela encerra a execução quando algum desses componentes está ausente.
 
-O perfil `mini-server` exige Ubuntu (`ID=ubuntu` em `/etc/os-release`), sem exigir Niri ou Noctalia. Seus pacotes são instalados via APT, não Pacman/yay.
+O perfil `homelab` exige Ubuntu (`ID=ubuntu` em `/etc/os-release`), sem exigir Niri ou Noctalia. Seus pacotes são instalados via APT, não Pacman/yay.
 
 Também são necessários:
 
@@ -68,7 +69,7 @@ Também são necessários:
 - Bash
 - curl
 - Acesso à internet
-- Pacman (Desktop/Notebook) ou APT (Mini-server Ubuntu)
+- Pacman (Desktop/Notebook) ou APT (Homelab Ubuntu)
 - sudo
 - systemd
 
@@ -89,7 +90,7 @@ cd ~/.dotfiles
 
 As configurações são cópias independentes em `setup/desktop/` e `setup/laptop/`, selecionadas pelo hostname (`desktop` e `notebook`, respectivamente). Não há base compartilhada nem sobreposição. Discord, Obsidian, Ollama e Turing Smart Screen são exclusivos de `setup/desktop/` e não estão presentes no laptop. Nos caminhos abaixo, `setup/<perfil>/` representa a pasta selecionada.
 
-Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. O hostname `mini-server` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas.
+Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
 A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
@@ -184,28 +185,9 @@ O Notebook recebe:
 
 As demais ações ficam exclusivas do Desktop.
 
-### Ações do Mini-server (Ubuntu)
+### Ações do Homelab (Ubuntu)
 
 O perfil oferece instalação do CasaOS e configuração de DNS, SSH e firewall, sem ações de desktop.
-
-#### Vaultwarden externo pelo Cloudflare Tunnel
-
-A ação `Vaultwarden Tunnel` publica somente o Vaultwarden em `https://vault.reesearch64.com`. Reutiliza os aplicativos Vaultwarden e Cloudflared instalados no CasaOS, encontrados pelas imagens `vaultwarden/server`, `cloudflare/cloudflared` ou `wisdomsky/cloudflared-web` (loja CasaOS) e labels do Compose. Aceita tags, digests e prefixos Docker Hub. É necessário exatamente um Vaultwarden e um conector; o Vaultwarden deve estar rodando. Cloudflared precisa oferecer `--token-file` (versão 2025.4.0 ou posterior). O script não instala uma segunda instância nem abre portas no roteador/firewall.
-
-Para `wisdomsky/cloudflared-web`, a imagem e o app CasaOS são preservados, mas a execução passa a iniciar diretamente o binário `cloudflared`, sem sua interface web Node. A rede `host` é substituída por `homelab-vault-tunnel` e a porta 14333 deixa de ser publicada. Os arquivos antigos de `/config` não são apagados; deixam de ser montados, pois a credencial passa a ser o arquivo de token protegido. Essa instância deve ser dedicada ao Vaultwarden. O Compose original fica no backup para restauração.
-
-Antes de executar, crie sua conta Vaultwarden e configure externamente na Cloudflare:
-
-1. Crie um Tunnel gerenciado remotamente, dedicado ao Vaultwarden.
-2. Antes da rota HTTP no Tunnel, adicione uma regra para `vault.reesearch64.com` com `path: (?i)^/+admin(/.*)?$` e serviço `http_status:403`, bloqueando `/admin` e seus subcaminhos. Termine a lista com uma regra sem hostname de serviço `http_status:404`. Isso funciona sem habilitar Cloudflare Access. Alternativamente, crie uma aplicação Access específica para `/admin` e `/admin/*`, com política `Block Everyone`. Não proteja todo o hostname com login Access, pois os clientes Bitwarden precisam usar a autenticação do Vaultwarden.
-3. Configure a rota publicada `vault.reesearch64.com` com serviço HTTP `http://vaultwarden-origin:80`. O DNS deve apontar para esse Tunnel; resolva eventuais registros conflitantes somente para `vault`, sem reaproveitar o hostname `homelab`.
-4. Execute `Vaultwarden Tunnel` no menu e cole somente o token do Tunnel quando solicitado (entrada oculta). Não coloque credenciais no Git. O script pede confirmação das regras externas e da criação da conta; não configura nem audita automaticamente essas políticas na sua conta Cloudflare.
-
-A ação altera `DOMAIN` para `https://vault.reesearch64.com`, desabilita novos cadastros e a whitelist de domínios de cadastro, mantém os dados persistentes e restringe o HTTP publicado a `127.0.0.1:10380`. Se `/data/config.json` contiver valores conflitantes, o script interrompe: ajuste-os previamente pelo painel administrativo local, pois eles prevalecem sobre as variáveis de ambiente. As contas existentes permanecem. Ative 2FA e guarde os códigos de recuperação.
-
-Vaultwarden e Cloudflared passam a compartilhar `homelab-vault-tunnel`; o destino interno é `vaultwarden-origin:80`. O conector não publica portas e recebe somente um arquivo de token montado como leitura. Credencial e backups ficam em uma pasta privada `/etc/homelab-vault-tunnel.*`; não apague essa pasta, pois o Compose referencia o token ali. O script valida os Compose, aplica as alterações e consulta `https://vault.reesearch64.com/alive`. Em caso de falha na aplicação restaura os Compose anteriores, preservando backups. Essa consulta não substitui testar login, sincronização e bloqueio de `/admin` em uma rede externa.
-
-Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `https://vault.reesearch64.com`. O Tunnel é o único fluxo de configuração do Vaultwarden no dotfiles; a opção HTTPS via Caddy e seus arquivos legados foram removidos. O fluxo não cria VPN nem publica outros serviços. Instalações Caddy, registros DNS, regras UFW e backups já existentes no servidor não são apagados por essa remoção do código. Depois de confirmar o Tunnel, esses recursos legados podem ser revisados separadamente e o hostname `homelab.reesearch64.com` reservado para uso futuro.
 
 #### SSH por chave no HomeLab
 
@@ -223,6 +205,27 @@ SSH usa os pacotes e unidades do Ubuntu. Antes de ser ativado, o firewall UFW li
 
 
 ### Ações do HomeProd (Ubuntu)
+
+#### Vaultwarden externo pelo Cloudflare Tunnel
+
+Exclusiva do HomeProd, a ação `Vaultwarden Tunnel` usa `setup/homeprod/tunnel/configure.sh` e deve ser executada como root. Ela publica somente o Vaultwarden em `https://vault.reesearch64.com`. Reutiliza os aplicativos Vaultwarden e Cloudflared instalados no CasaOS, encontrados pelas imagens `vaultwarden/server`, `cloudflare/cloudflared` ou `wisdomsky/cloudflared-web` (loja CasaOS) e labels do Compose. Aceita tags, digests e prefixos Docker Hub. É necessário exatamente um Vaultwarden e um conector; o Vaultwarden deve estar rodando. Cloudflared precisa oferecer `--token-file` (versão 2025.4.0 ou posterior). O script não instala uma segunda instância nem abre portas no roteador/firewall.
+
+Para `wisdomsky/cloudflared-web`, a imagem e o app CasaOS são preservados, mas a execução passa a iniciar diretamente o binário `cloudflared`, sem sua interface web Node. A rede `host` é substituída por `homeprod-vault-tunnel` e a porta 14333 deixa de ser publicada. Os arquivos antigos de `/config` não são apagados; deixam de ser montados, pois a credencial passa a ser o arquivo de token protegido. Essa instância deve ser dedicada ao Vaultwarden. O Compose original fica no backup para restauração.
+
+Antes de executar, crie sua conta Vaultwarden e configure externamente na Cloudflare:
+
+1. Crie um Tunnel gerenciado remotamente, dedicado ao Vaultwarden.
+2. Antes da rota HTTP no Tunnel, adicione uma regra para `vault.reesearch64.com` com `path: (?i)^/+admin(/.*)?$` e serviço `http_status:403`, bloqueando `/admin` e seus subcaminhos. Termine a lista com uma regra sem hostname de serviço `http_status:404`. Isso funciona sem habilitar Cloudflare Access. Alternativamente, crie uma aplicação Access específica para `/admin` e `/admin/*`, com política `Block Everyone`. Não proteja todo o hostname com login Access, pois os clientes Bitwarden precisam usar a autenticação do Vaultwarden.
+3. Configure a rota publicada `vault.reesearch64.com` com serviço HTTP `http://vaultwarden-origin:80`. O DNS deve apontar para esse Tunnel; resolva eventuais registros conflitantes somente para `vault`, sem reaproveitar o hostname `homelab`.
+4. Execute `Vaultwarden Tunnel` no menu e cole somente o token do Tunnel quando solicitado (entrada oculta). Não coloque credenciais no Git. O script pede confirmação das regras externas e da criação da conta; não configura nem audita automaticamente essas políticas na sua conta Cloudflare.
+
+A ação altera `DOMAIN` para `https://vault.reesearch64.com`, desabilita novos cadastros e a whitelist de domínios de cadastro, mantém os dados persistentes e restringe o HTTP publicado a `127.0.0.1:10380`. Se `/data/config.json` contiver valores conflitantes, o script interrompe: ajuste-os previamente pelo painel administrativo local, pois eles prevalecem sobre as variáveis de ambiente. As contas existentes permanecem. Ative 2FA e guarde os códigos de recuperação.
+
+Vaultwarden e Cloudflared passam a compartilhar `homeprod-vault-tunnel`; o destino interno é `vaultwarden-origin:80`. O conector não publica portas e recebe somente um arquivo de token montado como leitura. Credencial e backups ficam em uma pasta privada `/etc/homeprod-vault-tunnel.*`; não apague essa pasta, pois o Compose referencia o token ali. O script valida os Compose, aplica as alterações e consulta `https://vault.reesearch64.com/alive`. Em caso de falha na aplicação restaura os Compose anteriores, preservando backups. Essa consulta não substitui testar login, sincronização e bloqueio de `/admin` em uma rede externa.
+
+Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `https://vault.reesearch64.com`. O Tunnel é o único fluxo de configuração do Vaultwarden no dotfiles; a opção HTTPS via Caddy e seus arquivos legados foram removidos. O fluxo não cria VPN nem publica outros serviços. Instalações Caddy, registros DNS, regras UFW e backups já existentes no servidor não são apagados por essa remoção do código. Depois de confirmar o Tunnel, esses recursos legados podem ser revisados separadamente e o hostname `homelab.reesearch64.com` reservado para uso futuro.
+
+#### Preparação da VPS, swap e SSH
 
 `Configurar Swap` executa como root a criação de `/swapfile-homeprod` com 8 GiB, permissão `0600`, ativa a swap e registra sua ativação no `/etc/fstab` com backup prévio. Requer ext4 ou XFS e espaço para manter pelo menos 4 GiB livres após a alocação. A ação preserva outras swaps e reutiliza seu arquivo se ele já tiver o tamanho e formato esperados; não redimensiona nem sobrescreve arquivos incompatíveis. Para optar por 12 GiB na primeira criação, execute `bash setup/homeprod/swap/configure.sh 12`. Não altera `swappiness` nem configura hibernação. Se houver falha durante a criação, o arquivo temporário é preservado e seu caminho é informado.
 
@@ -340,17 +343,17 @@ As identidades são separadas pelo dispositivo de origem:
 | --- | --- | --- |
 | Desktop | `id_trabalho_desktop`, `id_pessoal_desktop` e respectivos `.pub` | nenhuma |
 | Notebook | `id_trabalho_notebook` e seu `.pub` | `id_trabalho_desktop.pub` |
-| Mini-server | nenhuma chave privada | `id_pessoal_desktop.pub` |
+| Homelab | nenhuma chave privada | `id_pessoal_desktop.pub` |
 
 Desktop e notebook também exigem os pares compartilhados `id_github` e `id_gitlab`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
 
-A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. No desktop, notebook e mini-server usam `StrictHostKeyChecking accept-new`: a primeira conexão registra automaticamente a chave do host e qualquer mudança posterior continua sendo recusada. Os demais destinos mantêm `StrictHostKeyChecking yes`.
+A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. No desktop, notebook e homelab usam `StrictHostKeyChecking accept-new`: a primeira conexão registra automaticamente a chave do host e qualquer mudança posterior continua sendo recusada. Os demais destinos mantêm `StrictHostKeyChecking yes`.
 
 No desktop e no notebook, a ação `Configurar SSH` executa `systemctl --user enable --now ssh-agent.socket`, sem sudo: inicia o socket imediatamente e habilita sua ativação nas próximas sessões do usuário. A ativação não depende do autostart do Niri. Nos dois perfis, `IdentityAgent /run/user/%i/ssh-agent.socket` aponta explicitamente para esse agente, compartilhado entre os terminais. Cada chave privada criptografada solicita sua passphrase no primeiro uso; `AddKeysToAgent yes` mantém a chave desbloqueada somente em memória enquanto o agente estiver ativo. Reiniciar o agente ou o computador exige desbloquear novamente. O dotfiles não remove nem armazena a passphrase. Isso não memoriza senhas de login dos servidores nem senhas de `sudo`.
 
-O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → mini-server. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub`; o mini-server aceita somente `id_pessoal_desktop.pub`. Assim, a identidade pessoal não concede acesso ao equipamento de trabalho. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
+O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → homelab. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub`; o homelab aceita somente `id_pessoal_desktop.pub`. Assim, a identidade pessoal não concede acesso ao equipamento de trabalho. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
 
-A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups`. A autenticação por senha permanece disponível como recuperação no notebook e no mini-server; clientes com a chave privada correspondente entram diretamente por chave pública.
+A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups`. A autenticação por senha permanece disponível como recuperação no notebook e no homelab; clientes com a chave privada correspondente entram diretamente por chave pública.
 
 Uma configuração diferente é preservada em `/mnt/backups`, identificada pela origem e pela data, sem criar arquivos de backup dentro de `~/.ssh`.
 
@@ -833,7 +836,7 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 ├── setup/
 │   ├── desktop/          # Configurações completas CachyOS
 │   ├── laptop/           # Cópia independente CachyOS
-│   ├── homelab/          # Mini-server Ubuntu
+│   ├── homelab/          # Homelab Ubuntu
 │   ├── homeprod/         # Bootstrap da VPS Ubuntu
 │   └── macbook/          # Reservado para macOS
 ├── go.mod
