@@ -36,12 +36,12 @@ func TestHomeProdProfileDetectionPlatformAndMenu(t *testing.T) {
 	if m.setupDir != "/repo/setup/homeprod" {
 		t.Fatal(m.setupDir)
 	}
-	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "Vaultwarden Tunnel", "Sair"}) {
+	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "HomeProd Tunnel (etapa 1)", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", titles)
 	}
 }
 
-func TestVaultwardenTunnelIsExclusiveToHomeProd(t *testing.T) {
+func TestHomeProdTunnelIsExclusiveToHomeProd(t *testing.T) {
 	root, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
@@ -50,14 +50,14 @@ func TestVaultwardenTunnelIsExclusiveToHomeProd(t *testing.T) {
 		m := newModelForDevice(root, device)
 		found := false
 		for _, it := range m.items() {
-			if it.title != "Vaultwarden Tunnel" {
+			if it.title != "HomeProd Tunnel (etapa 1)" {
 				continue
 			}
 			found = true
 			configured := it.job()
 			args := configured.steps[0].cmd().Args
 			path := filepath.Join(root, "setup", "homeprod", "tunnel", "configure.sh")
-			if len(args) < 2 || !slices.Equal(args[len(args)-2:], []string{"bash", path}) {
+			if len(args) < 3 || !slices.Equal(args[len(args)-3:], []string{"sudo", "bash", path}) {
 				t.Fatalf("comando inesperado: %v", args)
 			}
 			if _, err := os.Stat(path); err != nil {

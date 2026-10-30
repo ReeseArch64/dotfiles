@@ -21,8 +21,8 @@ func (m model) homeProdItems() []item {
 		{title: "Configurar Swap", desc: "Ativar 8 GiB de swap persistente; executar como root", job: func() job {
 			return job{title: "Swap HomeProd", steps: []step{terminalStep("Configurar swap de 8 GiB", "bash", configPath(m.setupDir, "swap", "configure.sh"), "8")}}
 		}},
-		{title: "Vaultwarden Tunnel", desc: "vault.reesearch64.com via cloudflared do CasaOS; executar como root", job: func() job {
-			return job{title: "Vaultwarden Tunnel", steps: []step{terminalStep("Configurar Tunnel e migrar domínio do Vaultwarden", "bash", configPath(m.setupDir, "tunnel", "configure.sh"))}}
+		{title: "HomeProd Tunnel (etapa 1)", desc: "CasaOS via Cloudflare Access; ainda não fecha portas públicas (sudo)", job: func() job {
+			return job{title: "HomeProd Tunnel", steps: []step{terminalStep("Instalar conector oficial e configurar Tunnel do HomeProd", "sudo", "bash", configPath(m.setupDir, "tunnel", "configure.sh"))}}
 		}},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}

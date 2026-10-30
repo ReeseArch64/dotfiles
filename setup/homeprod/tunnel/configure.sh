@@ -1,136 +1,136 @@
 #!/usr/bin/env bash
+# Stage 1 only: no firewall, SSH, Docker or Vaultwarden changes.
+set +x
 set -Eeuo pipefail
 umask 077
-[[ $EUID == 0 ]] || { echo 'Execute via sudo.' >&2; exit 1; }
-work=$(mktemp -d /etc/homeprod-vault-tunnel.XXXXXXXX)
-exec 2> >(tee -a "$work/configure.log" >&2)
-phase='verificar dependências'
-changed=false
-on_error() {
-  local status=$1 line=$2
-  trap - ERR
-  printf '\nFalha na etapa "%s", linha %s, código %s. Log: %s/configure.log\n' "$phase" "$line" "$status" "$work" >&2
-  if $changed; then
-    set +e
-    rollback
-  fi
-  exit "$status"
-}
-trap 'on_error "$?" "$LINENO"' ERR
-echo "Diagnóstico desta execução: $work/configure.log" >&2
+[[ $(id -u) == 0 ]] || { echo 'Execute via sudo.' >&2; exit 1; }
+for tool in systemctl curl flock; do command -v "$tool" >/dev/null; done
+exec 9>/run/lock/dotfiles-homeprod-tunnel.lock
+flock -n 9 || { echo 'Outra configuração do Tunnel está em execução.' >&2; exit 1; }
+
 directory=$(dirname "$(readlink -f "$0")")
-for tool in docker python3 curl; do command -v "$tool" >/dev/null; done
-
-container() {
-  local prefix image id
-  local -a matches=()
-  while read -r id image; do
-    image=${image#docker.io/}
-    image=${image#index.docker.io/}
-    for prefix in "$@"; do
-      case "$image" in
-        "$prefix"|"$prefix":*|"$prefix"@*) matches+=("$id"); break ;;
-      esac
-    done
-  done < <(docker ps -a --format '{{.ID}} {{.Image}}')
-  [[ ${#matches[@]} == 1 ]] || { echo "Esperado exatamente um app CasaOS com imagem $*; encontrados: ${#matches[@]}." >&2; return 1; }
-  printf '%s\n' "${matches[0]}"
-}
-compose_path() {
-  local path
-  path=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$1")
-  [[ "$path" == /* && "$path" != *,* && -f "$path" && ! -L "$path" ]] || {
-    echo "Compose ausente, múltiplo ou inválido para o container $1." >&2; return 1;
-  }
-  realpath -e "$path"
-}
-phase='identificar containers e arquivos Compose do CasaOS'
-vault=$(container vaultwarden/server)
-connector=$(container cloudflare/cloudflared wisdomsky/cloudflared-web)
-vault_compose=$(compose_path "$vault")
-tunnel_compose=$(compose_path "$connector")
-[[ "$vault_compose" != "$tunnel_compose" ]]
-vault_project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$vault")
-tunnel_project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$connector")
-for project in "$vault_project" "$tunnel_project"; do
-  [[ "$project" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || { echo 'Projeto Compose CasaOS ausente ou inválido.' >&2; exit 1; }
-done
-compose_run() {
-  local file=$1 project=$2
-  shift 2
-  (cd "$(dirname "$file")" && AppID="$project" docker compose -p "$project" -f "$file" "$@")
-}
-phase='verificar suporte do cloudflared a token-file'
-image=$(docker inspect -f '{{.Config.Image}}' "$connector")
-help=$(docker run --rm --network none --entrypoint cloudflared "$image" tunnel run --help)
-grep -q -- '--token-file' <<< "$help" || { echo 'Atualize cloudflared no CasaOS: requer suporte a --token-file (2025.4.0+).' >&2; exit 1; }
-
-# Admin settings override the environment: refuse conflicting values before publishing.
-phase='verificar configurações administrativas do Vaultwarden'
-docker exec "$vault" sh -c 'if [ -f /data/config.json ]; then cat /data/config.json; else printf "{}"; fi' > "$work/vault-admin.json"
-python3 - "$work/vault-admin.json" <<'PY'
-import json, pathlib, sys
-p = pathlib.Path(sys.argv[1])
-c = json.loads(p.read_text()) if p.exists() else {}
-for key, expected in {'domain': 'https://vault.reesearch64.com', 'signups_allowed': False, 'signups_domains_whitelist': ''}.items():
-    if key in c and c[key] != expected:
-        raise SystemExit(f'Ajuste {key} no painel Vaultwarden antes de continuar; config.json sobrepõe o ambiente.')
-PY
-printf '\nNa Cloudflare, prepare um Tunnel dedicado ao Vaultwarden, sem rotas para outros serviços.\n'
-printf 'Hostname: vault.reesearch64.com -> HTTP http://vaultwarden-origin:80\n'
-printf 'Antes da rota HTTP, bloqueie /admin e subcaminhos com ingress path (?i)^/+admin(/.*)?$ -> http_status:403.\n'
-printf 'Alternativamente, use uma aplicação Cloudflare Access específica para /admin (Block Everyone).\n'
-printf 'Não coloque login Access no restante do hostname, usado pelos clientes Bitwarden.\n'
-phase='confirmar preparação e ler token'
-read -r -p 'Já criou sua conta Vaultwarden e preparou essas regras? Digite CONFIRMO: ' answer
-[[ "$answer" == CONFIRMO ]] || { echo 'Cancelado: confirmação diferente de CONFIRMO.' >&2; exit 1; }
+state=/etc/homeprod-cloudflared
+unit=/etc/systemd/system/cloudflared-homeprod.service
+service=cloudflared-homeprod.service
+[[ ! -L "$state" && ! -L "$unit" ]] || { echo 'Caminho de configuração simbólico recusado.' >&2; exit 1; }
+if [[ -e "$unit" ]] && ! grep -qx '# Managed by dotfiles: homeprod-tunnel' "$unit"; then
+  echo 'Já existe uma unidade HomeProd não gerenciada por este script.' >&2; exit 1
+fi
+if systemctl cat cloudflared.service >/dev/null 2>&1; then
+  echo 'Já existe cloudflared.service. Revise o conector existente antes de instalar outro.' >&2; exit 1
+fi
+if command -v docker >/dev/null; then
+  images=$(docker ps --format '{{.Image}}')
+  if grep -Eq '(^|/)(cloudflare/cloudflared|wisdomsky/cloudflared-web)(:|@|$)' <<< "$images"; then
+    echo 'Conector Cloudflared em execução no Docker; não será criada uma segunda instância.' >&2; exit 1
+  fi
+fi
+curl --fail --silent --show-error --noproxy '*' --connect-timeout 5 --max-time 10 http://127.0.0.1:80/ >/dev/null
+cat <<'INFO'
+ETAPA 1 — HomeProd Tunnel. O IP público CONTINUARÁ acessível nesta etapa.
+Antes de continuar, prepare no painel Cloudflare Zero Trust:
+1. Aplicação Access para homeprod.reesearch64.com, permitindo somente sua
+   identidade com autenticação forte; sem Bypass nem Allow Everyone.
+2. Tunnel gerenciado remotamente, dedicado ao HomeProd.
+3. Rota homeprod.reesearch64.com -> http://127.0.0.1:80 (CasaOS).
+   Regra final: http_status:404. DNS deste hostname apontando para o Tunnel.
+Não use vault.reesearch64.com nem publique SSH ou Samba neste Tunnel.
+Este script não cria nem audita as políticas Access/DNS na sua conta.
+INFO
+read -r -p 'Preparou Access, Tunnel e DNS acima? Digite CONFIRMO: ' answer
+[[ "$answer" == CONFIRMO ]] || { echo 'Cancelado sem alterações.'; exit 1; }
 read -rs -p 'Cole somente o token do Tunnel (entrada oculta): ' token
 printf '\n'
-[[ "$token" =~ ^[A-Za-z0-9_=+/.-]+$ ]] || { echo 'Token inválido.' >&2; exit 1; }
+[[ "$token" =~ ^[A-Za-z0-9_=+/.-]+$ ]] || { unset token; echo 'Token vazio ou inválido.' >&2; exit 1; }
 
-# A unique credential file allows rollback without overwriting previous tokens.
-phase='salvar credencial e backups locais'
-token_file="$work/tunnel-token"
-printf '%s' "$token" > "$token_file"
-unset token
-chown 65532:65532 "$token_file"
-chmod 0400 "$token_file"
-cp -a "$vault_compose" "$work/vault.original"
-cp -a "$tunnel_compose" "$work/tunnel.original"
-normalize() { compose_run "$1" "$3" config --format json > "$2"; }
-phase='normalizar Compose do Vaultwarden'
-normalize "$vault_compose" "$work/vault.json" "$vault_project"
-phase='normalizar Compose do Cloudflared'
-normalize "$tunnel_compose" "$work/tunnel.json" "$tunnel_project"
-phase='verificar volume persistente do Vaultwarden'
-docker inspect -f '{{json .Mounts}}' "$vault" > "$work/vault-mounts.json"
-phase='transformar Compose para o Tunnel'
-python3 "$directory/compose.py" vault "$work/vault.json" "$work/vault.new" "$token_file" "$work/vault-mounts.json"
-python3 "$directory/compose.py" tunnel "$work/tunnel.json" "$work/tunnel.new" "$token_file"
-phase='validar Compose do Vaultwarden'
-compose_run "$work/vault.new" "$vault_project" config -q
-phase='validar Compose do Cloudflared'
-compose_run "$work/tunnel.new" "$tunnel_project" config -q
-phase='preparar rede Docker'
-docker network inspect homeprod-vault-tunnel >/dev/null 2>&1 || docker network create homeprod-vault-tunnel >/dev/null
-
+install -d -m 0700 -o root -g root "$state"
+work=$(mktemp -d "$state/backup.XXXXXXXX")
+phase='preparar instalação'
+changed=false
+committed=false
+was_active=false
+was_enabled=false
+systemctl is-active --quiet "$service" && was_active=true
+systemctl is-enabled --quiet "$service" && was_enabled=true
+for file in "$unit" "$state/tunnel-token"; do
+  [[ ! -L "$file" ]] || { echo 'Arquivo simbólico recusado.' >&2; exit 1; }
+done
+[[ ! -e "$unit" ]] || cp -a "$unit" "$work/unit"
+[[ ! -e "$state/tunnel-token" ]] || cp -a "$state/tunnel-token" "$work/token"
 rollback() {
-  cp -a "$work/vault.original" "$vault_compose"
-  cp -a "$work/tunnel.original" "$tunnel_compose"
-  compose_run "$vault_compose" "$vault_project" up -d || true
-  compose_run "$tunnel_compose" "$tunnel_project" up -d || true
-  echo "Falha; Compose anteriores restaurados. Backup: $work" >&2
+  echo 'Restaurando unidade e credencial anteriores...' >&2
+  systemctl stop "$service"
+  if [[ -f "$work/unit" ]]; then cp -a "$work/unit" "$unit"; else rm -f "$unit"; fi
+  if [[ -f "$work/token" ]]; then cp -a "$work/token" "$state/tunnel-token"; else rm -f "$state/tunnel-token"; fi
+  if ! $was_enabled; then systemctl disable "$service"; fi
+  systemctl daemon-reload
+  if $was_enabled; then systemctl enable "$service"; fi
+  if $was_active; then systemctl start "$service"; fi
 }
-phase='aplicar Compose'
+cleanup() {
+  local code=$?
+  trap - EXIT
+  unset token
+  rm -f "$work/new-token"
+  if ! $committed; then
+    echo "Falha/cancelamento na etapa: $phase. Backup privado: $work" >&2
+    if $changed; then
+      set +e
+      rollback
+    fi
+  fi
+  exit "$code"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+phase='instalar pacote oficial Cloudflared'
+if [[ ! -x /usr/bin/cloudflared ]]; then
+  apt-get update
+  apt-get install --yes ca-certificates curl
+  curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 90 \
+    https://pkg.cloudflare.com/cloudflare-main.gpg -o "$work/cloudflare-main.gpg"
+  install -m 0644 "$work/cloudflare-main.gpg" /usr/share/keyrings/cloudflare-main.gpg
+  printf '%s\n' 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' \
+    > /etc/apt/sources.list.d/cloudflared.list
+  chmod 0644 /etc/apt/sources.list.d/cloudflared.list
+  apt-get update
+  apt-get install --yes cloudflared
+fi
+help=$(/usr/bin/cloudflared tunnel run --help)
+grep -q -- '--token-file' <<< "$help" || { echo 'Atualize cloudflared: requer --token-file (2025.4.0+).' >&2; exit 1; }
+phase='instalar credencial e serviço HomeProd'
+printf '%s' "$token" > "$work/new-token"
+unset token
 changed=true
-install -m 0600 "$work/vault.new" "$vault_compose"
-install -m 0600 "$work/tunnel.new" "$tunnel_compose"
-phase='iniciar Vaultwarden'
-compose_run "$vault_compose" "$vault_project" up -d
-phase='iniciar Cloudflared'
-compose_run "$tunnel_compose" "$tunnel_project" up -d
-phase='testar HTTPS público do Vaultwarden'
-curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 3 --connect-timeout 5 --max-time 10 https://vault.reesearch64.com/alive >/dev/null
-trap - ERR
-echo "Vaultwarden acessível em https://vault.reesearch64.com. Backup: $work"
-echo 'Atualize a URL nos clientes Bitwarden e teste login e sincronização fora da LAN.'
+install -m 0600 -o root -g root "$work/new-token" "$state/tunnel-token"
+rm -f "$work/new-token"
+install -m 0644 -o root -g root "$directory/cloudflared-homeprod.service" "$unit"
+systemctl daemon-reload
+systemctl enable "$service"
+systemctl restart "$service"
+
+phase='aguardar conexão do Tunnel com a Cloudflare'
+connected=false
+for ((attempt=0; attempt<30; attempt++)); do
+  if systemctl is-active --quiet "$service" && \
+     curl --fail --silent --noproxy '*' --max-time 2 http://127.0.0.1:49312/ready >/dev/null; then
+    connected=true
+    break
+  fi
+  sleep 2
+done
+$connected || { echo 'Conector sem conexão. Consulte journalctl -u cloudflared-homeprod.service (não compartilhe credenciais).' >&2; exit 1; }
+committed=true
+cat <<INFO
+Conector conectado à Cloudflare. Backup privado: $work
+Isso NÃO comprova a proteção do Access nem fecha o acesso direto pelo IP.
+Agora teste em outra rede/navegador privado:
+- https://homeprod.reesearch64.com deve exigir Access antes de mostrar o CasaOS.
+- Após autenticar, teste login, navegação e terminal/WebSocket.
+- Teste novamente após: sudo systemctl restart cloudflared-homeprod.service
+SSH, firewall, Docker e Vaultwarden não foram alterados.
+NÃO considere a VPS protegida ainda: a etapa 2 deverá fechar as entradas
+HTTP/Samba em IPv4/IPv6 e impedir bypass por portas Docker, preservando SSH.
+INFO

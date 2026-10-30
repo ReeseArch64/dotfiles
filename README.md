@@ -47,7 +47,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `desktop`: disponibiliza todas as ações;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
-- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e Vaultwarden Tunnel;
+- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e HomeProd Tunnel (etapa 1);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
@@ -218,24 +218,45 @@ SSH usa os pacotes e unidades do Ubuntu. No Homelab, antes de ser ativado, o fir
 
 ### Ações do HomeProd (Ubuntu)
 
-#### Vaultwarden externo pelo Cloudflare Tunnel
+#### HomeProd Tunnel — etapa 1 (sem fechamento de portas)
 
-Exclusiva do HomeProd, a ação `Vaultwarden Tunnel` usa `setup/homeprod/tunnel/configure.sh` e deve ser executada como root. Ela publica somente o Vaultwarden em `https://vault.reesearch64.com`. Reutiliza os aplicativos Vaultwarden e Cloudflared instalados no CasaOS, encontrados pelas imagens `vaultwarden/server`, `cloudflare/cloudflared` ou `wisdomsky/cloudflared-web` (loja CasaOS) e labels do Compose. Aceita tags, digests e prefixos Docker Hub. É necessário exatamente um Vaultwarden e um conector; o Vaultwarden deve estar rodando. Cloudflared precisa oferecer `--token-file` (versão 2025.4.0 ou posterior). O script não instala uma segunda instância nem abre portas no roteador/firewall.
+A ação `HomeProd Tunnel (etapa 1)` substitui o antigo túnel exclusivo do Vaultwarden. Ela usa `setup/homeprod/tunnel/configure.sh` com sudo, instala o pacote oficial `cloudflared` no Ubuntu quando ausente e configura uma unidade systemd independente do CasaOS. Não instale os apps Cloudflared/Cloudflared Web do marketplace para este fluxo. A CLI `cloudflare`/`cf` não substitui o conector `cloudflared` e não é necessária aqui.
 
-Para `wisdomsky/cloudflared-web`, a imagem e o app CasaOS são preservados, mas a execução passa a iniciar diretamente o binário `cloudflared`, sem sua interface web Node. A rede `host` é substituída por `homeprod-vault-tunnel` e a porta 14333 deixa de ser publicada. Os arquivos antigos de `/config` não são apagados; deixam de ser montados, pois a credencial passa a ser o arquivo de token protegido. Essa instância deve ser dedicada ao Vaultwarden. O Compose original fica no backup para restauração.
+**A VPS ainda permanece exposta pelo IP nesta etapa.** O script não altera firewall, SSH, Samba, Docker ou Vaultwarden. O hostname `homeprod.reesearch64.com` encaminha apenas o painel CasaOS em `http://127.0.0.1:80`, não todas as portas da VPS. Outros aplicativos precisarão de rotas próprias. Não remova o acesso direto antes de testar Tunnel e Access.
 
-Antes de executar, crie sua conta Vaultwarden e configure externamente na Cloudflare:
+Antes de executar, configure no painel Cloudflare Zero Trust, nesta ordem:
 
-1. Crie um Tunnel gerenciado remotamente, dedicado ao Vaultwarden.
-2. Antes da rota HTTP no Tunnel, adicione uma regra para `vault.reesearch64.com` com `path: (?i)^/+admin(/.*)?$` e serviço `http_status:403`, bloqueando `/admin` e seus subcaminhos. Termine a lista com uma regra sem hostname de serviço `http_status:404`. Isso funciona sem habilitar Cloudflare Access. Alternativamente, crie uma aplicação Access específica para `/admin` e `/admin/*`, com política `Block Everyone`. Não proteja todo o hostname com login Access, pois os clientes Bitwarden precisam usar a autenticação do Vaultwarden.
-3. Configure a rota publicada `vault.reesearch64.com` com serviço HTTP `http://vaultwarden-origin:80`. O DNS deve apontar para esse Tunnel; resolva eventuais registros conflitantes somente para `vault`, sem reaproveitar o hostname `homelab`.
-4. Execute `Vaultwarden Tunnel` no menu e cole somente o token do Tunnel quando solicitado (entrada oculta). Não coloque credenciais no Git. O script pede confirmação das regras externas e da criação da conta; não configura nem audita automaticamente essas políticas na sua conta Cloudflare.
+1. Crie uma aplicação Access self-hosted cobrindo todo o hostname `homeprod.reesearch64.com` (não apenas uma URL de login). Permita somente sua identidade, usando provedor de identidade com MFA. Não use políticas `Bypass` nem `Allow Everyone`. MFA da conta administrativa Cloudflare não protege automaticamente quem acessa a aplicação.
+2. Crie um Tunnel gerenciado remotamente, dedicado ao HomeProd. Não execute o comando de instalação com token oferecido pelo painel; o script gerencia seu próprio serviço e pede apenas o token.
+3. Configure a rota publicada `homeprod.reesearch64.com` para HTTP `127.0.0.1:80`, com regra final sem hostname `http_status:404`. O DNS desse subdomínio deve apontar para o Tunnel; não reutilize os hostnames `vault` ou `homelab`. Não adicione rotas SSH/Samba.
+4. Com o CasaOS respondendo na porta 80 local, execute a opção do menu ou diretamente:
 
-A ação altera `DOMAIN` para `https://vault.reesearch64.com`, desabilita novos cadastros e a whitelist de domínios de cadastro, mantém os dados persistentes e restringe o HTTP publicado a `127.0.0.1:10380`. Se `/data/config.json` contiver valores conflitantes, o script interrompe: ajuste-os previamente pelo painel administrativo local, pois eles prevalecem sobre as variáveis de ambiente. As contas existentes permanecem. Ative 2FA e guarde os códigos de recuperação.
+   ```bash
+   sudo bash setup/homeprod/tunnel/configure.sh
+   ```
 
-Vaultwarden e Cloudflared passam a compartilhar `homeprod-vault-tunnel`; o destino interno é `vaultwarden-origin:80`. O conector não publica portas e recebe somente um arquivo de token montado como leitura. Credencial e backups ficam em uma pasta privada `/etc/homeprod-vault-tunnel.*`; não apague essa pasta, pois o Compose referencia o token ali. O script valida os Compose, aplica as alterações e consulta `https://vault.reesearch64.com/alive`. Em caso de falha na aplicação restaura os Compose anteriores, preservando backups. Essa consulta não substitui testar login, sincronização e bloqueio de `/admin` em uma rede externa.
+5. Confirme a preparação de Access/DNS e cole **somente o token**, em entrada oculta. Não grave tokens no Git, vault, linha de comando ou histórico. O script não cria nem audita políticas na sua conta Cloudflare; a confirmação manual não é uma auditoria de segurança.
 
-Após concluir, ajuste o endereço do servidor nos clientes Bitwarden para `https://vault.reesearch64.com`. O Tunnel é o único fluxo de configuração do Vaultwarden no dotfiles; a opção HTTPS via Caddy e seus arquivos legados foram removidos. O fluxo não cria VPN nem publica outros serviços. Instalações Caddy, registros DNS, regras UFW e backups já existentes no servidor não são apagados por essa remoção do código. Depois de confirmar o Tunnel, esses recursos legados podem ser revisados separadamente e o hostname `homelab.reesearch64.com` reservado para uso futuro.
+Requer systemd com `LoadCredential` (247+, disponível no Ubuntu suportado), `curl`, `flock` e acesso aos repositórios APT. A instalação usa o [repositório oficial Cloudflare](https://pkg.cloudflare.com/), com chave dedicada e `signed-by`. Um binário existente em `/usr/bin/cloudflared` precisa suportar `--token-file` (2025.4.0+); versões antigas exigem atualização antes de repetir. Uma unidade `cloudflared.service` existente ou um conector em execução no Docker interrompem a configuração para evitar duplicação.
+
+A unidade `cloudflared-homeprod.service` inicia no boot, usa usuário dinâmico sem privilégios e recebe a credencial por `LoadCredential`. O token fica em `/etc/homeprod-cloudflared/tunnel-token` (`0600`, diretório `0700`, root), nunca no `ExecStart`. Backups privados ficam em `/etc/homeprod-cloudflared/backup.*`; trate-os também como segredos. O endpoint de saúde fica apenas em `127.0.0.1:49312`. O script aguarda `/ready` responder com sucesso; isso comprova conexão do conector, **não** a configuração correta de DNS/Access ou a segurança da origem.
+
+Em falha após alterar unidade/token, o script tenta restaurar os arquivos e o estado anterior do serviço. Pacotes e repositório APT instalados permanecem. A repetição atualiza a unidade/credencial com novo backup. Para parar somente este conector: `sudo systemctl disable --now cloudflared-homeprod.service`; isso não remove a aplicação Access, o Tunnel ou o DNS na Cloudflare. Recursos legados de Vaultwarden/Caddy/Tunnel já existentes na VPS não são migrados nem apagados automaticamente.
+
+Validação manual obrigatória, usando outra rede e navegador privado:
+
+- Sem sessão Access, `https://homeprod.reesearch64.com` deve exigir autenticação antes de exibir qualquer conteúdo do CasaOS; uma identidade não autorizada deve ser recusada.
+- Após autenticar, testar login, navegação e terminal/WebSocket do CasaOS.
+- Repetir após `sudo systemctl restart cloudflared-homeprod.service`; posteriormente testar persistência após reboot, com console de recuperação disponível.
+- Diagnóstico: `sudo systemctl status cloudflared-homeprod.service` e `sudo journalctl -u cloudflared-homeprod.service -n 50 --no-pager`. Revise logs antes de compartilhar; nunca compartilhe token ou backups.
+
+#### Etapa 2 pendente — fechar exposição direta, preservando SSH
+
+Somente depois de validar a etapa 1, implementar/aplicar o bloqueio das entradas públicas. O inventário inicial mostrou SSH TCP 22 (IPv4/IPv6), CasaOS TCP 80, Samba TCP 139/445 e UDP 137/138, UFW inativo e nenhum container em execução. Refazer o inventário antes da etapa 2.
+
+O bloqueio deverá preservar SSH sem alterar porta/autenticação, tráfego de resposta e protocolos essenciais de rede, cobrir IPv4/IPv6 e encaminhamento/portas Docker (UFW sozinho não basta). Manter sessão SSH e console do provedor disponíveis, com rollback programado antes de aplicar. Não restringir saídas necessárias ao Tunnel. Testar uma nova conexão SSH, tentativas externas ao IP/hostname antigo e uma porta Docker publicada; repetir após reboot. Um firewall do provedor pode acrescentar uma barreira independente.
+
+**O menu ainda não aplica essa etapa.** Até sua implementação e validação externa, HTTP e Samba podem continuar acessíveis por `209.50.240.34` e `vps12431.integrator.host`. Depois dela, somente o SSH deverá continuar público (além dos protocolos essenciais de rede); o IP conhecido não se torna secreto.
 
 #### Preparação da VPS, swap e SSH
 
