@@ -36,12 +36,12 @@ func TestHomeProdProfileDetectionPlatformAndMenu(t *testing.T) {
 	if m.setupDir != "/repo/setup/homeprod" {
 		t.Fatal(m.setupDir)
 	}
-	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "HomeProd Tunnel (etapa 1)", "Firewall HomeProd: testar (etapa 2)", "Firewall HomeProd: confirmar", "Firewall HomeProd: reverter", "Firewall HomeProd: status", "Sair"}) {
+	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "Acesso seguro (Tunnel + firewall)", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", titles)
 	}
 }
 
-func TestHomeProdTunnelIsExclusiveToHomeProd(t *testing.T) {
+func TestHomeProdSecureAccessIsExclusiveToHomeProd(t *testing.T) {
 	root, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
@@ -50,13 +50,13 @@ func TestHomeProdTunnelIsExclusiveToHomeProd(t *testing.T) {
 		m := newModelForDevice(root, device)
 		found := false
 		for _, it := range m.items() {
-			if it.title != "HomeProd Tunnel (etapa 1)" {
+			if it.title != "Acesso seguro (Tunnel + firewall)" {
 				continue
 			}
 			found = true
 			configured := it.job()
 			args := configured.steps[0].cmd().Args
-			path := filepath.Join(root, "setup", "homeprod", "tunnel", "configure.sh")
+			path := filepath.Join(root, "setup", "homeprod", "access", "configure.sh")
 			if len(args) < 3 || !slices.Equal(args[len(args)-3:], []string{"sudo", "bash", path}) {
 				t.Fatalf("comando inesperado: %v", args)
 			}
@@ -65,50 +65,11 @@ func TestHomeProdTunnelIsExclusiveToHomeProd(t *testing.T) {
 			}
 		}
 		if found != (device == deviceHomeProd) {
-			t.Fatalf("Tunnel no perfil incorreto: %v", device)
+			t.Fatalf("Acesso seguro no perfil incorreto: %v", device)
 		}
 	}
 	if _, err := os.Stat(filepath.Join(root, "setup", "homelab", "tunnel")); !os.IsNotExist(err) {
 		t.Fatal("Tunnel legado não deve permanecer no Homelab")
-	}
-}
-
-func TestHomeProdFirewallActionsAreExclusiveAndUseSudo(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	actions := map[string]string{
-		"Firewall HomeProd: testar (etapa 2)": "apply",
-		"Firewall HomeProd: confirmar":        "confirm",
-		"Firewall HomeProd: reverter":         "rollback",
-		"Firewall HomeProd: status":           "status",
-	}
-	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook, deviceServer, deviceHomeProd} {
-		found := 0
-		for _, it := range newModelForDevice(root, device).items() {
-			action, ok := actions[it.title]
-			if !ok {
-				continue
-			}
-			found++
-			configured := it.job()
-			args := configured.steps[0].cmd().Args
-			path := filepath.Join(root, "setup", "homeprod", "firewall", "configure.sh")
-			if len(args) < 4 || !slices.Equal(args[len(args)-4:], []string{"sudo", "bash", path, action}) {
-				t.Fatalf("ação %s: comando inesperado %v", action, args)
-			}
-			if _, err := os.Stat(path); err != nil {
-				t.Fatal(err)
-			}
-		}
-		want := 0
-		if device == deviceHomeProd {
-			want = len(actions)
-		}
-		if found != want {
-			t.Fatalf("perfil %v: %d ações de firewall, esperado %d", device, found, want)
-		}
 	}
 }
 

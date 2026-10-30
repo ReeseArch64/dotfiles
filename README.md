@@ -47,7 +47,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `desktop`: disponibiliza todas as ações;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
-- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap, HomeProd Tunnel (etapa 1) e firewall com rollback (etapa 2);
+- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
@@ -218,22 +218,30 @@ SSH usa os pacotes e unidades do Ubuntu. No Homelab, antes de ser ativado, o fir
 
 ### Ações do HomeProd (Ubuntu)
 
-#### HomeProd Tunnel — etapa 1 (sem fechamento de portas)
+#### Acesso seguro (Tunnel + firewall)
 
-A ação `HomeProd Tunnel (etapa 1)` substitui o antigo túnel exclusivo do Vaultwarden. Ela usa `setup/homeprod/tunnel/configure.sh` com sudo, instala o pacote oficial `cloudflared` no Ubuntu quando ausente e configura uma unidade systemd independente do CasaOS. Não instale os apps Cloudflared/Cloudflared Web do marketplace para este fluxo. A CLI `cloudflare`/`cf` não substitui o conector `cloudflared` e não é necessária aqui.
+O menu HomeProd oferece uma única opção **Acesso seguro (Tunnel + firewall)**, executando `setup/homeprod/access/configure.sh` com sudo. Ela reúne as duas fases abaixo: prepara o Tunnel quando necessário e depois inicia o teste protegido do firewall. Se Tunnel e firewall já estiverem ativos, saudáveis e habilitados no boot, preserva a instalação sem pedir token nem reaplicar regras. Essa checagem local não substitui testes externos ou auditoria da política.
 
-**A VPS ainda permanece exposta pelo IP nesta etapa.** O script não altera firewall, SSH, Samba, Docker ou Vaultwarden. O hostname `homeprod.reesearch64.com` encaminha apenas o painel CasaOS em `http://127.0.0.1:80`, não todas as portas da VPS. Outros aplicativos precisarão de rotas próprias. Não remova o acesso direto antes de testar Tunnel e Access.
+Os menus separados de etapas, confirmação, reversão e status foram removidos. Os comandos manuais de recuperação continuam disponíveis; a unificação **não** confirma automaticamente um novo teste de firewall. Se houver teste pendente, a ação não altera os serviços e orienta confirmar em uma nova sessão SSH ou reverter. Para rotacionar o token ou reaplicar deliberadamente o firewall, execute diretamente os scripts específicos documentados abaixo.
+
+#### Tunnel — primeira fase (sem fechamento de portas)
+
+O componente `setup/homeprod/tunnel/configure.sh` substitui o antigo túnel exclusivo do Vaultwarden. Executado com sudo, instala o pacote oficial `cloudflared` no Ubuntu quando ausente e configura uma unidade systemd independente do CasaOS. Não instale os apps Cloudflared/Cloudflared Web do marketplace para este fluxo. A CLI `cloudflare`/`cf` não substitui o conector `cloudflared` e não é necessária aqui.
+
+**Numa instalação nova, esta fase sozinha ainda não fecha o acesso direto pelo IP.** O script do Tunnel não altera firewall, SSH, Samba, Docker ou Vaultwarden. O hostname `homeprod.reesearch64.com` encaminha apenas o painel CasaOS em `http://127.0.0.1:80`, não todas as portas da VPS. Outros aplicativos precisarão de rotas próprias. Não remova o acesso direto antes de testar Tunnel e Access.
 
 Antes de executar, configure no painel Cloudflare Zero Trust, nesta ordem:
 
 1. Crie uma aplicação Access self-hosted cobrindo todo o hostname `homeprod.reesearch64.com` (não apenas uma URL de login). Permita somente sua identidade, usando provedor de identidade com MFA ou código por e-mail combinado com MFA independente do Access. Não use políticas `Bypass` nem `Allow Everyone`. MFA/passkey da conta administrativa Cloudflare não protege automaticamente quem acessa a aplicação. Para MFA independente, habilite também o **App Launcher** com política restrita à mesma identidade, sem exigir um MFA já cadastrado nesse portal inicial; o HomeProd deve continuar exigindo MFA. Cadastre o dispositivo pelo portal `<equipe>.cloudflareaccess.com/AddMfaDevice` antes de testar o HomeProd.
 2. Crie um Tunnel gerenciado remotamente, dedicado ao HomeProd. Não execute o comando de instalação com token oferecido pelo painel; o script gerencia seu próprio serviço e pede apenas o token.
 3. Configure a rota publicada `homeprod.reesearch64.com` para HTTP `127.0.0.1:80`, com regra final sem hostname `http_status:404`. O DNS desse subdomínio deve apontar para o Tunnel; não reutilize os hostnames `vault` ou `homelab`. Não adicione rotas SSH/Samba.
-4. Com o CasaOS respondendo na porta 80 local, execute a opção do menu ou diretamente:
+4. Com o CasaOS respondendo na porta 80 local, execute **Acesso seguro (Tunnel + firewall)** no menu ou diretamente:
 
    ```bash
-   sudo bash setup/homeprod/tunnel/configure.sh
+   sudo bash setup/homeprod/access/configure.sh
    ```
+
+   Para configurar/rotacionar somente o conector, sem iniciar o teste do firewall: `sudo bash setup/homeprod/tunnel/configure.sh`.
 
 5. Confirme a preparação de Access/DNS e cole **somente o token**, em entrada oculta. Não grave tokens no Git, vault, linha de comando ou histórico. O script não cria nem audita políticas na sua conta Cloudflare; a confirmação manual não é uma auditoria de segurança.
 
@@ -252,7 +260,7 @@ Validação manual obrigatória, usando outra rede e navegador privado:
 
 #### Etapa 2 — firewall com teste temporário e rollback
 
-Após validar Tunnel + Access + MFA, use **Firewall HomeProd: testar (etapa 2)**. Essa ação executa `setup/homeprod/firewall/configure.sh apply` com sudo. Não altera porta, autenticação, chaves, configuração ou serviço SSH. O inventário inicial tinha SSH TCP 22, CasaOS TCP 80 e Samba TCP 139/445 e UDP 137/138; as portas SSH são detectadas novamente pelos sockets externos do `sshd`, sem presumir 22. Se não conseguir identificar SSH, o script recusa aplicar.
+Após validar Tunnel + Access + MFA, o fluxo **Acesso seguro (Tunnel + firewall)** executa `setup/homeprod/firewall/configure.sh apply` com sudo quando ainda não encontra um firewall confirmado e ativo. Não altera porta, autenticação, chaves, configuração ou serviço SSH. O inventário inicial tinha SSH TCP 22, CasaOS TCP 80 e Samba TCP 139/445 e UDP 137/138; as portas SSH são detectadas novamente pelos sockets externos do `sshd`, sem presumir 22. Se não conseguir identificar SSH, o script recusa aplicar.
 
 **Pré-requisitos:** console/rescue do provedor funcionando, sessão SSH atual mantida aberta, `cloudflared-homeprod.service` ativo, CasaOS local e endpoint `/ready` respondendo. Requer `python3`, `ip`, `ss`, `curl`, `flock` e systemd; instala `nftables` via APT se necessário. Recusa UFW efetivamente ativo e unidades firewalld/nftables ativas ou habilitadas, sem desligá-las automaticamente. Não habilite outro gerenciador de firewall junto desta política. Pacotes instalados não são removidos por rollback.
 
@@ -264,7 +272,7 @@ Entradas públicas permitem apenas TCP nas portas SSH detectadas, destinado a en
 
 ##### Aplicar e testar antes de persistir
 
-1. Mantenha a sessão SSH atual e o console do provedor disponíveis. Execute a opção **testar** ou:
+1. Mantenha a sessão SSH atual e o console do provedor disponíveis. Numa nova instalação, o menu **Acesso seguro (Tunnel + firewall)** inicia este teste após o Tunnel. Para reaplicar deliberadamente somente o firewall, execute:
 
    ```bash
    sudo bash setup/homeprod/firewall/configure.sh apply
@@ -289,7 +297,7 @@ Entradas públicas permitem apenas TCP nas portas SSH detectadas, destinado a en
    ```
 
    O HTTP local deve responder; `http://209.50.240.34:18080` de fora deve falhar. Teste IPv6 externo se essa publicação também escutar em IPv6. Remova o teste com `sudo docker stop homeprod-firewall-probe`. A imagem baixada permanece no cache Docker. Confira também os contadores em `sudo nft list table inet homeprod_guard`. Não confirme se SSH, Tunnel ou os bloqueios não funcionarem.
-6. **Na nova sessão SSH**, antes do prazo, escolha **Firewall HomeProd: confirmar** ou execute:
+6. **Na nova sessão SSH**, antes do prazo, confirme pelo comando (não há mais menu separado):
 
    ```bash
    sudo bash /etc/homeprod-firewall/manage.sh confirm
@@ -300,7 +308,7 @@ Entradas públicas permitem apenas TCP nas portas SSH detectadas, destinado a en
 
 ##### Status, rollback e recuperação
 
-As opções **status** e **reverter** do menu correspondem a:
+Status e reversão permanecem disponíveis somente por comandos, fora do menu:
 
 ```bash
 sudo bash /etc/homeprod-firewall/manage.sh status
@@ -946,6 +954,7 @@ make install   # Instala o comando em ~/.local/bin
 make clean     # Remove bin/
 go test ./...
 go vet ./...
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/access -p 'test_*.py'
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/tunnel -p 'test_*.py'
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/firewall -p 'test_*.py'
 ```
