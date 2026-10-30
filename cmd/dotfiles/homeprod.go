@@ -24,7 +24,26 @@ func (m model) homeProdItems() []item {
 		{title: "HomeProd Tunnel (etapa 1)", desc: "CasaOS via Cloudflare Access; ainda não fecha portas públicas (sudo)", job: func() job {
 			return job{title: "HomeProd Tunnel", steps: []step{terminalStep("Instalar conector oficial e configurar Tunnel do HomeProd", "sudo", "bash", configPath(m.setupDir, "tunnel", "configure.sh"))}}
 		}},
+		{title: "Firewall HomeProd: testar (etapa 2)", desc: "Bloquear entradas públicas por 10 minutos; preservar SSH (sudo)", job: func() job {
+			return homeProdFirewallJob(m.setupDir, "apply")
+		}},
+		{title: "Firewall HomeProd: confirmar", desc: "Após testar NOVA sessão SSH e Access; tornar persistente (sudo)", job: func() job {
+			return homeProdFirewallJob(m.setupDir, "confirm")
+		}},
+		{title: "Firewall HomeProd: reverter", desc: "Reverter teste pendente ao estado anterior (sudo)", job: func() job {
+			return homeProdFirewallJob(m.setupDir, "rollback")
+		}},
+		{title: "Firewall HomeProd: status", desc: "Inspecionar regras e prazo de rollback (sudo)", job: func() job {
+			return homeProdFirewallJob(m.setupDir, "status")
+		}},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
+	}
+}
+
+func homeProdFirewallJob(setupDir, action string) job {
+	return job{
+		title: "Firewall HomeProd: " + action,
+		steps: []step{terminalStep("Firewall HomeProd: "+action, "sudo", "bash", configPath(setupDir, "firewall", "configure.sh"), action)},
 	}
 }
 

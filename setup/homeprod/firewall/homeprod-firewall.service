@@ -1,0 +1,17 @@
+# Managed by dotfiles: homeprod-firewall
+[Unit]
+Description=HomeProd public ingress guard (including Docker)
+DefaultDependencies=no
+Wants=network-pre.target
+After=local-fs.target
+Before=network-pre.target docker.service shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/homeprod-firewall/rules.nft
+ExecReload=/usr/sbin/nft -f /etc/homeprod-firewall/rules.nft
+
+[Install]
+WantedBy=multi-user.target

@@ -47,7 +47,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `desktop`: disponibiliza todas as ações;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
-- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e HomeProd Tunnel (etapa 1);
+- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap, HomeProd Tunnel (etapa 1) e firewall com rollback (etapa 2);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
@@ -226,7 +226,7 @@ A ação `HomeProd Tunnel (etapa 1)` substitui o antigo túnel exclusivo do Vaul
 
 Antes de executar, configure no painel Cloudflare Zero Trust, nesta ordem:
 
-1. Crie uma aplicação Access self-hosted cobrindo todo o hostname `homeprod.reesearch64.com` (não apenas uma URL de login). Permita somente sua identidade, usando provedor de identidade com MFA. Não use políticas `Bypass` nem `Allow Everyone`. MFA da conta administrativa Cloudflare não protege automaticamente quem acessa a aplicação.
+1. Crie uma aplicação Access self-hosted cobrindo todo o hostname `homeprod.reesearch64.com` (não apenas uma URL de login). Permita somente sua identidade, usando provedor de identidade com MFA ou código por e-mail combinado com MFA independente do Access. Não use políticas `Bypass` nem `Allow Everyone`. MFA/passkey da conta administrativa Cloudflare não protege automaticamente quem acessa a aplicação. Para MFA independente, habilite também o **App Launcher** com política restrita à mesma identidade, sem exigir um MFA já cadastrado nesse portal inicial; o HomeProd deve continuar exigindo MFA. Cadastre o dispositivo pelo portal `<equipe>.cloudflareaccess.com/AddMfaDevice` antes de testar o HomeProd.
 2. Crie um Tunnel gerenciado remotamente, dedicado ao HomeProd. Não execute o comando de instalação com token oferecido pelo painel; o script gerencia seu próprio serviço e pede apenas o token.
 3. Configure a rota publicada `homeprod.reesearch64.com` para HTTP `127.0.0.1:80`, com regra final sem hostname `http_status:404`. O DNS desse subdomínio deve apontar para o Tunnel; não reutilize os hostnames `vault` ou `homelab`. Não adicione rotas SSH/Samba.
 4. Com o CasaOS respondendo na porta 80 local, execute a opção do menu ou diretamente:
@@ -250,13 +250,73 @@ Validação manual obrigatória, usando outra rede e navegador privado:
 - Repetir após `sudo systemctl restart cloudflared-homeprod.service`; posteriormente testar persistência após reboot, com console de recuperação disponível.
 - Diagnóstico: `sudo systemctl status cloudflared-homeprod.service` e `sudo journalctl -u cloudflared-homeprod.service -n 50 --no-pager`. Revise logs antes de compartilhar; nunca compartilhe token ou backups.
 
-#### Etapa 2 pendente — fechar exposição direta, preservando SSH
+#### Etapa 2 — firewall com teste temporário e rollback
 
-Somente depois de validar a etapa 1, implementar/aplicar o bloqueio das entradas públicas. O inventário inicial mostrou SSH TCP 22 (IPv4/IPv6), CasaOS TCP 80, Samba TCP 139/445 e UDP 137/138, UFW inativo e nenhum container em execução. Refazer o inventário antes da etapa 2.
+Após validar Tunnel + Access + MFA, use **Firewall HomeProd: testar (etapa 2)**. Essa ação executa `setup/homeprod/firewall/configure.sh apply` com sudo. Não altera porta, autenticação, chaves, configuração ou serviço SSH. O inventário inicial tinha SSH TCP 22, CasaOS TCP 80 e Samba TCP 139/445 e UDP 137/138; as portas SSH são detectadas novamente pelos sockets externos do `sshd`, sem presumir 22. Se não conseguir identificar SSH, o script recusa aplicar.
 
-O bloqueio deverá preservar SSH sem alterar porta/autenticação, tráfego de resposta e protocolos essenciais de rede, cobrir IPv4/IPv6 e encaminhamento/portas Docker (UFW sozinho não basta). Manter sessão SSH e console do provedor disponíveis, com rollback programado antes de aplicar. Não restringir saídas necessárias ao Tunnel. Testar uma nova conexão SSH, tentativas externas ao IP/hostname antigo e uma porta Docker publicada; repetir após reboot. Um firewall do provedor pode acrescentar uma barreira independente.
+**Pré-requisitos:** console/rescue do provedor funcionando, sessão SSH atual mantida aberta, `cloudflared-homeprod.service` ativo, CasaOS local e endpoint `/ready` respondendo. Requer `python3`, `ip`, `ss`, `curl`, `flock` e systemd; instala `nftables` via APT se necessário. Recusa UFW efetivamente ativo e unidades firewalld/nftables ativas ou habilitadas, sem desligá-las automaticamente. Não habilite outro gerenciador de firewall junto desta política. Pacotes instalados não são removidos por rollback.
 
-**O menu ainda não aplica essa etapa.** Até sua implementação e validação externa, HTTP e Samba podem continuar acessíveis por `209.50.240.34` e `vps12431.integrator.host`. Depois dela, somente o SSH deverá continuar público (além dos protocolos essenciais de rede); o IP conhecido não se torna secreto.
+**Como funciona:** cria somente a tabela `inet homeprod_guard`. O filtro é aplicado nas interfaces com rota default IPv4/IPv6 e também nas interfaces com endereços globalmente roteáveis detectados. Confira os nomes apresentados; topologias com VPN, múltiplas interfaces, bridges públicas ou políticas de roteamento personalizadas precisam de revisão. Mudanças de interface/nome/porta SSH exigem novo teste e confirmação; a política persistida não redescobre interfaces no boot.
+
+A chain `prerouting` usa prioridade `-150`: depois do conntrack e antes do DNAT do Docker. Assim, portas Docker publicadas e acesso roteado direto a containers não contornam o bloqueio. Regras/chains do Docker e demais tabelas não são apagadas (`flush ruleset` nunca é usado). O tráfego de loopback e das interfaces internas não protegidas continua sujeito às regras existentes. Novas conexões de saída do host/containers e suas respostas permanecem permitidas por esta camada; não cria política de saída nem habilita encaminhamento de rede.
+
+Entradas públicas permitem apenas TCP nas portas SSH detectadas, destinado a endereços locais da VPS, respostas de conexões iniciadas de dentro, tráfego relacionado, DHCP v4/v6 e ICMP/ICMPv6 essencial (erros, descoberta de vizinhos, anúncios de roteador e consultas MLD link-local). Demais entradas são descartadas, inclusive conexões HTTP públicas já estabelecidas; não há liberação genérica de todo tráfego `established`. Ping de entrada pode deixar de responder. O IP continua conhecido e **SSH continua público por decisão explícita**. Um firewall do provedor pode adicionar outra barreira independente.
+
+##### Aplicar e testar antes de persistir
+
+1. Mantenha a sessão SSH atual e o console do provedor disponíveis. Execute a opção **testar** ou:
+
+   ```bash
+   sudo bash setup/homeprod/firewall/configure.sh apply
+   ```
+
+2. O script valida as regras com `nft --check`, salva o estado anterior e arma um timer systemd independente **antes** de aplicar o filtro. Sem confirmação em **10 minutos**, o rollback restaura o estado anterior. Perder o terminal não elimina o timer; falhas durante a aplicação também tentam reverter imediatamente.
+3. Abra uma **nova conexão SSH** com a mesma porta/chave de antes e teste `sudo -v`. Teste `https://homeprod.reesearch64.com` com Access/MFA, login CasaOS, navegação e terminal/WebSocket.
+4. **De outra rede/máquina**, não da própria VPS, confirme que o acesso direto falha:
+
+   ```bash
+   curl --noproxy '*' --connect-timeout 3 --max-time 5 http://209.50.240.34
+   curl --noproxy '*' --connect-timeout 3 --max-time 5 http://vps12431.integrator.host
+   nmap -Pn -sT --reason -p 22,80,443,139,445,18080 209.50.240.34
+   ```
+
+   SSH deve continuar acessível; portas sem serviço podem já estar fechadas antes do teste, portanto isso sozinho não comprova o filtro. Repita por IPv6 com `nmap -6 -Pn` se a VPS tiver IPv6 público. As portas UDP NetBIOS 137/138 também são descartadas; resultados UDP `open|filtered` não comprovam que um serviço esteja aberto.
+5. Para testar realmente o bypass Docker, publique temporariamente um serviço de teste **na VPS**, inclusive depois da aplicação do filtro:
+
+   ```bash
+   sudo docker run -d --rm --name homeprod-firewall-probe -p 18080:80 nginx:alpine
+   curl --noproxy '*' --max-time 5 http://127.0.0.1:18080
+   ```
+
+   O HTTP local deve responder; `http://209.50.240.34:18080` de fora deve falhar. Teste IPv6 externo se essa publicação também escutar em IPv6. Remova o teste com `sudo docker stop homeprod-firewall-probe`. A imagem baixada permanece no cache Docker. Confira também os contadores em `sudo nft list table inet homeprod_guard`. Não confirme se SSH, Tunnel ou os bloqueios não funcionarem.
+6. **Na nova sessão SSH**, antes do prazo, escolha **Firewall HomeProd: confirmar** ou execute:
+
+   ```bash
+   sudo bash /etc/homeprod-firewall/manage.sh confirm
+   ```
+
+   A confirmação exige atestar os testes manualmente; o script não consegue verificar seu login remoto nem varrer a VPS de outra rede. Depois instala `homeprod-firewall.service`, habilita no boot e cancela o rollback. A unidade carrega antes da rede/Docker e recarrega a tabela atomicamente; parar a unidade não apaga as regras, evitando abertura durante shutdown.
+7. Somente depois da confirmação, teste novamente após reboot, com console disponível. Durante o teste inicial não reinicie: o timer é transitório e a regra nova ainda não está persistida. Reboot nessa fase volta à política persistida anterior (ou ao estado sem este filtro na primeira execução).
+
+##### Status, rollback e recuperação
+
+As opções **status** e **reverter** do menu correspondem a:
+
+```bash
+sudo bash /etc/homeprod-firewall/manage.sh status
+sudo bash /etc/homeprod-firewall/manage.sh rollback
+```
+
+O helper fica em caminho estável, root-only, independente da sessão/checkout. Estado e snapshots privados ficam em `/etc/homeprod-firewall/` (`0700`). Só pode existir um teste pendente; ele precisa ser confirmado ou revertido antes de repetir. Se reiniciou durante o teste ou o timer expirou, não tente confirmar: execute rollback e refaça o teste. Reverter um teste restaura a tabela/configuração/estado do serviço anteriores, sem alterar regras externas; uma atualização malsucedida preserva a política já confirmada anteriormente.
+
+Depois de confirmar, `rollback` sem teste pendente não desativa o firewall. Para remover **somente este filtro** em recuperação pelo console, sabendo que isso reabre a exposição permitida pelas outras regras:
+
+```bash
+sudo systemctl disable --now homeprod-firewall.service
+sudo nft delete table inet homeprod_guard
+```
+
+Nunca use `nft flush ruleset` para recuperar este fluxo. Se a restauração falhar, o snapshot `pending/` é preservado para diagnóstico; examine `sudo journalctl -u homeprod-firewall-rollback.service --no-pager`. A proteção só deve ser considerada concluída após validação externa e reboot, não apenas por o comando ter terminado com sucesso.
 
 #### Preparação da VPS, swap e SSH
 
@@ -886,7 +946,11 @@ make install   # Instala o comando em ~/.local/bin
 make clean     # Remove bin/
 go test ./...
 go vet ./...
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/tunnel -p 'test_*.py'
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/firewall -p 'test_*.py'
 ```
+
+Os testes de firewall usam comandos simulados e namespaces descartáveis para tráfego real IPv4/IPv6, incluindo DNAT equivalente a portas Docker publicadas. Não alteram regras do host. O teste de rede exige `unshare`, `nsenter`, `ip`, `nft`, `sysctl` e user/network namespaces liberados; quando indisponíveis, ele é marcado como ignorado, não como validação de rede bem-sucedida. A execução na VPS e os testes externos continuam necessários.
 
 Use outro checkout com `DOTFILES_DIR`:
 
