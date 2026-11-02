@@ -55,7 +55,7 @@ func TestParseGPGCreatedFingerprint(t *testing.T) {
 func TestGPGDeviceIdentityUsesSelectedProfileAndHostname(t *testing.T) {
 	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
 		got, err := gpgDeviceIdentity(setupDir, "notebook-test")
-		if err != nil || got != "Alan Guerra (notebook-test) <dev@reesearch64.tech>" {
+		if err != nil || got != "Alan Guerra (notebook-test) <dev@reesearch64.com>" {
 			t.Fatalf("identidade inesperada: %q, %v", got, err)
 		}
 	})
