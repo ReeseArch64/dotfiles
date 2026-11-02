@@ -6,11 +6,7 @@ import (
 )
 
 func installBtop(setupDir, home string, now time.Time) error {
-	return copyDirectoryWithBackup(
-		configPath(setupDir, "btop"),
-		filepath.Join(home, ".config", "btop"),
-		now,
-	)
+	return copyConfigDirectoryWithBackup(setupDir, filepath.Join(home, ".config", "btop"), now, "btop")
 }
 
 func btopConfigStep(setupDir, home string) step {

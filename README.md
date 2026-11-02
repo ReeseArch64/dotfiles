@@ -88,9 +88,13 @@ git clone https://github.com/ReeseArch64/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ```
 
-As configurações são cópias independentes em `setup/desktop/` e `setup/laptop/`, selecionadas pelo hostname (`desktop` e `notebook`, respectivamente). Não há base compartilhada nem sobreposição. Discord, Obsidian, Ollama e Turing Smart Screen são exclusivos de `setup/desktop/` e não estão presentes no laptop. Nos caminhos abaixo, `setup/<perfil>/` representa a pasta selecionada.
+Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/laptop/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
-Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
+A base compartilhada contém `btop`, `cursor`, `fastfetch`, `ghostty`, `mise`, `noctalia`, `pi`, os arquivos estáticos de `git` e os arquivos comuns de `niri`. Permanecem separados `fish/config.fish`, `ssh/config`, `niri/cfg/autostart.kdl` e `niri/cfg/display.kdl`. O arquivo `git/.gitconfig` também permanece por perfil, mesmo inicialmente idêntico, pois recebe a chave GPG específica do dispositivo e nunca deve usar fallback compartilhado.
+
+Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/laptop/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração, especialmente Git e mise, para que os links simbólicos apontem às novas origens em `setup/config/`.
+
+Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
 A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
@@ -475,9 +479,9 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 | Destino | Origem | Formato |
 | --- | --- | --- |
 | `~/.gitconfig` | `setup/<perfil>/git/.gitconfig` | Cópia regular |
-| `~/.gitattributes` | `setup/<perfil>/git/.gitattributes` | Link simbólico |
-| `~/.gitignore` | `setup/<perfil>/git/.gitignore` | Link simbólico |
-| `~/.config/git/config` | `setup/<perfil>/git/config` | Link simbólico |
+| `~/.gitattributes` | `setup/config/git/.gitattributes` | Link simbólico |
+| `~/.gitignore` | `setup/config/git/.gitignore` | Link simbólico |
+| `~/.config/git/config` | `setup/config/git/config` | Link simbólico |
 
 A ação substitui `~/.gitconfig` e recria os três links simbólicos sem backup automático.
 
@@ -506,7 +510,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
 1. Instala o `mise` via yay.
-2. Cria o link `~/.config/mise/config.toml` para `setup/<perfil>/mise/mise.toml`.
+2. Cria o link `~/.config/mise/config.toml` para `setup/config/mise/mise.toml` (ou para o arquivo específico do perfil, se existir).
 3. Marca a configuração do Mise como confiável.
 4. Instala todas as ferramentas declaradas no `mise.toml`.
 5. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
@@ -518,7 +522,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 11. Executa `bs auth init`.
 12. Executa `npm login`.
 
-O arquivo `setup/<perfil>/mise/mise.toml` instala:
+O arquivo compartilhado `setup/config/mise/mise.toml` instala:
 
 - AWS CLI
 - Google Cloud CLI
@@ -649,9 +653,9 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
-A ação copia `setup/<perfil>/fastfetch/config.json` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório.
+A ação copia `setup/config/fastfetch/config.json` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório, priorizando um arquivo específico do perfil caso exista.
 
-Ela também copia `setup/<perfil>/btop/` para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
+Ela também copia `setup/config/btop/`, com eventuais arquivos específicos do perfil por cima, para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
 
 ## Desktop
 
@@ -663,7 +667,7 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 
 ### Niri
 
-`Desktop > Niri` copia integralmente `setup/<perfil>/niri/` para `~/.config/niri`. O cursor de `setup/<perfil>/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`.
+`Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O cursor de `setup/config/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`, também permitindo arquivos específicos do perfil.
 
 Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do laptop contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
 
@@ -690,7 +694,7 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 
 ### Ghostty
 
-`Desktop > Ghostty` instala `ghostty` via yay e copia `setup/<perfil>/ghostty/` para `~/.config/ghostty`.
+`Desktop > Ghostty` instala `ghostty` via yay e copia `setup/config/ghostty/`, com eventuais arquivos específicos do perfil por cima, para `~/.config/ghostty`.
 
 ### Zen Browser
 

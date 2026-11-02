@@ -11,8 +11,81 @@ import (
 	"time"
 )
 
+// Only workstation profiles inherit the shared configuration. Server and other
+// profiles retain their original, isolated paths.
+func sharedConfigDirectory(setupDir string) string {
+	clean := filepath.Clean(setupDir)
+	profile := filepath.Base(clean)
+	if filepath.Base(filepath.Dir(clean)) != "setup" || (profile != "desktop" && profile != "laptop") {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(clean), "config")
+}
+
 func configPath(setupDir string, elements ...string) string {
-	return filepath.Join(append([]string{setupDir}, elements...)...)
+	local := filepath.Join(append([]string{setupDir}, elements...)...)
+	// This file is updated by GPG and must never resolve to a shared source.
+	if filepath.Join(elements...) == filepath.Join("git", ".gitconfig") {
+		return local
+	}
+	if _, err := os.Lstat(local); !os.IsNotExist(err) {
+		return local
+	}
+	if shared := sharedConfigDirectory(setupDir); shared != "" && len(elements) > 0 {
+		candidate := filepath.Join(append([]string{shared}, elements...)...)
+		if _, err := os.Lstat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return local
+}
+
+// A directory may contain both shared files and profile overrides. Materialize
+// that union before comparing or installing it, never mutating either source.
+func materializeConfigDirectory(setupDir string, elements ...string) (string, func(), error) {
+	local := filepath.Join(append([]string{setupDir}, elements...)...)
+	var sources []string
+	if shared := sharedConfigDirectory(setupDir); shared != "" {
+		candidate := filepath.Join(append([]string{shared}, elements...)...)
+		if _, err := os.Lstat(candidate); err == nil {
+			sources = append(sources, candidate)
+		} else if !os.IsNotExist(err) {
+			return "", nil, err
+		}
+	}
+	if _, err := os.Lstat(local); err == nil {
+		sources = append(sources, local)
+	} else if !os.IsNotExist(err) {
+		return "", nil, err
+	}
+	if len(sources) == 0 {
+		return "", nil, fmt.Errorf("configuração ausente: %s", local)
+	}
+	if len(sources) == 1 {
+		return sources[0], func() {}, nil
+	}
+	container, err := os.MkdirTemp("", "dotfiles-config-*")
+	if err != nil {
+		return "", nil, err
+	}
+	cleanup := func() { os.RemoveAll(container) }
+	merged := filepath.Join(container, "config")
+	for _, source := range sources {
+		if err := copyDirectory(source, merged); err != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("compor %s: %w", source, err)
+		}
+	}
+	return merged, cleanup, nil
+}
+
+func copyConfigDirectoryWithBackup(setupDir, destination string, now time.Time, elements ...string) error {
+	source, cleanup, err := materializeConfigDirectory(setupDir, elements...)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+	return copyDirectoryWithBackup(source, destination, now)
 }
 
 func assetPath(dotfiles string, elements ...string) string {

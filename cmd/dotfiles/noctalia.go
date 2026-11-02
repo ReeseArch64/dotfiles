@@ -34,14 +34,17 @@ type noctaliaFile struct {
 }
 
 func noctaliaFileDefs(setupDir, home string) []noctaliaFile {
-	sourceDir := configPath(setupDir, "noctalia")
-	if absolute, err := filepath.Abs(sourceDir); err == nil {
-		sourceDir = absolute
+	source := func(name string) string {
+		path := configPath(setupDir, "noctalia", name)
+		if absolute, err := filepath.Abs(path); err == nil {
+			return absolute
+		}
+		return path
 	}
 	stateDir := filepath.Join(home, ".local", "state", "noctalia")
 	return []noctaliaFile{
-		{name: "settings.toml", source: filepath.Join(sourceDir, "settings.toml"), destination: filepath.Join(stateDir, "settings.toml")},
-		{name: "state.toml", source: filepath.Join(sourceDir, "state.toml"), destination: filepath.Join(stateDir, "state.toml")},
+		{name: "settings.toml", source: source("settings.toml"), destination: filepath.Join(stateDir, "settings.toml")},
+		{name: "state.toml", source: source("state.toml"), destination: filepath.Join(stateDir, "state.toml")},
 	}
 }
 

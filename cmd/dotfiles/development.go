@@ -20,7 +20,7 @@ const betterStackInstallCommand = "curl -fsSL https://raw.githubusercontent.com/
 func developmentToolsInstallStep(setupDir string) step {
 	return terminalStep(
 		"Instalar ferramentas configuradas via mise",
-		"mise", "--cd", configPath(setupDir, "mise"), "install",
+		"mise", "--cd", filepath.Dir(configPath(setupDir, "mise", "mise.toml")), "install",
 	)
 }
 
@@ -136,7 +136,7 @@ func verifyRustTools(home string) error {
 func developmentEnvironmentSteps(setupDir, home string, packageSteps []step) []step {
 	steps := miseSetupSteps(setupDir)
 	steps = append(steps, skipWhen(developmentToolsInstallStep(setupDir), func() bool {
-		out, err := exec.Command("mise", "--cd", configPath(setupDir, "mise"), "ls", "--missing", "--current", "--no-header").Output()
+		out, err := exec.Command("mise", "--cd", filepath.Dir(configPath(setupDir, "mise", "mise.toml")), "ls", "--missing", "--current", "--no-header").Output()
 		return err == nil && len(bytes.TrimSpace(out)) == 0
 	}))
 	steps = append(steps, cloudLoginSteps(home)...)

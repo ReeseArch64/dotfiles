@@ -9,11 +9,7 @@ import (
 )
 
 func installGhostty(setupDir, home string, now time.Time) error {
-	return copyDirectoryWithBackup(
-		configPath(setupDir, "ghostty"),
-		filepath.Join(home, ".config", "ghostty"),
-		now,
-	)
+	return copyConfigDirectoryWithBackup(setupDir, filepath.Join(home, ".config", "ghostty"), now, "ghostty")
 }
 
 func ghosttyJob(setupDir string) job {

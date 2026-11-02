@@ -184,8 +184,13 @@ func TestInstallNiriDeviceProfiles(t *testing.T) {
 				}
 			}
 			destination := filepath.Join(home, ".config", "niri")
-			if !directoriesEqual(configPath(setupDirectory(dotfiles, device), "niri"), destination) {
-				t.Fatal("configuração instalada difere da árvore completa do perfil")
+			composed, cleanup, err := materializeConfigDirectory(setupDirectory(dotfiles, device), "niri")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer cleanup()
+			if !directoriesEqual(composed, destination) {
+				t.Fatal("configuração instalada difere da composição compartilhada e do perfil")
 			}
 			common := configPath(setupDirectory(dotfiles, device), "niri", "cfg", "autostart.kdl")
 			if !regularFileMatches(common, filepath.Join(destination, "cfg", "autostart.kdl")) {
