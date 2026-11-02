@@ -94,12 +94,7 @@ Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e 
 
 A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
-Para importar chaves GPG, coloque estes arquivos na raiz do repositório:
-
-```text
-~/.dotfiles/minha_chave_publica.asc
-~/.dotfiles/minha_chave_privada.asc
-```
+As chaves GPG são geradas localmente por dispositivo em `Desenvolvimento > GPG`; não é necessário fornecer arquivos de chaves externos.
 
 Compile a CLI e crie o comando em `~/.local/bin`:
 
@@ -492,24 +487,19 @@ Ela também declara os filtros do Git LFS, mas a CLI não instala `git-lfs`. Ins
 
 ### GPG
 
-`Desenvolvimento > GPG > Importar chaves` exige que a configuração do Git esteja pronta.
-
-Copie as chaves somente quando quiser executar a importação:
-
-```bash
-install -m 600 /origem/chave_privada.asc ~/.dotfiles/minha_chave_privada.asc
-install -m 644 /origem/chave_publica.asc ~/.dotfiles/minha_chave_publica.asc
-```
+`Desenvolvimento > GPG > Gerar chave por dispositivo` exige que a configuração do Git esteja pronta.
 
 A ação:
 
-1. Valida os caminhos e os cabeçalhos OpenPGP.
-2. Instala `gnupg` via Pacman.
-3. Importa as chaves pública e privada.
-4. Obtém o fingerprint da chave privada.
-5. Atualiza `user.signingkey` no repositório e em `~/.gitconfig`.
+1. Lê `user.name` e `user.email` de `setup/<perfil>/git/.gitconfig` e inclui o hostname na identidade da chave.
+2. Instala `gnupg` via Pacman, quando necessário.
+3. Solicita uma senha não vazia e sua confirmação no terminal, sem exibi-la. A senha é entregue ao GnuPG por descritor, nunca por argumentos, ambiente ou arquivo.
+4. Gera uma chave Ed25519 de assinatura, com validade de dois anos, no keyring local (`~/.gnupg`, ou `GNUPGHOME` quando definido). Não importa chaves externas nem exporta a chave privada.
+5. Identifica o fingerprint exato informado pelo GnuPG para a nova chave.
+6. Exibe o bloco ASCII completo da chave pública no terminal para copiar e cadastrar manualmente no GitHub, GitLab e Gitea. Aguarda Enter antes de continuar.
+7. Preenche `user.signingkey` com esse fingerprint no arquivo do perfil selecionado e em `~/.gitconfig`.
 
-A CLI não copia as chaves. O `.gitignore` exclui arquivos `*.asc`.
+Use um e-mail verificado nas plataformas para associar as assinaturas à sua conta. A geração não envia chaves automaticamente e não remove chaves existentes. O GnuPG pode recusar uma nova geração com a mesma identidade já presente. Para guardar uma cópia protegida da chave privada, use `Backup > Backup das Chaves GPG`.
 
 ### Ambiente de Desenvolvimento
 

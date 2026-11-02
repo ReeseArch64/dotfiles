@@ -150,7 +150,7 @@ func (m model) items() []item {
 	case screenDevelopment:
 		items := []item{
 			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
-			{title: "GPG", desc: "Instalar GnuPG e importar chaves após configurar o Git", goTo: screenGPG},
+			{title: "GPG", desc: "Gerar chave GPG por dispositivo após configurar o Git", goTo: screenGPG},
 			{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }},
 		}
 		if m.device == deviceDesktop {
@@ -287,7 +287,7 @@ func (m *model) refresh() {
 	case screenGit:
 		m.git = loadGitStatus(m.setupDir)
 	case screenGPG:
-		m.gpg = loadGPGStatus(m.dotfiles, m.setupDir)
+		m.gpg = loadGPGStatus(m.setupDir)
 	case screenNoctalia:
 		m.noctalia = loadNoctaliaStatus(m.setupDir)
 	case screenPiAgent:

@@ -1,154 +1,169 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
 
-func TestGPGImportPathsUsesDotfilesDirectory(t *testing.T) {
-	dir := t.TempDir()
-	public := filepath.Join(dir, "minha_chave_publica.asc")
-	private := filepath.Join(dir, "minha_chave_privada.asc")
-	keys := map[string]string{
-		public:  "-----BEGIN PGP PUBLIC KEY BLOCK-----\npublic\n",
-		private: "-----BEGIN PGP PRIVATE KEY BLOCK-----\nprivate\n",
+func TestGPGGenerateStepsOrder(t *testing.T) {
+	steps := gpgGenerateSteps("/dotfiles/setup/laptop", "/home/test", []step{{label: "Instalar gnupg"}})
+	want := []string{
+		"Validar Git e identidade do dispositivo", "Instalar gnupg", "Preparar geração GPG",
+		"Gerar chave GPG com senha", "Identificar chave gerada",
+		"Exibir chave pública para GitHub, GitLab e Gitea", "Configurar user.signingkey",
 	}
-	for path, content := range keys {
-		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+	if got := jobStepLabels(job{steps: steps}); !slices.Equal(got, want) {
+		t.Fatalf("passos inesperados: %v", got)
+	}
+	if steps[3].cmd == nil || steps[5].cmd == nil || steps[6].run == nil {
+		t.Fatal("geração e exibição devem receber o terminal; configuração deve ser nativa")
+	}
+	if _, err := steps[4].run(); err == nil {
+		t.Fatal("status ausente não pode identificar chave")
+	}
+	if _, err := steps[6].run(); err == nil {
+		t.Fatal("não pode configurar assinatura sem chave gerada")
+	}
+}
+
+func TestGPGGenerateStepsRequiresConfiguredGit(t *testing.T) {
+	steps := gpgGenerateSteps(t.TempDir(), t.TempDir(), nil)
+	if _, err := steps[0].run(); err == nil || !strings.Contains(err.Error(), "configure o Git") {
+		t.Fatalf("Git não configurado deve impedir geração: %v", err)
+	}
+}
+
+func TestParseGPGCreatedFingerprint(t *testing.T) {
+	fingerprint := "0123456789ABCDEF0123456789ABCDEF01234567"
+	for _, kind := range []string{"P", "B"} {
+		got, err := parseGPGCreatedFingerprint("[GNUPG:] PROGRESS primegen X 1 0\n[GNUPG:] KEY_CREATED " + kind + " " + fingerprint + "\n")
+		if err != nil || got != fingerprint {
+			t.Fatalf("fingerprint inesperado: %q, %v", got, err)
+		}
+	}
+	for _, output := range []string{"", "[GNUPG:] KEY_CREATED P invalid", "[GNUPG:] KEY_CREATED S " + fingerprint, "KEY_CREATED P " + fingerprint} {
+		if _, err := parseGPGCreatedFingerprint(output); err == nil {
+			t.Fatalf("status inválido aceito: %s", output)
+		}
+	}
+}
+
+func TestGPGDeviceIdentityUsesSelectedProfileAndHostname(t *testing.T) {
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		got, err := gpgDeviceIdentity(setupDir, "notebook-test")
+		if err != nil || got != "Alan Guerra (notebook-test) <dev@reesearch64.tech>" {
+			t.Fatalf("identidade inesperada: %q, %v", got, err)
+		}
+	})
+}
+
+func TestGPGDeviceIdentityRejectsInvalidConfiguration(t *testing.T) {
+	for _, content := range []string{"[user]\nname = Test\n", "[user]\nname =\nemail = test@example.invalid\n", "[user]\nname = Test <Injected>\nemail = test@example.invalid\n"} {
+		setup := t.TempDir()
+		if err := os.Mkdir(filepath.Join(setup, "git"), 0700); err != nil {
 			t.Fatal(err)
 		}
-	}
-
-	paths, err := loadGPGImportPaths(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if paths.public != public || paths.private != private {
-		t.Fatalf("caminhos inesperados: %#v", paths)
-	}
-}
-
-func TestGPGImportPathsRejectsMissingOrInvalidKeys(t *testing.T) {
-	tests := []struct {
-		name    string
-		public  string
-		private string
-		want    string
-	}{
-		{"chave pública ausente", "", "-----BEGIN PGP PRIVATE KEY BLOCK-----\nprivate\n", "acessar chave pública"},
-		{"chave privada ausente", "-----BEGIN PGP PUBLIC KEY BLOCK-----\npublic\n", "", "acessar chave privada"},
-		{"chave pública inválida", "não é uma chave", "-----BEGIN PGP PRIVATE KEY BLOCK-----\nprivate\n", "bloco OpenPGP válido"},
-		{"chave privada inválida", "-----BEGIN PGP PUBLIC KEY BLOCK-----\npublic\n", "não é uma chave", "bloco OpenPGP válido"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			if tt.public != "" {
-				if err := os.WriteFile(filepath.Join(dir, "minha_chave_publica.asc"), []byte(tt.public), 0600); err != nil {
-					t.Fatal(err)
-				}
-			}
-			if tt.private != "" {
-				if err := os.WriteFile(filepath.Join(dir, "minha_chave_privada.asc"), []byte(tt.private), 0600); err != nil {
-					t.Fatal(err)
-				}
-			}
-			_, err := loadGPGImportPaths(dir)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Fatalf("esperava erro contendo %q, recebeu %v", tt.want, err)
-			}
-		})
-	}
-}
-
-func TestGPGImportStepsInstallPackageBeforeImports(t *testing.T) {
-	install := step{label: "Instalar gnupg"}
-	steps := gpgImportSteps("/dotfiles", gpgImportPaths{"/media/public.asc", "/media/private.asc"}, errors.New("parar"), []step{install})
-	want := []string{"Validar Git e arquivos .asc", "Instalar gnupg", "Importar chave pública", "Importar chave privada", "Configurar user.signingkey"}
-	if len(steps) != len(want) {
-		t.Fatalf("quantidade de passos: recebeu %d, esperava %d", len(steps), len(want))
-	}
-	for i, label := range want {
-		if steps[i].label != label {
-			t.Fatalf("passo %d: recebeu %q, esperava %q", i, steps[i].label, label)
+		if err := os.WriteFile(filepath.Join(setup, "git", ".gitconfig"), []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := gpgDeviceIdentity(setup, "notebook"); err == nil {
+			t.Fatal("identidade inválida aceita")
 		}
 	}
-	for i, path := range []string{"/media/public.asc", "/media/private.asc"} {
-		args := steps[i+2].cmd().Args
-		got := args[len(args)-3:]
-		wantArgs := []string{"gpg", "--import", path}
-		for j := range wantArgs {
-			if got[j] != wantArgs[j] {
-				t.Fatalf("argumento %d da importação %d: recebeu %q, esperava %q", j, i, got[j], wantArgs[j])
-			}
-		}
-	}
-	if steps[len(steps)-1].run == nil {
-		t.Fatal("configuração de user.signingkey deve ser um passo nativo")
-	}
 }
 
-func TestParseGPGSecretFingerprintUsesPrimarySecretKey(t *testing.T) {
-	primary := "0123456789ABCDEF0123456789ABCDEF01234567"
-	subkey := "89ABCDEF0123456789ABCDEF0123456789ABCDEF"
-	output := strings.Join([]string{
-		"sec:-:255:22:89ABCDEF01234567:0:0:::::::",
-		"fpr:::::::::" + primary + ":",
-		"uid:::::::::Test User:",
-		"ssb:-:255:18:0123456789ABCDEF:0:0:::::::",
-		"fpr:::::::::" + subkey + ":",
-	}, "\n")
-
-	got, err := parseGPGSecretFingerprint(output)
-	if err != nil {
+func TestGPGGenerationCancellationRemovesStatus(t *testing.T) {
+	status := filepath.Join(t.TempDir(), "status")
+	if err := os.WriteFile(status, nil, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if got != primary {
-		t.Fatalf("fingerprint inesperado: %s", got)
+	cmd := exec.Command("bash", "-c", gpgGenerateScript, "test", status, "Test (device) <test@example.invalid>")
+	cmd.Stdin = strings.NewReader("")
+	if err := cmd.Run(); err == nil {
+		t.Fatal("entrada cancelada deve falhar")
+	}
+	if _, err := os.Stat(status); !os.IsNotExist(err) {
+		t.Fatalf("arquivo temporário não foi removido: %v", err)
 	}
 }
 
-func TestParseGPGSecretFingerprintRejectsPublicKey(t *testing.T) {
-	output := "pub:-:255:22:89ABCDEF01234567:0:0:::::::\nfpr:::::::::0123456789ABCDEF0123456789ABCDEF01234567:"
-	if _, err := parseGPGSecretFingerprint(output); err == nil {
-		t.Fatal("esperava erro para chave sem material privado")
-	}
-}
-
-func TestSigningKeyFromPrivateFile(t *testing.T) {
+func TestGPGGeneratesProtectedLocalKeyAndConfiguresSigning(t *testing.T) {
 	if _, err := exec.LookPath("gpg"); err != nil {
 		t.Skip("gpg não está disponível")
 	}
-	gnupgHome := filepath.Join(t.TempDir(), "gnupg")
-	if err := os.Mkdir(gnupgHome, 0700); err != nil {
+	gnupgHome, err := os.MkdirTemp("", "dotfiles-gpg-test-*")
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.RemoveAll(gnupgHome)
 	t.Setenv("GNUPGHOME", gnupgHome)
 	defer exec.Command("gpgconf", "--kill", "gpg-agent").Run()
-	identity := "Dotfiles Test <dotfiles-test@example.invalid>"
-	generate := exec.Command("gpg", "--batch", "--passphrase", "", "--quick-generate-key", identity, "ed25519", "sign", "1d")
-	if output, err := generate.CombinedOutput(); err != nil {
+	status := filepath.Join(t.TempDir(), "status")
+	const passphrase = "synthetic-test-passphrase"
+	identity := "Dotfiles Test (test-device) <dotfiles-test@example.invalid>"
+	cmd := exec.Command("bash", "-c", gpgGenerateScript, "test", status, identity)
+	cmd.Stdin = strings.NewReader("\n\nwrong\ndifferent\n" + passphrase + "\n" + passphrase + "\n")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		t.Fatalf("gerar chave temporária: %s: %v", output, err)
 	}
-	privateKey := filepath.Join(t.TempDir(), "private.asc")
-	exported, err := exec.Command("gpg", "--batch", "--armor", "--export-secret-keys", identity).Output()
-	if err != nil {
-		t.Fatalf("exportar chave temporária: %v", err)
+	if strings.Contains(string(output), passphrase) || !strings.Contains(string(output), "não pode ficar vazia") || !strings.Contains(string(output), "não coincidem") {
+		t.Fatalf("senha exposta ou validação ausente: %s", output)
 	}
-	if err := os.WriteFile(privateKey, exported, 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	fingerprint, err := signingKeyFromPrivateFile(privateKey)
+	created, err := os.ReadFile(status)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !validGPGFingerprint(fingerprint) {
-		t.Fatalf("fingerprint inválido: %q", fingerprint)
+	fingerprint, err := parseGPGCreatedFingerprint(string(created))
+	if err != nil {
+		t.Fatal(err)
+	}
+	show := exec.Command("bash", "-c", gpgShowPublicScript, "test", fingerprint)
+	show.Stdin = strings.NewReader("\n")
+	public, err := show.CombinedOutput()
+	if err != nil {
+		t.Fatalf("exibir chave: %s: %v", public, err)
+	}
+	if !strings.Contains(string(public), "-----BEGIN PGP PUBLIC KEY BLOCK-----") || !strings.Contains(string(public), "-----END PGP PUBLIC KEY BLOCK-----") || strings.Contains(string(public), "PRIVATE KEY") || !strings.Contains(string(public), fingerprint) {
+		t.Fatalf("exportação pública inesperada: %s", public)
+	}
+	// Esvazia o cache do agente antes de tentar assinar sem senha.
+	if err := exec.Command("gpgconf", "--kill", "gpg-agent").Run(); err != nil {
+		t.Fatal(err)
+	}
+	message := filepath.Join(t.TempDir(), "message")
+	if err := os.WriteFile(message, []byte("test signature"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	unsigned := exec.Command("gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase-fd", "0", "--local-user", fingerprint, "--detach-sign", message)
+	unsigned.Stdin = strings.NewReader("\n")
+	if err := unsigned.Run(); err == nil {
+		t.Fatal("chave gerada não deve assinar sem senha")
+	}
+	sign := exec.Command("gpg", "--batch", "--yes", "--pinentry-mode", "loopback", "--passphrase-fd", "0", "--local-user", fingerprint, "--detach-sign", message)
+	sign.Stdin = strings.NewReader(passphrase + "\n")
+	if output, err := sign.CombinedOutput(); err != nil {
+		t.Fatalf("assinar com senha: %s: %v", output, err)
+	}
+	setup, home := t.TempDir(), t.TempDir()
+	if err := os.Mkdir(filepath.Join(setup, "git"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath(setup, "git", ".gitconfig"), []byte("[user]\n signingkey =\n name = Test\n email = test@example.invalid\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := applyGitSigningKey(setup, home, fingerprint); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{configPath(setup, "git", ".gitconfig"), filepath.Join(home, ".gitconfig")} {
+		got, err := readGitSigningKey(path)
+		if err != nil || got != fingerprint {
+			t.Fatalf("assinatura inesperada em %s: %q, %v", path, got, err)
+		}
 	}
 }
 

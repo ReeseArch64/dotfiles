@@ -107,23 +107,13 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 					t.Fatalf("fonte Git fora do perfil: %s", link.src)
 				}
 			}
-			for name, header := range map[string]string{"publica": "PUBLIC", "privada": "PRIVATE"} {
-				if err := os.WriteFile(filepath.Join(root, "minha_chave_"+name+".asc"), []byte("-----BEGIN PGP "+header+" KEY BLOCK-----\n"), 0600); err != nil {
-					t.Fatal(err)
-				}
-			}
 			m.screen = screenGPG
 			m.refresh()
-			if m.gpg.configErr != nil || m.gpg.signingKey != device.String() || filepath.Dir(m.gpg.paths.private) != root {
+			if m.gpg.configErr != nil || m.gpg.signingKey != device.String() {
 				t.Fatalf("raízes GPG incorretas: %#v", m.gpg)
 			}
-			for _, current := range m.gpgItems()[0].job().steps {
-				if current.label == "Importar chave privada" {
-					want := []string{"gpg", "--import", filepath.Join(root, "minha_chave_privada.asc")}
-					if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
-						t.Fatalf("importação fora do repositório: %v", got)
-					}
-				}
+			if got := m.gpgItems()[0].job().title; got != "Gerar chave GPG por dispositivo" {
+				t.Fatalf("ação GPG inesperada: %s", got)
 			}
 			if err := applyGitSigningKey(m.setupDir, home, "new-key"); err != nil {
 				t.Fatal(err)

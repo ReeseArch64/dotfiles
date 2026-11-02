@@ -11,26 +11,18 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type gpgImportPaths struct {
-	public  string
-	private string
-}
-
 type gpgStatus struct {
 	gnupgInstalled bool
 	gitReady       bool
-	paths          gpgImportPaths
 	signingKey     string
 	configErr      error
 }
 
-func loadGPGStatus(dotfiles, setupDir string) gpgStatus {
-	paths, err := loadGPGImportPaths(dotfiles)
-	signingKey, _ := readGitSigningKey(configPath(setupDir, "git", ".gitconfig"))
+func loadGPGStatus(setupDir string) gpgStatus {
+	signingKey, err := readGitSigningKey(configPath(setupDir, "git", ".gitconfig"))
 	return gpgStatus{
 		gnupgInstalled: len(missingPkgs("gnupg")) == 0,
 		gitReady:       loadGitStatus(setupDir).readyForGPG(),
-		paths:          paths,
 		signingKey:     signingKey,
 		configErr:      err,
 	}
@@ -45,92 +37,24 @@ func (g gpgStatus) card(width int) string {
 	if !g.gitReady {
 		gitColor, gitValue = colErr, "configure o Git primeiro"
 	}
-	configColor, publicValue, privateValue := colOK, filepath.Base(g.paths.public), filepath.Base(g.paths.private)
-	if g.configErr != nil {
-		configColor, publicValue, privateValue = colErr, "chave pública inválida", "chave privada inválida"
-	}
 	signingColor, signingValue := colOK, g.signingKey
-	if signingValue == "" {
+	if signingValue == "" || g.configErr != nil {
 		signingColor, signingValue = colWarn, "não configurada"
 	}
 	return renderCard([]cardRow{
 		{packageColor, "Pacote", packageValue},
 		{gitColor, "Requisito", gitValue},
-		{configColor, "Pública", publicValue},
-		{configColor, "Privada", privateValue},
+		{colOK, "Chave", "gerada localmente por dispositivo"},
 		{signingColor, "Assinatura", signingValue},
 	}, width)
 }
 
 func (m model) gpgItems() []item {
-	return []item{
-		{
-			title: "Importar chaves",
-			desc:  "Importa as chaves .asc e configura user.signingkey",
-			job:   func() job { return gpgImportJob(m.dotfiles, m.setupDir) },
-		},
-	}
-}
-
-func loadGPGImportPaths(dotfiles string) (gpgImportPaths, error) {
-	paths := gpgImportPaths{
-		public:  filepath.Join(dotfiles, "minha_chave_publica.asc"),
-		private: filepath.Join(dotfiles, "minha_chave_privada.asc"),
-	}
-	keys := []struct {
-		label, path, header string
-	}{
-		{"pública", paths.public, "-----BEGIN PGP PUBLIC KEY BLOCK-----"},
-		{"privada", paths.private, "-----BEGIN PGP PRIVATE KEY BLOCK-----"},
-	}
-	for _, key := range keys {
-		if !strings.EqualFold(filepath.Ext(key.path), ".asc") {
-			return gpgImportPaths{}, fmt.Errorf("a chave %s deve usar a extensão .asc: %s", key.label, key.path)
-		}
-		info, err := os.Stat(key.path)
-		if err != nil {
-			return gpgImportPaths{}, fmt.Errorf("acessar chave %s %s: %w", key.label, key.path, err)
-		}
-		if !info.Mode().IsRegular() {
-			return gpgImportPaths{}, fmt.Errorf("a chave %s não é um arquivo regular: %s", key.label, key.path)
-		}
-		content, err := os.ReadFile(key.path)
-		if err != nil {
-			return gpgImportPaths{}, fmt.Errorf("ler chave %s %s: %w", key.label, key.path, err)
-		}
-		if !strings.Contains(string(content), key.header) {
-			return gpgImportPaths{}, fmt.Errorf("a chave %s não contém um bloco OpenPGP válido: %s", key.label, key.path)
-		}
-	}
-	return paths, nil
-}
-
-func validateGPGImport(setupDir string, pathErr error) error {
-	if !loadGitStatus(setupDir).readyForGPG() {
-		return errors.New("configure o Git antes de importar as chaves GPG")
-	}
-	return pathErr
-}
-
-func parseGPGSecretFingerprint(output string) (string, error) {
-	secretKey := false
-	for _, line := range strings.Split(output, "\n") {
-		fields := strings.Split(line, ":")
-		if len(fields) < 10 {
-			continue
-		}
-		switch fields[0] {
-		case "sec":
-			secretKey = true
-		case "fpr":
-			if secretKey && validGPGFingerprint(fields[9]) {
-				return fields[9], nil
-			}
-		case "pub", "ssb", "sub":
-			secretKey = false
-		}
-	}
-	return "", errors.New("fingerprint da chave privada não encontrado")
+	return []item{{
+		title: "Gerar chave por dispositivo",
+		desc:  "Cria chave com senha, exibe a pública e configura user.signingkey",
+		job:   func() job { return gpgGenerateJob(m.setupDir) },
+	}}
 }
 
 func validGPGFingerprint(value string) bool {
@@ -145,12 +69,34 @@ func validGPGFingerprint(value string) bool {
 	return true
 }
 
-func signingKeyFromPrivateFile(path string) (string, error) {
-	output, err := exec.Command("gpg", "--batch", "--with-colons", "--import-options", "show-only", "--import", path).CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("identificar chave privada: %s: %w", strings.TrimSpace(string(output)), err)
+func parseGPGCreatedFingerprint(output string) (string, error) {
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 4 && fields[0] == "[GNUPG:]" && fields[1] == "KEY_CREATED" &&
+			(fields[2] == "P" || fields[2] == "B") && validGPGFingerprint(fields[3]) {
+			return fields[3], nil
+		}
 	}
-	return parseGPGSecretFingerprint(string(output))
+	return "", errors.New("fingerprint da chave gerada não encontrado")
+}
+
+func gpgDeviceIdentity(setupDir, hostname string) (string, error) {
+	var values []string
+	for _, field := range []string{"user.name", "user.email"} {
+		output, err := exec.Command("git", "config", "--file", configPath(setupDir, "git", ".gitconfig"), "--get", field).Output()
+		if err != nil {
+			return "", fmt.Errorf("ler %s do Git: %w", field, err)
+		}
+		value := strings.TrimSpace(string(output))
+		if value == "" || strings.ContainsAny(value, "\r\n\x00<>()") {
+			return "", fmt.Errorf("%s inválido para a identidade GPG", field)
+		}
+		values = append(values, value)
+	}
+	if hostname == "" || strings.ContainsAny(hostname, "\r\n\x00<>()") {
+		return "", errors.New("nome do dispositivo inválido para a identidade GPG")
+	}
+	return fmt.Sprintf("%s (%s) <%s>", values[0], hostname, values[1]), nil
 }
 
 func applyGitSigningKey(setupDir, home, fingerprint string) error {
@@ -161,41 +107,93 @@ func applyGitSigningKey(setupDir, home, fingerprint string) error {
 	return copyFileAtomic(source, filepath.Join(home, ".gitconfig"))
 }
 
-func configureGitSigningKey(setupDir, privateKeyPath string) error {
-	fingerprint, err := signingKeyFromPrivateFile(privateKeyPath)
-	if err != nil {
-		return err
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("identificar diretório pessoal: %w", err)
-	}
-	return applyGitSigningKey(setupDir, home, fingerprint)
-}
+// A senha existe apenas na memória do shell e no descritor entregue ao GnuPG.
+// Nunca é passada por argumento, variável de ambiente ou arquivo temporário.
+const gpgGenerateScript = `set -e
+status=$1
+identity=$2
+unset passphrase confirmation
+trap 'code=$?; unset passphrase confirmation; if [ "$code" -ne 0 ]; then rm -f -- "$status"; fi' EXIT
+printf 'Uma nova chave de assinatura será criada para %s.\n' "$identity"
+while true; do
+    IFS= read -r -s -p 'Senha da nova chave GPG: ' passphrase
+    printf '\n'
+    IFS= read -r -s -p 'Confirme a senha: ' confirmation
+    printf '\n'
+    if [ -z "$passphrase" ]; then
+        printf 'A senha não pode ficar vazia.\n' >&2
+    elif [ "$passphrase" != "$confirmation" ]; then
+        printf 'As senhas não coincidem. Tente novamente.\n' >&2
+    else
+        break
+    fi
+done
+printf '%s\n' "$passphrase" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --status-file "$status" \
+    --quick-generate-key "$identity" ed25519 sign 2y
+`
 
-func gpgImportSteps(setupDir string, paths gpgImportPaths, pathErr error, packageSteps []step) []step {
-	steps := []step{nativeStep("Validar Git e arquivos .asc", func() error {
-		return validateGPGImport(setupDir, pathErr)
+const gpgShowPublicScript = `set -e
+printf 'Copie TODO o bloco abaixo e cadastre como chave GPG no GitHub, GitLab e Gitea.\n\n'
+gpg --batch --armor --export "$1"
+printf '\nFingerprint: %s\n' "$1"
+read -r -p 'Após copiar a chave pública, pressione Enter para configurar a assinatura…'`
+
+func gpgGenerateSteps(setupDir, home string, packageSteps []step) []step {
+	var identity, statusPath, fingerprint string
+	steps := []step{nativeStep("Validar Git e identidade do dispositivo", func() error {
+		if !loadGitStatus(setupDir).readyForGPG() {
+			return errors.New("configure o Git antes de gerar a chave GPG")
+		}
+		hostname, err := os.Hostname()
+		if err != nil {
+			return fmt.Errorf("identificar dispositivo: %w", err)
+		}
+		identity, err = gpgDeviceIdentity(setupDir, hostname)
+		return err
 	})}
 	steps = append(steps, packageSteps...)
-	return append(steps,
-		terminalStep("Importar chave pública", "gpg", "--import", paths.public),
-		terminalStep("Importar chave privada", "gpg", "--import", paths.private),
+	steps = append(steps,
+		nativeStep("Preparar geração GPG", func() error {
+			file, err := os.CreateTemp("", "dotfiles-gpg-status-*")
+			if err != nil {
+				return err
+			}
+			statusPath = file.Name()
+			return file.Close()
+		}),
+		step{label: "Gerar chave GPG com senha", cmd: func() *exec.Cmd {
+			return terminalStep("Gerar chave GPG com senha", "bash", "-c", gpgGenerateScript, "dotfiles-gpg", statusPath, identity).cmd()
+		}},
+		nativeStep("Identificar chave gerada", func() error {
+			defer os.Remove(statusPath)
+			output, err := os.ReadFile(statusPath)
+			if err != nil {
+				return err
+			}
+			fingerprint, err = parseGPGCreatedFingerprint(string(output))
+			return err
+		}),
+		step{label: "Exibir chave pública para GitHub, GitLab e Gitea", cmd: func() *exec.Cmd {
+			return terminalStep("Chave pública GPG", "bash", "-c", gpgShowPublicScript, "dotfiles-gpg-public", fingerprint).cmd()
+		}},
 		nativeStep("Configurar user.signingkey", func() error {
-			return configureGitSigningKey(setupDir, paths.private)
+			if !validGPGFingerprint(fingerprint) {
+				return errors.New("fingerprint da chave gerada inválido")
+			}
+			return applyGitSigningKey(setupDir, home, fingerprint)
 		}),
 	)
+	return steps
 }
 
-func gpgImportJob(dotfiles, setupDir string) job {
-	paths, pathErr := loadGPGImportPaths(dotfiles)
-	steps := gpgImportSteps(setupDir, paths, pathErr, ensurePkgs("gnupg"))
+func gpgGenerateJob(setupDir string) job {
+	home, _ := os.UserHomeDir()
 	return job{
-		title: "Importar chaves GPG",
-		steps: steps,
+		title: "Gerar chave GPG por dispositivo",
+		steps: gpgGenerateSteps(setupDir, home, ensurePkgs("gnupg")),
 		result: func() string {
 			signingKey, _ := readGitSigningKey(configPath(setupDir, "git", ".gitconfig"))
-			return lipgloss.NewStyle().Foreground(colOK).Render("Chaves importadas · signingkey " + signingKey)
+			return lipgloss.NewStyle().Foreground(colOK).Render("Chave local gerada · signingkey " + signingKey)
 		},
 	}
 }
