@@ -20,7 +20,7 @@ import (
 
 const (
 	projectsWorkspace = "/mnt/workspaces"
-	projectsRoot      = "/mnt/workspaces/reesearch64"
+	projectsRoot      = projectsWorkspace
 )
 
 type gitCommand func(context.Context, string, ...string) (string, error)
@@ -88,9 +88,11 @@ func findProjectRepositories(root string) ([]string, error) {
 		if walkErr != nil {
 			return walkErr
 		}
-		if entry.IsDir() && entry.Name() == ".git" {
+		if entry.Name() == ".git" && (entry.IsDir() || entry.Type().IsRegular()) {
 			repositories = append(repositories, filepath.Dir(path))
-			return filepath.SkipDir
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
 		}
 		return nil
 	})
@@ -132,18 +134,30 @@ func backupProjectRepositories(ctx context.Context, root string, run gitCommand)
 			failures = append(failures, fmt.Errorf("%s -> listar remotos: %w", repository, err))
 			continue
 		}
-		if !slices.Contains(strings.Fields(remotes), "backup") {
+		missing := false
+		for _, remote := range []string{"origin", "ogle", "backup"} {
+			if !slices.Contains(strings.Fields(remotes), remote) {
+				failures = append(failures, fmt.Errorf("%s -> remoto %s não configurado", repository, remote))
+				missing = true
+			}
+		}
+		if missing {
 			continue
 		}
 		if _, err := run(ctx, repository, "push", "origin"); err != nil {
 			failures = append(failures, fmt.Errorf("%s -> GitHub: %w", repository, err))
 			continue
 		}
-		if _, err := run(ctx, repository, "push", "backup"); err != nil {
-			failures = append(failures, fmt.Errorf("%s -> GitLab: %w", repository, err))
-			continue
+		backedUp := true
+		for _, target := range []struct{ remote, service string }{{"ogle", "GitLab"}, {"backup", "Gitea"}} {
+			if _, err := run(ctx, repository, "push", target.remote); err != nil {
+				failures = append(failures, fmt.Errorf("%s -> %s: %w", repository, target.service, err))
+				backedUp = false
+			}
 		}
-		completed++
+		if backedUp {
+			completed++
+		}
 	}
 	if len(failures) > 0 {
 		return completed, fmt.Errorf("backup concluído em %d/%d projetos: %w", completed, len(repositories), errors.Join(failures...))
@@ -157,7 +171,7 @@ func projectsBackupJobFor(setup []step, prepare, link func() error, backup func(
 	steps = append(steps,
 		nativeStep("Criar "+projectsRoot, prepare),
 		nativeStep("Criar link ~/Projects", link),
-		nativeStep("Enviar projetos ao GitHub e GitLab", func() error {
+		nativeStep("Enviar projetos ao GitHub, GitLab e Gitea", func() error {
 			var err error
 			count, err = backup()
 			return err
@@ -167,7 +181,7 @@ func projectsBackupJobFor(setup []step, prepare, link func() error, backup func(
 		title: "Backup de Projetos Locais",
 		steps: steps,
 		result: func() string {
-			return lipgloss.NewStyle().Foreground(colOK).Render(fmt.Sprintf("%d projeto(s) enviado(s) ao GitHub e ao GitLab.", count))
+			return lipgloss.NewStyle().Foreground(colOK).Render(fmt.Sprintf("%d projeto(s) enviado(s) ao GitHub, GitLab e Gitea.", count))
 		},
 	}
 }

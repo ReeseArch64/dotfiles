@@ -890,18 +890,19 @@ A ação cria o arquivo temporário na nova geração. Em caso de falha, as gera
 
 ### Backup de projetos locais
 
-`Backup > Backup de Projetos Locais` percorre toda a árvore de `/mnt/workspaces/reesearch64` e identifica diretórios que contêm `.git`.
+`Backup > Backup de Projetos Locais` percorre toda a árvore de `/mnt/workspaces`, independentemente do proprietário ou agrupamento dos projetos, e identifica repositórios com `.git` (diretório ou arquivo, incluindo worktrees).
 
 Para cada projeto, a CLI executa nesta ordem:
 
 ```text
 git push origin
+git push ogle
 git push backup
 ```
 
-O remoto `origin` deve apontar para o GitHub. O remoto `backup` deve apontar para o GitLab. Se o envio ao GitHub falhar, a CLI não envia esse projeto ao GitLab. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
+Os remotos devem estar previamente configurados: `origin` para o GitHub, `ogle` para o GitLab e `backup` para o Gitea. A CLI não cria nem altera URLs de remotos. Projetos com qualquer um desses remotos ausente são reportados como falha, sem envio parcial. Se o envio ao GitHub falhar, a CLI não envia esse projeto aos demais serviços. Após sucesso no GitHub, tenta GitLab e Gitea independentemente. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
 
-Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também cria `/mnt/workspaces/reesearch64` e o link simbólico `~/Projects`, que aponta para `/mnt/workspaces`.
+Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também garante a existência da raiz `/mnt/workspaces` e cria o link simbólico `~/Projects`, que aponta para `/mnt/workspaces`.
 
 A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
 
