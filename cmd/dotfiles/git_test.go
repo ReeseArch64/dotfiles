@@ -182,6 +182,81 @@ func TestGitJobCopiesGitconfigAsRegularFile(t *testing.T) {
 	}
 }
 
+func TestGitJobCopiesAllFilesForBothProfiles(t *testing.T) {
+	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+		for _, initial := range []string{"missing", "regular", "symlink", "broken symlink"} {
+			t.Run(device.String()+"/"+initial, func(t *testing.T) {
+				root, home := t.TempDir(), t.TempDir()
+				t.Setenv("HOME", home)
+				setupDir := setupDirectory(root, device)
+				writeSharedConfigTestFile(t, filepath.Join(setupDir, "git", ".gitconfig"), "[user]\n signingkey =\n")
+				for _, name := range []string{".gitattributes", ".gitignore", "config"} {
+					writeSharedConfigTestFile(t, filepath.Join(root, "setup", "config", "git", name), "shared "+name)
+				}
+				defs := gitFileDefs(setupDir, home)
+				for _, file := range defs {
+					if err := os.MkdirAll(filepath.Dir(file.dst), 0755); err != nil {
+						t.Fatal(err)
+					}
+					switch initial {
+					case "regular":
+						writeSharedConfigTestFile(t, file.dst, "outdated")
+					case "symlink", "broken symlink":
+						target := file.src
+						if initial == "broken symlink" {
+							target += ".missing"
+						}
+						if err := os.Symlink(target, file.dst); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+				for _, file := range loadGitStatus(setupDir).links {
+					if file.ok {
+						t.Fatalf("arquivo não configurado aceito antes da cópia: %s", file.label)
+					}
+				}
+				for range 2 {
+					copies := 0
+					for _, current := range gitJob(setupDir).steps {
+						if strings.HasPrefix(current.label, "Symlink ") {
+							t.Fatalf("passo de symlink ainda presente: %s", current.label)
+						}
+						if strings.HasPrefix(current.label, "Copiar ") {
+							if _, err := current.run(); err != nil {
+								t.Fatal(err)
+							}
+							copies++
+						}
+					}
+					if copies != 4 {
+						t.Fatalf("esperava 4 cópias, recebeu %d", copies)
+					}
+				}
+				for _, file := range loadGitStatus(setupDir).links {
+					if !file.ok {
+						t.Fatalf("cópia regular não reconhecida: %s", file.label)
+					}
+				}
+				for _, file := range defs {
+					if !regularFileMatches(file.src, file.dst) {
+						t.Fatalf("destino não é cópia regular da origem: %s", file.dst)
+					}
+					before, err := os.ReadFile(file.src)
+					if err != nil {
+						t.Fatal(err)
+					}
+					writeSharedConfigTestFile(t, file.dst, "local change")
+					after, err := os.ReadFile(file.src)
+					if err != nil || string(before) != string(after) {
+						t.Fatalf("editar cópia alterou a origem: %s: %v", file.src, err)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestApplyGitSigningKeyUpdatesRegularHomeCopy(t *testing.T) {
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")

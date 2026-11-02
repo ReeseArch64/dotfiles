@@ -25,14 +25,10 @@ type gitLink struct {
 
 func loadGitStatus(setupDir string) gitStatus {
 	home, _ := os.UserHomeDir()
-	defs := gitLinkDefs(setupDir, home)
+	defs := gitFileDefs(setupDir, home)
 	var links []gitLink
 	for _, d := range defs {
 		ok := regularFileMatches(d.src, d.dst)
-		if !d.copy {
-			target, err := os.Readlink(d.dst)
-			ok = err == nil && target == d.src
-		}
 		links = append(links, gitLink{
 			label: d.label,
 			src:   d.src,
@@ -68,16 +64,12 @@ func (g gitStatus) card(width int) string {
 		}
 		rows = append(rows, cardRow{color, "Pacote", value})
 	}
-	for i, l := range g.links {
+	for _, l := range g.links {
 		color, val := colOK, l.label+" ✔"
 		if !l.ok {
 			color, val = colWarn, l.label+" (não configurado)"
 		}
-		kind := "Link"
-		if i == 0 {
-			kind = "Arquivo"
-		}
-		rows = append(rows, cardRow{color, kind, val})
+		rows = append(rows, cardRow{color, "Arquivo", val})
 	}
 	return renderCard(rows, width)
 }
@@ -92,18 +84,16 @@ func (m model) gitItems() []item {
 	}
 }
 
-func gitLinkDefs(setupDir, home string) []struct {
+func gitFileDefs(setupDir, home string) []struct {
 	label, src, dst string
-	copy            bool
 } {
 	return []struct {
 		label, src, dst string
-		copy            bool
 	}{
-		{"~/.gitconfig", configPath(setupDir, "git", ".gitconfig"), filepath.Join(home, ".gitconfig"), true},
-		{"~/.gitattributes", configPath(setupDir, "git", ".gitattributes"), filepath.Join(home, ".gitattributes"), false},
-		{"~/.gitignore", configPath(setupDir, "git", ".gitignore"), filepath.Join(home, ".gitignore"), false},
-		{"~/.config/git/config", configPath(setupDir, "git", "config"), filepath.Join(home, ".config", "git", "config"), false},
+		{"~/.gitconfig", configPath(setupDir, "git", ".gitconfig"), filepath.Join(home, ".gitconfig")},
+		{"~/.gitattributes", configPath(setupDir, "git", ".gitattributes"), filepath.Join(home, ".gitattributes")},
+		{"~/.gitignore", configPath(setupDir, "git", ".gitignore"), filepath.Join(home, ".gitignore")},
+		{"~/.config/git/config", configPath(setupDir, "git", "config"), filepath.Join(home, ".config", "git", "config")},
 	}
 }
 
@@ -198,7 +188,7 @@ func glabLoginStep() step {
 
 func gitJob(setupDir string) job {
 	home, _ := os.UserHomeDir()
-	defs := gitLinkDefs(setupDir, home)
+	defs := gitFileDefs(setupDir, home)
 
 	steps := ensurePkgs(gitPacmanPackages...)
 	steps = append(steps, ensureYayPkgs(gitYayPackages...)...)
@@ -206,16 +196,9 @@ func gitJob(setupDir string) job {
 		return os.MkdirAll(filepath.Join(home, ".config", "git"), 0755)
 	}))
 	for _, d := range defs {
-		label, src, dst, copyTarget := d.label, d.src, d.dst, d.copy
-		if copyTarget {
-			steps = append(steps, nativeStep("Copiar "+label, func() error {
-				return copyFileAtomic(src, dst)
-			}))
-			continue
-		}
-		steps = append(steps, nativeStep("Symlink "+label, func() error {
-			os.Remove(dst)
-			return os.Symlink(src, dst)
+		label, src, dst := d.label, d.src, d.dst
+		steps = append(steps, nativeStep("Copiar "+label, func() error {
+			return copyFileAtomic(src, dst)
 		}))
 	}
 	steps = append(steps,

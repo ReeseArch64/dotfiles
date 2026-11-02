@@ -92,7 +92,7 @@ Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, resp
 
 A base compartilhada contém `btop`, `cursor`, `fastfetch`, `ghostty`, `mise`, `noctalia`, `pi`, os arquivos estáticos de `git` e os arquivos comuns de `niri`. Permanecem separados `fish/config.fish`, `ssh/config`, `niri/cfg/autostart.kdl` e `niri/cfg/display.kdl`. O arquivo `git/.gitconfig` também permanece por perfil, mesmo inicialmente idêntico, pois recebe a chave GPG específica do dispositivo e nunca deve usar fallback compartilhado.
 
-Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/laptop/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração, especialmente Git e mise, para que os links simbólicos apontem às novas origens em `setup/config/`.
+Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/laptop/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise atualiza seu link simbólico para a nova origem em `setup/config/`.
 
 Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
@@ -479,11 +479,13 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 | Destino | Origem | Formato |
 | --- | --- | --- |
 | `~/.gitconfig` | `setup/<perfil>/git/.gitconfig` | Cópia regular |
-| `~/.gitattributes` | `setup/config/git/.gitattributes` | Link simbólico |
-| `~/.gitignore` | `setup/config/git/.gitignore` | Link simbólico |
-| `~/.config/git/config` | `setup/config/git/config` | Link simbólico |
+| `~/.gitattributes` | `setup/config/git/.gitattributes` | Cópia regular |
+| `~/.gitignore` | `setup/config/git/.gitignore` | Cópia regular |
+| `~/.config/git/config` | `setup/config/git/config` | Cópia regular |
 
 A ação substitui `~/.gitconfig` e recria os três links simbólicos sem backup automático.
+
+Todos os arquivos da tabela são copiados atomicamente, substituindo eventuais links simbólicos antigos sem alterar seus alvos. O status exige cópias regulares com conteúdo igual à origem; links, mesmo com conteúdo igual, aparecem como não configurados. Mudanças futuras no repositório exigem executar `Configurar Git` novamente para atualizar as cópias.
 
 A configuração global ativa assinatura GPG, rebase, autosquash, `rerere` e aliases.
 
