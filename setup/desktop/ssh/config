@@ -10,7 +10,6 @@ Host *
 
   LogLevel INFO
 
-  StrictHostKeyChecking yes
   UpdateHostKeys yes
   HashKnownHosts yes
 
@@ -28,7 +27,7 @@ Host *
 # ==============================
 # NOTEBOOK
 # ==============================
-Host 192.168.1.103
+Host notebook
   HostName 192.168.1.103
   User alsgy
   IdentityFile ~/.ssh/id_trabalho_desktop
@@ -37,7 +36,7 @@ Host 192.168.1.103
 # ==============================
 # HOMELAB
 # ==============================
-Host 192.168.1.107
+Host homelab
   HostName 192.168.1.107
   User alsgy
   IdentityFile ~/.ssh/id_pessoal_desktop
@@ -46,10 +45,10 @@ Host 192.168.1.107
 # ==============================
 # HOMEPROD
 # ==============================
-Host ***.**.***.** 
-  HostName homprod
+Host homeprod
+  HostName ***.**.***.**
   User alsgy
-  #IdentityFile ~/.ssh/id_pessoal_desktop
+  IdentityFile ~/.ssh/id_pessoal_desktop
   IdentitiesOnly yes
 
 # ==============================
@@ -73,3 +72,14 @@ Host gitlab.com
   ForwardAgent no
   User git
   IdentityFile ~/.ssh/id_gitlab
+
+# ==============================
+# GITEA
+# ==============================
+Host gitea
+  HostName 192.168.1.107
+  User git
+  Port 2222
+  IdentitiesOnly yes
+  ForwardAgent no
+  IdentityFile ~/.ssh/id_gitea

@@ -15,6 +15,8 @@ var gitSSHIdentityFiles = []string{
 	"id_gitlab.pub",
 	"id_github",
 	"id_github.pub",
+	"id_gitea",
+	"id_gitea.pub",
 }
 
 func requiredSSHIdentityFiles(device deviceProfile) []string {

@@ -10,7 +10,6 @@ Host *
 
   LogLevel INFO
 
-  StrictHostKeyChecking yes
   UpdateHostKeys yes
   HashKnownHosts yes
 
@@ -46,3 +45,14 @@ Host gitlab.com
   ForwardAgent no
   User git
   IdentityFile ~/.ssh/id_gitlab
+
+# ==============================
+# GITEA
+# ==============================
+Host gitea
+  HostName 192.168.1.107
+  User git
+  Port 2222
+  IdentitiesOnly yes
+  ForwardAgent no
+  IdentityFile ~/.ssh/id_gitea

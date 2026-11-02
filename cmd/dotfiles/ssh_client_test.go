@@ -44,11 +44,11 @@ func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 	for device, want := range map[deviceProfile][]string{
 		deviceDesktop: {
 			"id_trabalho_desktop", "id_trabalho_desktop.pub", "id_pessoal_desktop", "id_pessoal_desktop.pub",
-			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub",
+			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub", "id_gitea", "id_gitea.pub",
 		},
 		deviceNotebook: {
 			"id_trabalho_notebook", "id_trabalho_notebook.pub", "id_trabalho_desktop.pub",
-			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub",
+			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub", "id_gitea", "id_gitea.pub",
 		},
 		deviceServer: {"id_pessoal_desktop.pub"},
 	} {
@@ -98,28 +98,91 @@ func TestSSHConfigsUseKeysFromTheirOriginDevice(t *testing.T) {
 	}
 }
 
-func TestDesktopRequiresKnownHostKeys(t *testing.T) {
+func TestDesktopSSHAdminAliasesPreserveTargetsAndKeys(t *testing.T) {
 	root, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
 	config := configPath(setupDirectory(root, deviceDesktop), "ssh", "config")
-	for _, host := range []string{"192.168.1.103", "192.168.1.107", "github.com"} {
-		output, err := exec.Command("ssh", "-G", "-F", config, host).Output()
+	for _, tc := range []struct{ alias, host, identity string }{
+		{"notebook", "192.168.1.103", "id_trabalho_desktop"},
+		{"homelab", "192.168.1.107", "id_pessoal_desktop"},
+		{"homeprod", "***.**.***.**", "id_pessoal_desktop"},
+	} {
+		output, err := exec.Command("ssh", "-G", "-F", config, tc.alias).Output()
 		if err != nil {
 			t.Fatal(err)
 		}
-		setting := ""
-		for _, line := range strings.Split(string(output), "\n") {
-			if value, ok := strings.CutPrefix(line, "stricthostkeychecking "); ok {
-				setting = value
-				break
+		for _, want := range []string{"hostname " + tc.host + "\n", "user alsgy\n", "port 22\n", "identityfile ~/.ssh/" + tc.identity + "\n", "identitiesonly yes\n"} {
+			if !strings.Contains(string(output), want) {
+				t.Fatalf("%s: configuração ausente %q: %s", tc.alias, want, output)
 			}
 		}
-		if setting != "true" {
-			t.Fatalf("%s: StrictHostKeyChecking=%q, esperado true", host, setting)
+	}
+}
+
+func TestSSHConfigsUseDefaultHostKeyChecking(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+		config := configPath(setupDirectory(root, device), "ssh", "config")
+		for _, host := range []string{"192.168.1.103", "192.168.1.107", "github.com", "gitlab.com", "gitea"} {
+			output, err := exec.Command("ssh", "-G", "-F", config, host).Output()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(output), "stricthostkeychecking ask\n") {
+				t.Fatalf("%s / %s: esperado StrictHostKeyChecking ask: %s", device, host, output)
+			}
 		}
 	}
+}
+
+func TestDesktopHomeProdDeclaresIdentitiesOnly(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := readHomelabFile(t, configPath(setupDirectory(root, deviceDesktop), "ssh", "config"))
+	_, block, found := strings.Cut(config, "Host homeprod\n")
+	if !found {
+		t.Fatal("bloco HOMEPROD ausente")
+	}
+	block, _, _ = strings.Cut(block, "\n#")
+	if !strings.Contains(block, "IdentitiesOnly yes") {
+		t.Fatalf("HOMEPROD deve preservar IdentitiesOnly yes: %s", block)
+	}
+}
+
+func TestSSHConfigsUseDedicatedGiteaAlias(t *testing.T) {
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		config := configPath(setupDir, "ssh", "config")
+		output, err := exec.Command("ssh", "-G", "-F", config, "gitea").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{
+			"hostname 192.168.1.107\n", "user git\n", "port 2222\n",
+			"identityfile ~/.ssh/id_gitea\n", "identitiesonly yes\n", "forwardagent no\n",
+			"stricthostkeychecking ask\n",
+		} {
+			if !strings.Contains(string(output), want) {
+				t.Fatalf("Gitea sem configuração %q: %s", want, output)
+			}
+		}
+		if strings.Count(string(output), "identityfile ") != 1 {
+			t.Fatalf("Gitea deve usar somente sua identidade: %s", output)
+		}
+		output, err = exec.Command("ssh", "-G", "-F", config, "192.168.1.107").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(output), "port 22\n") || strings.Contains(string(output), "id_gitea") {
+			t.Fatalf("alias Gitea alterou acesso SSH normal ao IP: %s", output)
+		}
+	})
 }
 
 func TestSSHConfigsAllowInteractiveTTY(t *testing.T) {

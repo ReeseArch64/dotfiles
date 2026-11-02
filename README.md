@@ -445,9 +445,11 @@ As identidades são separadas pelo dispositivo de origem:
 | Notebook | `id_trabalho_notebook` e seu `.pub` | `id_trabalho_desktop.pub` |
 | Homelab | nenhuma chave privada | `id_pessoal_desktop.pub` |
 
-Desktop e notebook também exigem os pares compartilhados `id_github` e `id_gitlab`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
+Desktop e notebook também exigem os pares compartilhados `id_github`, `id_gitlab` e `id_gitea`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
 
-A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. No desktop, notebook e homelab usam `StrictHostKeyChecking accept-new`: a primeira conexão registra automaticamente a chave do host e qualquer mudança posterior continua sendo recusada. Os demais destinos mantêm `StrictHostKeyChecking yes`.
+O alias SSH `gitea` usa `HostName 192.168.1.107`, porta `2222`, usuário `git` e `IdentityFile ~/.ssh/id_gitea`, sem encaminhar o agente. Use URLs como `git@gitea:usuario/repositorio.git` no remoto `backup`. O acesso direto ao IP continua na porta SSH normal, sem afetar o acesso administrativo ao Homelab. Disponibilize `~/.ssh/id_gitea` e `~/.ssh/id_gitea.pub` antes de configurar o SSH e cadastre a chave pública no Gitea. O SSH usa o padrão `StrictHostKeyChecking ask`: no primeiro acesso, confira o fingerprint antes de aceitar a chave de `[192.168.1.107]:2222` em `known_hosts`.
+
+A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. Nos perfis desktop e notebook não há `StrictHostKeyChecking` global: aplica-se o padrão `ask`, que solicita confirmação para chaves de hosts novos. Confira o fingerprint antes de aceitar. No desktop, as conexões administrativas aceitam `ssh notebook` (`192.168.1.103`), `ssh homelab` (`192.168.1.107`) e `ssh homeprod` (endereço definido em `HostName` no bloco HOMEPROD). Os blocos administrativos usam somente esses aliases nas linhas `Host`. O HomeProd ainda usa um placeholder no repositório e requer preencher o endereço real antes do acesso. Esses aliases não adicionam acessos administrativos ao perfil laptop. O bloco HOMEPROD do desktop mantém explicitamente `IdentitiesOnly yes`, assim como notebook e homelab. As configurações de `setup/homelab/` e `setup/homeprod/` não são alteradas por essas opções.
 
 No desktop e no notebook, a ação `Configurar SSH` executa `systemctl --user enable --now ssh-agent.socket`, sem sudo: inicia o socket imediatamente e habilita sua ativação nas próximas sessões do usuário. A ativação não depende do autostart do Niri. Nos dois perfis, `IdentityAgent /run/user/%i/ssh-agent.socket` aponta explicitamente para esse agente, compartilhado entre os terminais. Cada chave privada criptografada solicita sua passphrase no primeiro uso; `AddKeysToAgent yes` mantém a chave desbloqueada somente em memória enquanto o agente estiver ativo. Reiniciar o agente ou o computador exige desbloquear novamente. O dotfiles não remove nem armazena a passphrase. Isso não memoriza senhas de login dos servidores nem senhas de `sudo`.
 
@@ -904,7 +906,7 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 
 ### Backup das chaves SSH
 
-`Backup > Backup das Chaves SSH` copia para `/mnt/backups/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github` e `id_gitlab`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab` e a pública `id_trabalho_desktop.pub`.
+`Backup > Backup das Chaves SSH` copia para `/mnt/backups/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github`, `id_gitlab` e `id_gitea`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab`, `id_gitea` e a pública `id_trabalho_desktop.pub`.
 
 A CLI valida todos os arquivos do perfil antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia. Chaves privadas de outro dispositivo nunca são exigidas nem copiadas.
 
