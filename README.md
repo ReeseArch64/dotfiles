@@ -184,9 +184,20 @@ O Notebook recebe:
 
 As demais ações ficam exclusivas do Desktop.
 
+### Fastfetch e foto de perfil nos servidores
+
+Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu principal. Ela:
+
+1. Valida a configuração própria do servidor e `assets/face.jpg` antes de instalar pacotes.
+2. Preserva um Fastfetch já disponível e funcional. Quando ausente, instala a release oficial 2.70.0 via pacote `.deb`, com SHA-256 fixado para Ubuntu amd64 ou arm64. Usa APT para dependências, sem PPA ou novos repositórios; requer internet. Outras arquiteturas são recusadas pelo instalador.
+3. Copia `setup/homelab/fastfetch/config.json` ou `setup/homeprod/fastfetch/config.json` para `~/.config/fastfetch/config.json`, sem herdar `setup/config/`. O sistema operacional é detectado automaticamente; não há módulos gráficos nem consulta de IP público.
+4. Cria `~/.face` como link simbólico para `assets/face.jpg`, como nos perfis desktop/laptop. Mantenha o checkout acessível para que o link continue válido.
+
+Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação não altera o shell de login, não executa Fastfetch automaticamente e não tenta exibir a imagem em terminais SSH. Para visualizar as informações, execute `fastfetch`.
+
 ### Ações do Homelab (Ubuntu)
 
-O perfil oferece instalação do CasaOS e configuração de DNS, SSH, firewall e swap, sem ações de desktop.
+O perfil oferece instalação do CasaOS, Fastfetch e foto de perfil, além da configuração de DNS, SSH, firewall e swap, sem instalar ambiente gráfico.
 
 #### Ferramentas de administração (sem GUI)
 

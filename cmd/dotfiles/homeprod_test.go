@@ -36,7 +36,7 @@ func TestHomeProdProfileDetectionPlatformAndMenu(t *testing.T) {
 	if m.setupDir != "/repo/setup/homeprod" {
 		t.Fatal(m.setupDir)
 	}
-	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "Acesso seguro (Tunnel + firewall)", "Sair"}) {
+	if titles := itemTitles(m.items()); !slices.Equal(titles, []string{"Preparação inicial", "Instalar CasaOS", "Configurar SSH", "Configurar Swap", "Acesso seguro (Tunnel + firewall)", "Fastfetch e foto de perfil", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", titles)
 	}
 }

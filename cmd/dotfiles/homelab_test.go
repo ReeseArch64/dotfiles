@@ -89,7 +89,7 @@ func TestServerProfileHostnamePlatformAndMenu(t *testing.T) {
 		t.Fatal(m.setupDir)
 	}
 	for screen, titles := range map[screen][]string{
-		screenMain:   {"Sistema", "CasaOS", "Liberar porta 53 (DNS)", "Configurar Swap", "Ferramentas de Administração", "Sair"},
+		screenMain:   {"Sistema", "CasaOS", "Liberar porta 53 (DNS)", "Configurar Swap", "Ferramentas de Administração", "Fastfetch e foto de perfil", "Sair"},
 		screenSystem: {"SSH", "Firewall"},
 		screenSSH:    {"Configurar SSH"}, screenFirewall: {"Configurar Firewall"},
 		screenDesktop: nil, screenDevelopment: nil, screenDocker: nil, screenCleanup: nil,
