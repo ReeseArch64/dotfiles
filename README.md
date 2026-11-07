@@ -658,6 +658,7 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 - just
 - rate-mirrors
 - CMake
+- Ninja
 - git-delta
 - Ventoy
 - eza
@@ -723,7 +724,7 @@ mv zen-backup.tar ~/.dotfiles/
 `Desktop > Zen Browser` executa estas etapas:
 
 1. Exige o arquivo regular `~/.dotfiles/zen-backup.tar`.
-2. Instala `zen-browser-bin` via yay/AUR.
+2. Instala `zen-browser` via yay/AUR.
 3. Aceita somente `.config/zen`, `.cache/zen` e `.local/share/keyrings` no arquivo.
 4. Descompacta o conteúdo em `~/.dotfiles/zen-backup`.
 5. Substitui os três diretórios correspondentes no diretório pessoal.

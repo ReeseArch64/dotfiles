@@ -169,18 +169,18 @@ func TestRestoreZenBackupReplacesCurrentDirectories(t *testing.T) {
 
 func TestZenBrowserJobOrdersValidationInstallationAndRestore(t *testing.T) {
 	testBackupStore(t)
-	packageStep := nativeStep("Instalar zen-browser-bin via AUR", func() error { return nil })
+	packageStep := nativeStep("Instalar zen-browser via AUR", func() error { return nil })
 	configured := zenBrowserJobFor("/tmp/dotfiles", "/tmp/home", []step{packageStep})
 	want := []string{
 		"Verificar zen-backup.tar",
-		"Instalar zen-browser-bin via AUR",
+		"Instalar zen-browser via AUR",
 		"Descompactar backup para zen-backup",
 		"Substituir dados do Zen Browser",
 	}
 	if got := jobStepLabels(configured); !slices.Equal(got, want) {
 		t.Fatalf("passos inesperados: %v", got)
 	}
-	if zenBrowserAurPackage != "zen-browser-bin" {
+	if zenBrowserAurPackage != "zen-browser" {
 		t.Fatalf("pacote AUR inesperado: %s", zenBrowserAurPackage)
 	}
 }

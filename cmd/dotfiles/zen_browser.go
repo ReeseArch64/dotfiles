@@ -15,7 +15,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const zenBrowserAurPackage = "zen-browser-bin"
+const zenBrowserAurPackage = "zen-browser"
 
 var zenBackupRoots = []string{".config/zen", ".cache/zen", ".local/share/keyrings"}
 
