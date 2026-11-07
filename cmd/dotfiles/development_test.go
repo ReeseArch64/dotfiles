@@ -195,7 +195,12 @@ func TestBetterStackSkipsInstallerAndConfiguredLogin(t *testing.T) {
 }
 
 func TestDevelopmentPacmanPackagesIncludeFishRustupAndTk(t *testing.T) {
-	want := []string{"fish", "rustup", "tk"}
+	want := []string{
+		"fish", "rustup", "tk",
+		"base-devel", "autoconf", "bison", "re2c", "pkgconf", "libxml2", "openssl", "curl",
+		"libzip", "sqlite", "oniguruma", "libpng", "libjpeg-turbo", "freetype2", "icu",
+		"readline", "gettext", "libsodium", "libxslt",
+	}
 	if !slices.Equal(developmentPacmanPackages, want) {
 		t.Fatalf("pacotes do ambiente inesperados: %v", developmentPacmanPackages)
 	}
@@ -327,8 +332,8 @@ func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 	if slices.Index(labels, "Instalar ferramentas configuradas via mise") > slices.Index(labels, "Autenticar na AWS") {
 		t.Fatalf("ferramentas do Mise devem ser instaladas antes das autenticações: %v", labels)
 	}
-	if slices.Index(labels, "Autenticar no Azure") > slices.Index(labels, "Instalar fish, rustup, tk") {
-		t.Fatalf("autenticações cloud devem ocorrer antes das instalações do Pacman: %v", labels)
+	if slices.Index(labels, "Instalar fish, rustup, tk") > slices.Index(labels, "Instalar ferramentas configuradas via mise") {
+		t.Fatalf("dependências do Pacman devem ser instaladas antes das ferramentas do mise: %v", labels)
 	}
 	if slices.Index(labels, "Instalar fish, rustup, tk") > slices.Index(labels, "Copiar configuração para ~/.config/fish/config.fish") {
 		t.Fatalf("Fish deve ser instalado antes de copiar sua configuração: %v", labels)

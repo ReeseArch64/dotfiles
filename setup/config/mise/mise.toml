@@ -22,6 +22,7 @@ pnpm = { version = "latest" }
 deno = { version = "latest" }
 
 ruby = { version = "latest" }
+php = { version = "latest" }
 
 python = { version = "latest" }
 uv = { version = "latest" }

@@ -527,9 +527,9 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 1. Instala o `mise` via yay.
 2. Cria o link `~/.config/mise/config.toml` para `setup/config/mise/mise.toml` (ou para o arquivo específico do perfil, se existir).
 3. Marca a configuração do Mise como confiável.
-4. Instala todas as ferramentas declaradas no `mise.toml`.
-5. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
-6. Instala Fish, `rustup` e o toolkit `tk` para Python via Pacman.
+4. Instala Fish, `rustup`, o toolkit `tk` para Python e as dependências de compilação do PHP via Pacman (`sudo pacman -S --needed`): `base-devel`, `autoconf`, `bison`, `re2c`, `pkgconf`, `libxml2`, `openssl`, `curl`, `libzip`, `sqlite`, `oniguruma`, `libpng`, `libjpeg-turbo`, `freetype2`, `icu`, `readline`, `gettext`, `libsodium` e `libxslt`.
+5. Instala todas as ferramentas declaradas no `mise.toml`, incluindo PHP na versão `latest`.
+6. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
 7. Copia `setup/<perfil>/fish/config.fish` para `~/.config/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
 9. Valida `rustc --version` e `cargo --version`.
@@ -558,6 +558,7 @@ O arquivo compartilhado `setup/config/mise/mise.toml` instala:
 - pnpm
 - Deno
 - Ruby
+- PHP
 - Python
 - Go
 - uv

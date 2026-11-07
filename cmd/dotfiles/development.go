@@ -13,7 +13,12 @@ import (
 	"time"
 )
 
-var developmentPacmanPackages = []string{"fish", "rustup", "tk"}
+var developmentPacmanPackages = []string{
+	"fish", "rustup", "tk",
+	"base-devel", "autoconf", "bison", "re2c", "pkgconf", "libxml2", "openssl", "curl",
+	"libzip", "sqlite", "oniguruma", "libpng", "libjpeg-turbo", "freetype2", "icu",
+	"readline", "gettext", "libsodium", "libxslt",
+}
 
 const betterStackInstallCommand = "curl -fsSL https://raw.githubusercontent.com/sounak98/betterstack-cli/main/install.sh | sh"
 
@@ -135,12 +140,12 @@ func verifyRustTools(home string) error {
 
 func developmentEnvironmentSteps(setupDir, home string, packageSteps []step) []step {
 	steps := miseSetupSteps(setupDir)
+	steps = append(steps, packageSteps...)
 	steps = append(steps, skipWhen(developmentToolsInstallStep(setupDir), func() bool {
 		out, err := exec.Command("mise", "--cd", filepath.Dir(configPath(setupDir, "mise", "mise.toml")), "ls", "--missing", "--current", "--no-header").Output()
 		return err == nil && len(bytes.TrimSpace(out)) == 0
 	}))
 	steps = append(steps, cloudLoginSteps(home)...)
-	steps = append(steps, packageSteps...)
 	steps = append(steps, fishConfigStep(setupDir, home))
 	return append(steps,
 		skipWhen(rustupToolchainStep(), func() bool {

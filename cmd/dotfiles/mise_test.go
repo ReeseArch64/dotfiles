@@ -96,16 +96,17 @@ func TestMiseConfigIncludesJavaGradleAndMaven(t *testing.T) {
 	})
 }
 
-func TestMiseConfigExcludesPHPAndComposer(t *testing.T) {
+func TestMiseConfigIncludesPHPWithoutComposer(t *testing.T) {
 	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
 		content, err := os.ReadFile(configPath(setupDir, "mise", "mise.toml"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, unwanted := range []string{"php", "composer"} {
-			if strings.Contains(string(content), unwanted) {
-				t.Fatalf("configuração removida %q ainda existe em mise.toml", unwanted)
-			}
+		if !strings.Contains(string(content), `php = { version = "latest" }`) {
+			t.Fatal("PHP latest ausente em mise.toml")
+		}
+		if strings.Contains(string(content), "composer") {
+			t.Fatal("Composer não deve ser instalado pelo mise")
 		}
 	})
 }
