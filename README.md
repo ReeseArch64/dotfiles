@@ -630,7 +630,8 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 - mprocs, fornecido pelo modo de compatibilidade do Dekit e instalado pelo script oficial
 - Posting, instalado pelo `uv` com Python 3.13
 - usql-bin, instalado pelo pacote AUR
-- proton-pass-cli-bin, instalado pelo pacote AUR
+- proton-vpn-cli, instalado pelo pacote AUR (Desktop e Notebook)
+- proton-pass-cli-bin, instalado pelo pacote AUR (Desktop e Notebook)
 
 **Pacman:**
 

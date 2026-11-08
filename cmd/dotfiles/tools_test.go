@@ -79,7 +79,7 @@ func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 	if !slices.Equal(terminalToolPackages, wantYay) {
 		t.Fatalf("pacotes yay inesperados: %v", terminalToolPackages)
 	}
-	wantAur := []string{"viddy", "usql-bin", "proton-pass-cli-bin"}
+	wantAur := []string{"viddy", "usql-bin", "proton-vpn-cli", "proton-pass-cli-bin"}
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
 		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
 	}

@@ -9,7 +9,7 @@ const lunarVimInstallCommand = "LV_BRANCH='release-1.4/neovim-0.9' bash <(curl -
 const mprocsInstallCommand = `curl -fsSL https://dekit.run/install.sh | sh && printf '%s\n' '#!/bin/sh' 'exec "$(dirname "$0")/dekit" mprocs "$@"' > "$HOME/.local/bin/mprocs" && chmod 755 "$HOME/.local/bin/mprocs"`
 
 var terminalToolPackages = []string{"neovim", "scc"}
-var terminalToolAurPackages = []string{"viddy", "usql-bin", "proton-pass-cli-bin"}
+var terminalToolAurPackages = []string{"viddy", "usql-bin", "proton-vpn-cli", "proton-pass-cli-bin"}
 var terminalToolPacmanPackages = []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "chafa", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "ninja", "git-delta", "ventoy", "eza", "bat", "wget", "curl", "uv"}
 
 func lunarVimInstallStep() step {
