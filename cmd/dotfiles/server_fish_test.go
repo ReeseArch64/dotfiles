@@ -23,6 +23,9 @@ func TestInstallServerFishPreservesRecoveryShellFiles(t *testing.T) {
 		if err := installServerFish(root, home); err != nil {
 			t.Fatal(err)
 		}
+		if info, err := os.Stat(filepath.Join(home, ".hushlogin")); err != nil || !info.Mode().IsRegular() {
+			t.Fatalf("~/.hushlogin não foi criado: %v", err)
+		}
 	}
 	if !regularFileMatches(serverFishSource(root), filepath.Join(home, ".config/fish/config.fish")) {
 		t.Fatal("configuração Fish não foi instalada")

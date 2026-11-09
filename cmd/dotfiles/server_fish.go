@@ -20,7 +20,15 @@ func serverFishSource(dotfiles string) string {
 
 func installServerFish(dotfiles, home string) error {
 	// Do not use installFishConfig: servers must retain Bash and recovery files.
-	return copyFileAtomic(serverFishSource(dotfiles), filepath.Join(home, ".config", "fish", "config.fish"))
+	if err := copyFileAtomic(serverFishSource(dotfiles), filepath.Join(home, ".config", "fish", "config.fish")); err != nil {
+		return err
+	}
+	// Quiet Ubuntu's MOTD and last-login message for this user only.
+	file, err := os.OpenFile(filepath.Join(home, ".hushlogin"), os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("criar ~/.hushlogin: %w", err)
+	}
+	return file.Close()
 }
 
 func serverFishJob(dotfiles, setupDir string) job {
