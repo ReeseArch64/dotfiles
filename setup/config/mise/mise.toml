@@ -16,6 +16,7 @@ flutter = { version = "latest" }
 
 node = { version = "latest" }
 "npm:cf" = { version = "latest" }
+"npm:vercel" = { version = "latest" }
 wrangler = { version = "latest" }
 bun = { version = "latest" }
 pnpm = { version = "latest" }
