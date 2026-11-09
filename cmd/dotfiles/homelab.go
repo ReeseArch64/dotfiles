@@ -21,6 +21,9 @@ func (m model) serverItems() []item {
 			{title: "Ferramentas de Administração", desc: "LazyDocker, jq, ripgrep, fd, fzf, bat, Git e ncdu para Ubuntu Server", job: func() job {
 				return job{title: "Ferramentas de Administração", steps: withSudo(terminalStep("Instalar ferramentas para Ubuntu Server", "sudo", "bash", configPath(m.setupDir, "tools", "install.sh")))}
 			}},
+			{title: "Configurar Fish", desc: "Fish como shell de login, Fastfetch e foto para o usuário atual", job: func() job {
+				return serverFishJob(m.dotfiles, m.setupDir)
+			}},
 			{title: "Fastfetch e foto de perfil", desc: "Instalar Fastfetch e configurar ~/.face para o usuário atual", job: func() job {
 				return serverFastfetchJob(m.dotfiles, m.setupDir)
 			}},

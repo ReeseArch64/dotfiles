@@ -24,6 +24,9 @@ func (m model) homeProdItems() []item {
 		{title: "Acesso seguro (Tunnel + firewall)", desc: "Configurar ou reutilizar acesso seguro do HomeProd, preservando SSH (sudo)", job: func() job {
 			return job{title: "Acesso seguro HomeProd", steps: []step{terminalStep("Configurar Tunnel e firewall do HomeProd", "sudo", "bash", configPath(m.setupDir, "access", "configure.sh"))}}
 		}},
+		{title: "Configurar Fish", desc: "Fish como shell de login, Fastfetch e foto para o usuário atual", job: func() job {
+			return serverFishJob(m.dotfiles, m.setupDir)
+		}},
 		{title: "Fastfetch e foto de perfil", desc: "Instalar Fastfetch e configurar ~/.face para o usuário atual", job: func() job {
 			return serverFastfetchJob(m.dotfiles, m.setupDir)
 		}},

@@ -184,6 +184,16 @@ O Notebook recebe:
 
 As demais ações ficam exclusivas do Desktop.
 
+### Fish nos servidores
+
+Homelab e HomeProd oferecem `Configurar Fish` no menu principal. Execute como o usuário que usará o shell, preferencialmente `alsgy`, sem iniciar a CLI com sudo. A ação usa sudo apenas para instalar pacotes e definir o shell de login. Executar como root configura o próprio root.
+
+A ação prepara o Fastfetch e `~/.face` pelo mesmo fluxo descrito abaixo, instala `fish`, `chafa`, `bat` e `bsdextrautils` via APT e copia `setup/server/fish/config.fish` para `~/.config/fish/config.fish`. Essa base é compartilhada explicitamente somente pelos dois servidores; as configurações Fastfetch continuam específicas de cada perfil. Por último, define `/usr/bin/fish` como shell de login do usuário atual. Abra uma nova sessão SSH para ativar.
+
+A configuração adapta do desktop o histórico com data, os atalhos `!!` e `!$`, os aliases de arquivos e systemd, o pager do man e os diretórios locais no PATH. Os aliases de pacotes usam APT. Eza e Mise são aproveitados somente se já estiverem instalados, com fallback para `ls` e sem exigir Mise. O Fastfetch aparece no greeting interativo com a foto renderizada por Chafa; se a imagem estiver ausente, usa o logo normal. Sessões não interativas permanecem silenciosas, inclusive comandos SSH e transferências.
+
+Não depende de `/usr/share/cachyos-fish-config`: os recursos portáveis necessários foram adaptados na base dos servidores. O plugin `done.fish` de notificações gráficas não é instalado, pois não é ativado por padrão no SSH. Também ficam fora os comandos de Pacman, Niri, mirrors do CachyOS, Yazi remoto e outros atalhos exclusivos do desktop. A instalação preserva `.bashrc`, `.bash_profile`, `.profile` e outras configurações Fish; somente `config.fish` é substituído, com o backup centralizado habitual.
+
 ### Fastfetch e foto de perfil nos servidores
 
 Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu principal. Ela:
@@ -193,7 +203,7 @@ Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu princi
 3. Copia `setup/homelab/fastfetch/config.json` ou `setup/homeprod/fastfetch/config.json` para `~/.config/fastfetch/config.json`, sem herdar `setup/config/`. O sistema operacional é detectado automaticamente; não há módulos gráficos nem consulta de IP público.
 4. Cria `~/.face` como link simbólico para `assets/face.jpg`, como nos perfis desktop/laptop. Mantenha o checkout acessível para que o link continue válido.
 
-Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação não altera o shell de login, não executa Fastfetch automaticamente e não tenta exibir a imagem em terminais SSH. Para visualizar as informações, execute `fastfetch`.
+Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação isolada `Fastfetch e foto de perfil` não altera o shell de login, não executa Fastfetch automaticamente e não tenta exibir a imagem em terminais SSH. Para visualizar as informações, execute `fastfetch`.
 
 ### Ações do Homelab (Ubuntu)
 
