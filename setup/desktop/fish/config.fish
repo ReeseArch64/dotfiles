@@ -107,4 +107,6 @@ alias notebook="ssh alsgy@192.168.1.105"
 
 alias homelab="ssh alsgy@192.168.1.107"
 
-alias pu="pi update --extensions"
+alias gpa="git push origin && git push ogle && git push backup"
+
+alias piu="pi update --all"

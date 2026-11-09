@@ -576,6 +576,8 @@ az login
 
 O Wrangler fica disponível como `wrangler`. Ele não exige login separado nesta ação.
 
+Os perfis desktop e laptop incluem o alias `gpa` (`git push origin && git push ogle && git push backup`): envia para GitHub, GitLab e Gitea, interrompendo se algum push falhar. Os três remotos devem estar configurados no repositório. O alias `piu` (`pi update --all`) substitui `pu` e atualiza tanto o Pi Agent quanto suas extensões.
+
 A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada. Também remove `~/.bashrc`, `~/.bash_logout`, `~/.bash_profile` e `~/.zshrc`.
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
