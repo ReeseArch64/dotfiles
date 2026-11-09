@@ -27,7 +27,7 @@ Host *
 # ==============================
 # NOTEBOOK
 # ==============================
-Host notebook
+Host notebook 192.168.1.103
   HostName 192.168.1.103
   User alsgy
   IdentityFile ~/.ssh/id_trabalho_desktop

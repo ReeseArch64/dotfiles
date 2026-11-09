@@ -106,6 +106,7 @@ func TestDesktopSSHAdminAliasesPreserveTargetsAndKeys(t *testing.T) {
 	config := configPath(setupDirectory(root, deviceDesktop), "ssh", "config")
 	for _, tc := range []struct{ alias, host, identity string }{
 		{"notebook", "192.168.1.103", "id_trabalho_desktop"},
+		{"192.168.1.103", "192.168.1.103", "id_trabalho_desktop"},
 		{"homelab", "192.168.1.107", "id_pessoal_desktop"},
 		{"homeprod", "***.**.***.**", "id_pessoal_desktop"},
 	} {
