@@ -12,9 +12,9 @@ A CLI organiza as ações em cinco áreas:
 | --- | --- |
 | Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Ghostty, Zen Browser, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
+| Desktop | Niri, Noctalia, Ghostty, Mozilla Firefox, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent e Ollama com GPU AMD |
-| Backup | Ponto de restauração Btrfs, navegador, projetos locais e chaves SSH/GPG |
+| Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -178,7 +178,7 @@ O Notebook recebe:
 
 - Sistema: SSH, Firewall, Docker e remoção de aplicativos pré-instalados;
 - Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI, Android CLI e ferramentas de terminal;
-- Desktop: Niri, Noctalia, Ghostty, Zen Browser, wallpapers e foto de perfil;
+- Desktop: Niri, Noctalia, Ghostty, Mozilla Firefox, wallpapers e foto de perfil;
 - Agentes de IA: somente Pi Agent;
 - Backup: todas as ações disponíveis.
 
@@ -386,7 +386,6 @@ O pacote `mesa-utils` fornece o comando `glxinfo`.
 
 `Sistema > Aplicativos pré-instalados > Remover aplicativos` remove estes pacotes do CachyOS:
 
-- `firefox`
 - `alacritty`
 - `meld`
 - `shelly`
@@ -398,8 +397,6 @@ A CLI atualiza as bases e executa `pacman -Rns` somente com os pacotes da lista 
 Após a desinstalação, a ação remove estes diretórios do usuário atual:
 
 ```text
-~/.mozilla
-~/.cache/mozilla
 ~/.config/alacritty
 ~/.cache/alacritty
 ~/.config/meld
@@ -413,13 +410,13 @@ Esse conteúdo não recebe backup. Preserve manualmente qualquer dado necessári
 
 `Sistema > Docker > Configurar Docker` executa estas etapas:
 
-1. Valida o executável `zen-browser` e o diretório `~/.config/zen`.
+1. Valida o executável `firefox`, sem exigir um perfil pré-existente.
 2. Instala Docker, Compose, Buildx e Lazydocker.
 3. Instala `util-linux` e `xdg-utils`, necessários ao fluxo.
 4. Cria `/etc/docker` com `sudo` e grava `/etc/docker/daemon.json` com o conteúdo abaixo, substituindo qualquer configuração existente.
 5. Adiciona o usuário atual ao grupo `docker`.
 6. Habilita e inicia `docker.service`.
-7. Define o Zen Browser como navegador padrão.
+7. Define o Mozilla Firefox como navegador padrão.
 8. Executa `docker login` com o grupo atualizado.
 
 ```json
@@ -723,27 +720,11 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 
 `Desktop > Ghostty` instala `ghostty` via yay e copia `setup/config/ghostty/`, com eventuais arquivos específicos do perfil por cima, para `~/.config/ghostty`.
 
-### Zen Browser
+### Mozilla Firefox
 
-Na máquina original, crie o backup com o Zen Browser fechado:
+`Desktop > Mozilla Firefox` instala `firefox` e `xdg-utils` via Pacman e define `firefox.desktop` como navegador padrão. A opção está disponível no desktop e no notebook. Os atalhos do Niri e o Noctalia usam Firefox.
 
-```bash
-tar -cvf zen-backup.tar -C ~ .config/zen .cache/zen .local/share/keyrings
-mv zen-backup.tar ~/.dotfiles/
-```
-
-`Desktop > Zen Browser` executa estas etapas:
-
-1. Exige o arquivo regular `~/.dotfiles/zen-backup.tar`.
-2. Instala `zen-browser` via yay/AUR.
-3. Aceita somente `.config/zen`, `.cache/zen` e `.local/share/keyrings` no arquivo.
-4. Descompacta o conteúdo em `~/.dotfiles/zen-backup`.
-5. Substitui os três diretórios correspondentes no diretório pessoal.
-6. Remove de `zen-backup` os diretórios movidos para seus destinos.
-
-A restauração substitui os dados atuais sem manter backup. Feche o Zen Browser e preserve manualmente qualquer perfil ou chave necessária.
-
-O `.gitignore` exclui `zen-backup.tar` e `zen-backup/`. O arquivo contém dados pessoais e credenciais que nunca devem ser versionados.
+O backup e a restauração de navegador e chaveiro foram removidos da CLI. Arquivos de backup criados anteriormente permanecem no disco.
 
 ### Thunderbird
 
@@ -891,7 +872,7 @@ Todos os backups locais gerados pela CLI ficam em `/mnt/backups`, em registros �
 └── original
 ```
 
-As categorias são `files` (configurações e migração SDK), `browser`, `ssh`, `gpg`, `dns` e `snapshots`. O conteúdo original fica em `original`; o arquivo `origin.json` informa o caminho de origem e a data (no DNS, `origin.path` registra a origem). A estrutura privada usa `0700`; configurações DNS e snapshots, executados via sudo, têm categorias próprias pertencentes ao root, sem alterar o dono do diretório principal.
+As categorias são `files` (configurações e migração SDK), `ssh`, `gpg`, `dns` e `snapshots`. O conteúdo original fica em `original`; o arquivo `origin.json` informa o caminho de origem e a data (no DNS, `origin.path` registra a origem). A estrutura privada usa `0700`; configurações DNS e snapshots, executados via sudo, têm categorias próprias pertencentes ao root, sem alterar o dono do diretório principal.
 
 Cada execução cria uma nova geração e preserva as anteriores. A CLI prepara `/mnt/backups` com proprietário/grupo do usuário e permissão `0700`. Para execução isolada ou testes, `DOTFILES_BACKUP_DIR=/caminho/absoluto` substitui explicitamente a raiz; erros nunca causam fallback para o diretório do programa.
 
@@ -900,14 +881,6 @@ Cada execução cria uma nova geração e preserva as anteriores. A CLI prepara 
 `Backup > Ponto de Restauração` cria um snapshot Btrfs gravável do subvolume raiz dentro de `/mnt/backups`. O registro fica em `snapshots/<hash-da-origem>/<data-UTC>-<identificador>/original`.
 
 A ação prepara o destino centralizado e executa `btrfs subvolume snapshot / <destino>` com privilégios de administrador. O destino precisa pertencer ao mesmo sistema de arquivos Btrfs da raiz; se `/mnt/backups` estiver em outro disco ou sistema de arquivos, a criação do snapshot é recusada, sem gravá-lo em outro local.
-
-### Backup do navegador
-
-`Backup > Backup do Navegador` arquiva `.config/zen`, `.cache/zen` e `.local/share/keyrings` em `/mnt/backups/browser/<hash>/<geração>/original/zen-backup.tar`.
-
-Feche o Zen Browser antes de iniciar. A CLI verifica os processos antes e depois de criar o arquivo.
-
-A ação cria o arquivo temporário na nova geração. Em caso de falha, as gerações anteriores permanecem intactas. O arquivo recebe permissão `0600` porque contém dados do navegador e do chaveiro.
 
 ### Backup de projetos locais
 

@@ -25,7 +25,7 @@ func TestCleanupJobRefreshesPacmanBeforeRemoval(t *testing.T) {
 	if got := jobStepLabels(configured); !slices.Equal(got, []string{
 		"Verificar instalação do Ghostty",
 		"Atualizar bases do Pacman",
-		"Desinstalar firefox, alacritty, meld, shelly",
+		"Desinstalar alacritty, meld, shelly",
 		"Remover dados dos aplicativos",
 	}) {
 		t.Fatalf("passos inesperados: %v", got)
@@ -75,12 +75,17 @@ func TestRemovePreinstalledApplicationDirectories(t *testing.T) {
 		}
 	}
 	keptDirectories := []string{
+		filepath.Join(home, ".mozilla"),
+		filepath.Join(home, ".cache", "mozilla"),
 		filepath.Join(home, ".config", "ghostty"),
 		filepath.Join(home, ".config", "micro"),
 		filepath.Join(home, ".cache", "micro"),
 	}
 	for _, path := range keptDirectories {
 		if err := os.MkdirAll(path, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(path, "data"), []byte("keep"), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -96,6 +101,9 @@ func TestRemovePreinstalledApplicationDirectories(t *testing.T) {
 	for _, path := range keptDirectories {
 		if info, err := os.Stat(path); err != nil || !info.IsDir() {
 			t.Fatalf("diretório preservado foi alterado em %s: info=%v err=%v", path, info, err)
+		}
+		if content, err := os.ReadFile(filepath.Join(path, "data")); err != nil || string(content) != "keep" {
+			t.Fatalf("dados preservados foram alterados em %s: conteúdo=%q err=%v", path, content, err)
 		}
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -47,79 +46,6 @@ func TestRestorePointJobCreatesSnapshotAfterPreparingDirectory(t *testing.T) {
 	}
 	if result := configured.result(); !strings.Contains(result, destination) {
 		t.Fatalf("resultado não informa o destino: %q", result)
-	}
-}
-
-func TestBackupBrowserCreatesArchive(t *testing.T) {
-	testBackupStore(t)
-	home := t.TempDir()
-	destination := testPrivateDirectory(t)
-	procRoot := t.TempDir()
-	for _, name := range []string{".config/zen/profile", ".cache/zen/cache", ".local/share/keyrings/keys"} {
-		path := filepath.Join(home, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, []byte(name), 0600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := backupBrowserAt(context.Background(), home, destination, procRoot); err != nil {
-		t.Fatal(err)
-	}
-	archive := filepath.Join(testBackupAt(t, destination, "browser", home), "zen-backup.tar")
-	info, err := os.Stat(archive)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if info.Mode().Perm() != 0600 {
-		t.Fatalf("permissão do backup: %v", info.Mode())
-	}
-	listing, err := exec.Command("tar", "-tf", archive).Output()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{".config/zen/profile", ".cache/zen/cache", ".local/share/keyrings/keys"} {
-		if !strings.Contains(string(listing), name) {
-			t.Fatalf("arquivo ausente do backup: %s", name)
-		}
-	}
-}
-
-func TestBackupBrowserRefusesOpenZen(t *testing.T) {
-	testBackupStore(t)
-	procRoot := t.TempDir()
-	pidPath := filepath.Join(procRoot, "123")
-	if err := os.Mkdir(pidPath, 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(pidPath, "comm"), []byte("zen-browser\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	destination := testPrivateDirectory(t)
-	err := backupBrowserAt(context.Background(), t.TempDir(), destination, procRoot)
-	if err == nil || !strings.Contains(err.Error(), "feche o Zen") {
-		t.Fatalf("Zen aberto deveria impedir backup: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(destination, "zen-backup.tar")); !os.IsNotExist(err) {
-		t.Fatalf("arquivo de backup inesperado: %v", err)
-	}
-}
-
-func TestBackupBrowserKeepsPreviousArchiveOnFailure(t *testing.T) {
-	testBackupStore(t)
-	home := t.TempDir()
-	destination := testPrivateDirectory(t)
-	archive := filepath.Join(destination, "zen-backup.tar")
-	if err := os.WriteFile(archive, []byte("previous"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if err := backupBrowserAt(context.Background(), home, destination, t.TempDir()); err == nil {
-		t.Fatal("backup sem fontes deveria falhar")
-	}
-	content, err := os.ReadFile(archive)
-	if err != nil || string(content) != "previous" {
-		t.Fatalf("backup anterior foi alterado: %q, %v", content, err)
 	}
 }
 
@@ -273,19 +199,6 @@ func TestGPGBackupJobExportsAfterSetup(t *testing.T) {
 		t.Fatalf("título inesperado: %s", configured.title)
 	}
 	want := []string{"Preparar /mnt/backups", "Exportar chaves GPG"}
-	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
-		t.Fatalf("passos inesperados: %v", labels)
-	}
-}
-
-func TestBrowserBackupJobPreparesDestinationBeforeBackup(t *testing.T) {
-	testBackupStore(t)
-	setup := nativeStep("Preparar /mnt/backups", func() error { return nil })
-	configured := browserBackupJobFor([]step{setup}, func() error { return nil })
-	if configured.title != "Backup do Navegador" {
-		t.Fatalf("título inesperado: %s", configured.title)
-	}
-	want := []string{"Preparar /mnt/backups", "Criar zen-backup.tar"}
 	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
 		t.Fatalf("passos inesperados: %v", labels)
 	}

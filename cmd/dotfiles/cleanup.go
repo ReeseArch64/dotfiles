@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var preinstalledPackages = []string{"firefox", "alacritty", "meld", "shelly"}
+var preinstalledPackages = []string{"alacritty", "meld", "shelly"}
 
 const removePreinstalledPackagesScript = `packages=()
 for package in "$@"; do
@@ -30,8 +30,6 @@ func validateGhosttyInstalled(missing []string) error {
 
 func preinstalledApplicationDirectories(home string) []string {
 	return []string{
-		filepath.Join(home, ".mozilla"),
-		filepath.Join(home, ".cache", "mozilla"),
 		filepath.Join(home, ".config", "alacritty"),
 		filepath.Join(home, ".cache", "alacritty"),
 		filepath.Join(home, ".config", "meld"),
@@ -74,7 +72,7 @@ func cleanupJob() job {
 func (m model) cleanupItems() []item {
 	return []item{{
 		title: "Remover aplicativos",
-		desc:  "Desinstalar Firefox, Alacritty, Meld e Shelly e apagar dados dos aplicativos",
+		desc:  "Desinstalar Alacritty, Meld e Shelly e apagar dados dos aplicativos",
 		job:   cleanupJob,
 	}}
 }

@@ -108,17 +108,13 @@ func (s dockerStatus) card(width int) string {
 	return renderCard(rows, width)
 }
 
-func validateDockerLoginBrowser(home string, lookPath func(string) (string, error)) error {
+func validateDockerLoginBrowser(lookPath func(string) (string, error)) error {
 	var missing []string
-	if _, err := lookPath("zen-browser"); err != nil {
-		missing = append(missing, "executável zen-browser")
-	}
-	config := filepath.Join(home, ".config", "zen")
-	if info, err := os.Stat(config); err != nil || !info.IsDir() {
-		missing = append(missing, config)
+	if _, err := lookPath("firefox"); err != nil {
+		missing = append(missing, "executável firefox")
 	}
 	if len(missing) > 0 {
-		return errors.New("Docker login exige Zen Browser configurado; ausente: " + strings.Join(missing, ", "))
+		return errors.New("Docker login exige Mozilla Firefox configurado; ausente: " + strings.Join(missing, ", "))
 	}
 	return nil
 }
@@ -168,8 +164,8 @@ func dockerHasCredentials(home string) bool {
 }
 
 func dockerJobForUser(username, home string, packageSteps []step, lookPath func(string) (string, error)) job {
-	steps := []step{skipWhen(nativeStep("Validar Zen Browser para Docker login", func() error {
-		return validateDockerLoginBrowser(home, lookPath)
+	steps := []step{skipWhen(nativeStep("Validar Mozilla Firefox para Docker login", func() error {
+		return validateDockerLoginBrowser(lookPath)
 	}), func() bool { return dockerHasCredentials(home) })}
 	steps = append(steps, packageSteps...)
 	steps = append(steps,
@@ -177,7 +173,7 @@ func dockerJobForUser(username, home string, packageSteps []step, lookPath func(
 		terminalStep("Configurar /etc/docker/daemon.json", "sudo", "sh", "-c", `printf '%s\n' "$1" > "$2"`, "dotfiles", dockerDaemonConfig, "/etc/docker/daemon.json"),
 		terminalStep("Adicionar "+username+" ao grupo docker", "sudo", "usermod", "-aG", "docker", username),
 		terminalStep("Habilitar e iniciar docker.service", "sudo", "systemctl", "enable", "--now", "docker.service"),
-		terminalStep("Definir Zen Browser como padrão", "xdg-settings", "set", "default-web-browser", "zen.desktop"),
+		terminalStep("Definir Mozilla Firefox como padrão", "xdg-settings", "set", "default-web-browser", "firefox.desktop"),
 		skipWhen(terminalStep("Autenticar no Docker", "newgrp", "docker", "-c", "docker login"), func() bool { return dockerHasCredentials(home) }),
 	)
 	return job{

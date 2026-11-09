@@ -39,7 +39,7 @@ widget_order = []
 active_monitor_only = true
 background_opacity = 0.20999999530613422
 layer = "overlay"
-pinned = [ "zen", "dev.noctalia.Noctalia", "md.obsidian.Obsidian" ]
+pinned = [ "firefox", "dev.noctalia.Noctalia", "md.obsidian.Obsidian" ]
 show_instance_count = false
 smart_auto_hide = true
 
@@ -204,7 +204,7 @@ builtin = "Dracula"
         "codex",
         "opencode",
         "pi-agent",
-        "zen-browser",
+        "firefox",
         "discord",
         "telegram",
         "micro",

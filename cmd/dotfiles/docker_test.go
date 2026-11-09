@@ -42,26 +42,22 @@ func TestDockerPackages(t *testing.T) {
 func dockerBrowserTest(t *testing.T) (string, func(string) (string, error)) {
 	t.Helper()
 	home := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(home, ".config", "zen"), 0755); err != nil {
-		t.Fatal(err)
-	}
 	return home, func(name string) (string, error) {
-		if name != "zen-browser" {
+		if name != "firefox" {
 			t.Fatalf("executável inesperado: %s", name)
 		}
-		return "/usr/bin/zen-browser", nil
+		return "/usr/bin/firefox", nil
 	}
 }
 
-func TestValidateDockerLoginBrowserRequiresExecutableAndProfile(t *testing.T) {
-	home := t.TempDir()
+func TestValidateDockerLoginBrowserRequiresExecutable(t *testing.T) {
 	lookPath := func(string) (string, error) { return "", errors.New("não encontrado") }
 
-	err := validateDockerLoginBrowser(home, lookPath)
+	err := validateDockerLoginBrowser(lookPath)
 	if err == nil {
-		t.Fatal("esperava bloqueio sem Zen Browser")
+		t.Fatal("esperava bloqueio sem Mozilla Firefox")
 	}
-	for _, requirement := range []string{"zen-browser", filepath.Join(home, ".config", "zen")} {
+	for _, requirement := range []string{"firefox"} {
 		if !strings.Contains(err.Error(), requirement) {
 			t.Fatalf("erro não menciona %s: %v", requirement, err)
 		}
@@ -74,15 +70,18 @@ func TestDockerJobValidatesBrowserAndSetsDefaultBeforeLogin(t *testing.T) {
 	if len(job.steps) != 7 {
 		t.Fatalf("quantidade inesperada de passos: %d", len(job.steps))
 	}
-	if job.steps[0].run == nil || job.steps[0].label != "Validar Zen Browser para Docker login" {
+	if job.steps[0].run == nil || job.steps[0].label != "Validar Mozilla Firefox para Docker login" {
 		t.Fatalf("validação inicial inesperada: %#v", job.steps[0])
+	}
+	if _, err := job.steps[0].run(); err != nil {
+		t.Fatalf("Firefox instalado sem perfil prévio foi rejeitado: %v", err)
 	}
 	want := [][]string{
 		{"sudo", "mkdir", "-p", "/etc/docker"},
 		{"sudo", "sh", "-c", `printf '%s\n' "$1" > "$2"`, "dotfiles", "{\n  \"data-root\": \"/var/lib/docker\",\n  \"storage-driver\": \"overlay2\"\n}", "/etc/docker/daemon.json"},
 		{"sudo", "usermod", "-aG", "docker", "dev"},
 		{"sudo", "systemctl", "enable", "--now", "docker.service"},
-		{"xdg-settings", "set", "default-web-browser", "zen.desktop"},
+		{"xdg-settings", "set", "default-web-browser", "firefox.desktop"},
 		{"newgrp", "docker", "-c", "docker login"},
 	}
 	for i, expected := range want {
@@ -105,7 +104,7 @@ func TestDockerJobValidatesBrowserBeforePackageSteps(t *testing.T) {
 	if len(job.steps) != 8 {
 		t.Fatalf("quantidade inesperada de passos: %d", len(job.steps))
 	}
-	if job.steps[0].label != "Validar Zen Browser para Docker login" || job.steps[1].label != install.label {
+	if job.steps[0].label != "Validar Mozilla Firefox para Docker login" || job.steps[1].label != install.label {
 		t.Fatalf("ordem inicial inesperada: %s, %s", job.steps[0].label, job.steps[1].label)
 	}
 }

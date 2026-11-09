@@ -170,7 +170,7 @@ func (m model) items() []item {
 			{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 			{title: "Ghostty", desc: "Instalar o terminal e copiar sua configuração", job: func() job { return ghosttyJob(m.setupDir) }},
-			{title: "Zen Browser", desc: "Instalar o navegador e restaurar o backup local", job: func() job { return zenBrowserJob(m.dotfiles) }},
+			{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
 		}
 		if m.device == deviceDesktop {
 			items = append(items,
@@ -193,7 +193,6 @@ func (m model) items() []item {
 	case screenBackup:
 		return []item{
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
-			{title: "Backup do Navegador", desc: "Salvar Zen em /mnt/backups/browser por origem e data", job: browserBackupJob},
 			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub e depois ao GitLab", job: projectsBackupJob},
 			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
 			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/gpg", job: gpgBackupJob},

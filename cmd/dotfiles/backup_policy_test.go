@@ -78,24 +78,15 @@ func TestRestorePointValidatesBtrfsFilesystemBeforeSnapshot(t *testing.T) {
 }
 
 func TestBackupExportsRetainEveryGeneration(t *testing.T) {
-	for _, category := range []string{"browser", "ssh", "gpg"} {
+	for _, category := range []string{"ssh", "gpg"} {
 		t.Run(category, func(t *testing.T) {
 			store := testBackupStore(t)
 			home := t.TempDir()
 			t.Setenv("HOME", home)
-			proc := t.TempDir()
 			origin := home
 			var payloadName string
 			for _, value := range []string{"first", "second"} {
 				switch category {
-				case "browser":
-					for _, root := range zenBackupRoots {
-						sdkTestWrite(t, filepath.Join(home, root, "file"), value)
-					}
-					if err := backupBrowserAt(context.Background(), home, store, proc); err != nil {
-						t.Fatal(err)
-					}
-					payloadName = "zen-backup.tar"
 				case "ssh":
 					origin = filepath.Join(home, ".ssh")
 					names := requiredSSHIdentityFiles(deviceDesktop)
@@ -120,12 +111,7 @@ func TestBackupExportsRetainEveryGeneration(t *testing.T) {
 			}
 			values := map[string]bool{}
 			for _, path := range paths {
-				var data []byte
-				if category == "browser" {
-					data, err = exec.Command("tar", "-xOf", filepath.Join(path, payloadName), ".config/zen/file").Output()
-				} else {
-					data, err = os.ReadFile(filepath.Join(path, payloadName))
-				}
+				data, err := os.ReadFile(filepath.Join(path, payloadName))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -135,29 +121,6 @@ func TestBackupExportsRetainEveryGeneration(t *testing.T) {
 				t.Fatalf("old/new contents not retained: %v", values)
 			}
 		})
-	}
-}
-
-func TestZenRestorePermanentlyPreservesReplacedDataCentrally(t *testing.T) {
-	testBackupStore(t)
-	dotfiles, home := t.TempDir(), t.TempDir()
-	writeZenTestArchive(t, filepath.Join(dotfiles, "zen-backup.tar"), validZenTestEntries())
-	if err := extractZenBackup(dotfiles); err != nil {
-		t.Fatal(err)
-	}
-	for _, root := range zenBackupRoots {
-		sdkTestWrite(t, filepath.Join(home, root, "old"), "original "+root)
-	}
-	if err := restoreZenBackup(dotfiles, home); err != nil {
-		t.Fatal(err)
-	}
-	for _, root := range zenBackupRoots {
-		origin := filepath.Join(home, root)
-		sdkTestContent(t, filepath.Join(testBackupFor(t, origin), "old"), "original "+root)
-		adjacent, _ := filepath.Glob(filepath.Join(filepath.Dir(origin), ".zen-previous-*"))
-		if len(adjacent) > 0 {
-			t.Fatalf("retained adjacent backup: %v", adjacent)
-		}
 	}
 }
 

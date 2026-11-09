@@ -29,7 +29,7 @@ window-rule {
 }
 
 window-rule {
-    match app-id="zen"
+    match app-id="firefox"
     opacity 0.95
     draw-border-with-background false
 }
