@@ -52,6 +52,7 @@ func TestMiseConfigIncludesCloudCLIs(t *testing.T) {
 			`azure-cli = { version = "latest" }`,
 			`"npm:cf" = { version = "latest" }`,
 			`"npm:vercel" = { version = "latest" }`,
+			`"npm:neon" = { version = "latest" }`,
 			`wrangler = { version = "latest" }`,
 		} {
 			if !strings.Contains(string(content), want) {

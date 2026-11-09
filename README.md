@@ -554,6 +554,7 @@ O arquivo compartilhado `setup/config/mise/mise.toml` instala:
 - Cloudflare CLI (`cf`, pacote npm `cf`)
 - Cloudflare Wrangler
 - Vercel CLI (`vercel`, pacote npm `vercel`), no Desktop e Notebook
+- Neon CLI (`neon`, pacote npm `neon`), no Desktop e Notebook
 - k9s
 - kind
 - kubectl
@@ -585,6 +586,8 @@ az login
 O Wrangler fica disponível como `wrangler`. Ele não exige login separado nesta ação.
 
 A Vercel CLI é instalada pelo Mise e fica disponível como `vercel`. Para autenticar, execute `vercel login` manualmente após a instalação. Para instalar nos dois perfis, use `Desenvolvimento > Ambiente de Desenvolvimento`; se o Mise já estiver configurado, execute `mise install`.
+
+A Neon CLI também é instalada pelo Mise nos dois perfis. Usa o pacote oficial `neon`, recomendado para novas instalações, e disponibiliza o comando `neon`. Após instalar com a mesma ação ou com `mise install`, execute `neon login` para autenticar.
 
 Os perfis desktop e laptop incluem o alias `gpa` (`git push origin && git push ogle && git push backup`): envia para GitHub, GitLab e Gitea, interrompendo se algum push falhar. Os três remotos devem estar configurados no repositório. O alias `piu` (`pi update --all`) substitui `pu` e atualiza tanto o Pi Agent quanto suas extensões.
 
