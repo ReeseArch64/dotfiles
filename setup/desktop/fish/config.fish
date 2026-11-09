@@ -103,10 +103,44 @@ alias stop="sudo systemctl stop"
 
 alias megabrain="cd ~/.obsidian/MegaBrain/ && pi"
 
-alias notebook="ssh alsgy@192.168.1.105"
+alias notebook="ssh notebook"
 
-alias homelab="ssh alsgy@192.168.1.107"
+alias homelab="ssh homelab"
 
 alias gpa="git push origin && git push ogle && git push backup"
 
 alias piu="pi update --all"
+
+# Yazi: pastas pessoais remotas via SSHFS (somente desktop).
+function yremote --description 'Abrir homelab ou notebook no Yazi via SSHFS'
+    set -l unmount 0
+    if test "$argv[1]" = --unmount
+        set unmount 1
+        set -e argv[1]
+    end
+    if test (count $argv) -ne 1; or not contains -- "$argv[1]" homelab notebook
+        echo 'Uso: yremote [--unmount] homelab|notebook' >&2
+        return 2
+    end
+    set -l remote $argv[1]
+    set -l destination "$HOME/mnt/$remote"
+    if mountpoint -q -- "$destination"
+        if not findmnt -rn -M "$destination" -t fuse.sshfs -S "$remote:" >/dev/null
+            echo "O diretório $destination já contém outra montagem." >&2
+            return 1
+        end
+        if test $unmount -eq 1
+            fusermount3 -u "$destination"
+            return $status
+        end
+    else if test $unmount -eq 1
+        return 0
+    else
+        mkdir -p -- "$destination"; or return $status
+        sshfs "$remote:" "$destination" -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3,ConnectTimeout=10; or return $status
+    end
+    yazi "$destination"
+end
+
+alias yhomelab='yremote homelab'
+alias ynotebook='yremote notebook'

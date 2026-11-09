@@ -582,6 +582,12 @@ A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/do
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
+No desktop, `yhomelab` e `ynotebook` montam a pasta pessoal do usuário remoto em `~/mnt/homelab` e `~/mnt/notebook` e abrem o Yazi nesse diretório. Reutilizam os hosts e as chaves de `~/.ssh/config`, incluindo a confirmação do fingerprint e a passphrase no primeiro acesso. O alias Fish `notebook` também usa esse host SSH (`192.168.1.103`).
+
+Para disponibilizar os comandos, aplique `Desenvolvimento > Ambiente de Desenvolvimento`; instale Yazi e SSHFS por `Desenvolvimento > Ferramentas de terminal` e aplique `Configurar SSH` caso ainda não tenha feito. Abra um novo terminal. As máquinas de destino precisam estar acessíveis por SSH com o subsistema SFTP habilitado.
+
+As montagens são feitas sob demanda, sem sudo, e permanecem disponíveis ao sair do Yazi. Você pode abrir outra aba do Yazi em qualquer um desses caminhos e copiar/colar normalmente. Para desmontar, saia da pasta nos terminais/Yazi e execute `yremote --unmount homelab` ou `yremote --unmount notebook`. Uma montagem ocupada gera erro, sem desmontagem forçada. Se a rede cair durante uma transferência, confira o resultado e repita a cópia se necessário. Esses comandos existem somente no perfil desktop, respeitando o acesso desktop → notebook/homelab.
+
 ### Ambiente Sandbox
 
 `Desenvolvimento > Ambiente Sandbox` executa estas etapas:
@@ -638,6 +644,7 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 **Pacman:**
 
 - Yazi
+- SSHFS, para acessar pastas remotas pelo Yazi
 - Hurl
 - Glow
 - FFmpeg

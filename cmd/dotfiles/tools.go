@@ -10,7 +10,7 @@ const mprocsInstallCommand = `curl -fsSL https://dekit.run/install.sh | sh && pr
 
 var terminalToolPackages = []string{"neovim", "scc"}
 var terminalToolAurPackages = []string{"viddy", "usql-bin", "proton-vpn-cli", "proton-pass-cli-bin"}
-var terminalToolPacmanPackages = []string{"yazi", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "chafa", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "ninja", "git-delta", "ventoy", "eza", "bat", "wget", "curl", "uv"}
+var terminalToolPacmanPackages = []string{"yazi", "sshfs", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "chafa", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "ninja", "git-delta", "ventoy", "eza", "bat", "wget", "curl", "uv"}
 
 func lunarVimInstallStep() step {
 	return terminalStep("Instalar LunarVim", "bash", "-c", lunarVimInstallCommand)
