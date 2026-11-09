@@ -5,6 +5,14 @@ import (
 	"os"
 )
 
+const serverChafaInstallScript = `set -Eeuo pipefail
+[[ $EUID == 0 ]] || { echo 'Execute como root ou via sudo.' >&2; exit 1; }
+. /etc/os-release
+[[ ${ID:-} == ubuntu ]] || { echo 'Esta instalação requer Ubuntu Server.' >&2; exit 1; }
+apt-get update
+apt-get install --yes chafa
+`
+
 // Official Debian packages; hashes are pinned from the upstream release assets:
 // https://github.com/fastfetch-cli/fastfetch/releases/tag/2.70.0
 const serverFastfetchInstallScript = `set -Eeuo pipefail
@@ -64,11 +72,18 @@ func serverFastfetchJobFor(dotfiles, setupDir, home string, install []step) job 
 func serverFastfetchJob(dotfiles, setupDir string) job {
 	home, _ := os.UserHomeDir()
 	var install []step
+	if !commandSucceeds(nil, "chafa", "--version") {
+		if os.Geteuid() == 0 {
+			install = append(install, terminalStep("Instalar Chafa para renderizar ~/.face", "bash", "-c", serverChafaInstallScript))
+		} else {
+			install = append(install, withSudo(terminalStep("Instalar Chafa para renderizar ~/.face", "sudo", "bash", "-c", serverChafaInstallScript))...)
+		}
+	}
 	if !commandSucceeds(nil, "fastfetch", "--version") {
 		if os.Geteuid() == 0 {
-			install = []step{terminalStep("Instalar Fastfetch para Ubuntu Server", "bash", "-c", serverFastfetchInstallScript)}
+			install = append(install, terminalStep("Instalar Fastfetch para Ubuntu Server", "bash", "-c", serverFastfetchInstallScript))
 		} else {
-			install = withSudo(terminalStep("Instalar Fastfetch para Ubuntu Server", "sudo", "bash", "-c", serverFastfetchInstallScript))
+			install = append(install, withSudo(terminalStep("Instalar Fastfetch para Ubuntu Server", "sudo", "bash", "-c", serverFastfetchInstallScript))...)
 		}
 	}
 	return serverFastfetchJobFor(dotfiles, setupDir, home, install)

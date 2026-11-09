@@ -9,9 +9,9 @@ fish_add_path ~/.local/bin ~/.cargo/bin
 function fish_greeting
     if command -q fastfetch
         if command -q chafa; and test -r "$HOME/.face"
-            fastfetch --config "$HOME/.config/fastfetch/config.json" --logo-type chafa --logo "$HOME/.face"
-        else
             fastfetch --config "$HOME/.config/fastfetch/config.json"
+        else
+            fastfetch --config "$HOME/.config/fastfetch/config.json" --logo-type builtin --logo ubuntu
         end
     end
 end

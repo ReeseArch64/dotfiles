@@ -115,6 +115,33 @@ func TestServerFastfetchConfigsAreHeadlessAndDetectOS(t *testing.T) {
 	}, deviceServer, deviceHomeProd)
 }
 
+func TestServerFastfetchRendersFaceWithoutTerminalPixelDimensions(t *testing.T) {
+	fastfetch, err := exec.LookPath("fastfetch")
+	if err != nil {
+		t.Skip("fastfetch não disponível")
+	}
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		bin, home := t.TempDir(), t.TempDir()
+		log := filepath.Join(home, "chafa.log")
+		t.Setenv("HOME", home)
+		t.Setenv("PATH", bin+":"+os.Getenv("PATH"))
+		t.Setenv("CHAFA_LOG", log)
+		t.Setenv("TERM", "dumb")
+		t.Setenv("SSH_CLIENT", "192.168.1.104 12345 22")
+		writeTestExecutable(t, bin, "chafa", `printf '%s\n' "$@" > "$CHAFA_LOG"
+printf 'FACE_RENDERED\n'`)
+		output, err := exec.Command(fastfetch, "--config", configPath(setupDir, "fastfetch", "config.json"), "--structure", "title", "--pipe", "false", "--show-errors").CombinedOutput()
+		if err != nil || !strings.Contains(string(output), "FACE_RENDERED") || strings.Contains(string(output), "Logo:") {
+			t.Fatalf("logo não renderizado sem dimensões em pixels: %v: %s", err, output)
+		}
+		args, err := os.ReadFile(log)
+		want := "--format\nsymbols\n--symbols\nblock\n--colors\nfull\n--size\n30x15\n--\n" + filepath.Join(home, ".face") + "\n"
+		if err != nil || string(args) != want {
+			t.Fatalf("Chafa não recebeu ~/.face: %v: %q", err, args)
+		}
+	}, deviceServer, deviceHomeProd)
+}
+
 func TestServerFastfetchInstallerIsVerifiedAndUbuntuOnly(t *testing.T) {
 	for _, tc := range []struct{ name, osID, arch, fail string }{
 		{"amd64", "ubuntu", "amd64", ""},

@@ -86,8 +86,8 @@ func TestServerFishGreetingAndNoninteractiveSessions(t *testing.T) {
 				return
 			}
 			want := "--config " + filepath.Join(home, ".config/fastfetch/config.json")
-			if tc.image {
-				want += " --logo-type chafa --logo " + filepath.Join(home, ".face")
+			if !tc.image {
+				want += " --logo-type builtin --logo ubuntu"
 			}
 			if readErr != nil || string(data) != want+"\n" {
 				t.Fatalf("Fastfetch inesperado: %q, %v; esperado %q", data, readErr, want)
