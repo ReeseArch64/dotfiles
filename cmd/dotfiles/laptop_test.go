@@ -32,9 +32,9 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 	}
 }
 
-func TestLaptopPlatformRequiresOnlyArch(t *testing.T) {
+func TestLaptopPlatformRequiresOmarchy(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "os-release")
-	for _, id := range []string{"arch", "cachyos", "ubuntu"} {
+	for _, id := range []string{"omarchy", "arch", "cachyos", "ubuntu"} {
 		if err := os.WriteFile(path, []byte("ID="+id+"\n"), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -42,7 +42,7 @@ func TestLaptopPlatformRequiresOnlyArch(t *testing.T) {
 			t.Fatal("laptop não deve exigir ferramentas de desktop")
 			return "", nil
 		})
-		if (err == nil) != (id == "arch") {
+		if (err == nil) != (id == "omarchy") {
 			t.Fatalf("ID=%s: %v", id, err)
 		}
 	}
