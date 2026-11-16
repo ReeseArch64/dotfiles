@@ -110,6 +110,9 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 }
 
 func (m model) items() []item {
+	if m.device == deviceLaptop {
+		return m.laptopItems()
+	}
 	switch m.device {
 	case deviceDesktop, deviceNotebook, deviceServer, deviceHomeProd:
 	default:
@@ -513,10 +516,6 @@ func main() {
 	}
 	if device == deviceMacBook {
 		fmt.Fprintln(os.Stderr, "MacBook ainda não é suportado.")
-		return
-	}
-	if device == deviceLaptop {
-		fmt.Println("Laptop (Omarchy Linux) reconhecido; nenhuma ação disponível por enquanto.")
 		return
 	}
 

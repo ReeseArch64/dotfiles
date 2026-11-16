@@ -347,7 +347,7 @@ func describeRule(r ufwRule) string {
 }
 
 func (m model) fwItems() []item {
-	allowSSH := m.device != deviceDesktop
+	allowSSH := m.device != deviceDesktop && m.device != deviceLaptop
 	description := "Ativa o UFW e bloqueia conexões SSH recebidas"
 	if allowSSH {
 		description = fmt.Sprintf("Ativa o UFW e libera SSH na LAN %s", m.fw.lan)

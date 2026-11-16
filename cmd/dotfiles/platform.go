@@ -28,7 +28,11 @@ func checkPlatform(osReleasePath string, lookPath func(string) (string, error)) 
 
 func checkPlatformForDevice(device deviceProfile, path string, lookPath func(string) (string, error)) error {
 	if device == deviceLaptop {
-		return errors.New("Laptop (Omarchy Linux) ainda não possui ações suportadas")
+		id, err := osReleaseID(path)
+		if err != nil || id != "arch" {
+			return errors.New("ambiente incompatível: Laptop (Omarchy Linux) requer base Arch Linux")
+		}
+		return nil
 	}
 	if device == deviceMacBook {
 		return errors.New("MacBook ainda não é suportado")

@@ -23,13 +23,16 @@ func TestUnknownDeviceHasNoOptions(t *testing.T) {
 	assertNoDeviceOptions(t, deviceProfile(999))
 }
 
-func TestLaptopHasNoActions(t *testing.T) {
+func TestLaptopOnlyHasFirewall(t *testing.T) {
 	m := newModelForDevice("/repo", deviceLaptop)
 	if m.setupDir != "/repo/setup/laptop-omarchy" {
 		t.Fatalf("diretório do laptop incorreto: %q", m.setupDir)
 	}
 	for screen := screenMain; screen <= screenJob; screen++ {
 		m.screen = screen
+		if screen == screenMain || screen == screenFirewall {
+			continue
+		}
 		if items := m.items(); len(items) != 0 {
 			t.Fatalf("laptop recebeu opções na tela %v: %v", screen, itemTitles(items))
 		}
@@ -38,7 +41,7 @@ func TestLaptopHasNoActions(t *testing.T) {
 		t.Fatal("laptop não deve verificar ferramentas do CachyOS")
 		return "", nil
 	}); err == nil {
-		t.Fatal("laptop não deve permitir ações de plataforma")
+		t.Fatal("laptop não deve aceitar plataforma desconhecida")
 	}
 }
 
