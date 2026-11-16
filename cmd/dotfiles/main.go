@@ -58,6 +58,7 @@ type item struct {
 	goTo        screen
 	job         func() job
 	quit        bool
+	disabled    bool
 }
 
 type tickMsg time.Time
@@ -279,6 +280,9 @@ func (m model) back() model {
 
 // refresh relê o estado usado pela tela atual.
 func (m *model) refresh() {
+	if m.device == deviceLaptop {
+		m.ssh = loadSSHStatusForDevice(deviceNotebook)
+	}
 	switch m.screen {
 	case screenSSH:
 		m.ssh = loadSSHStatusForDevice(m.device)
@@ -328,6 +332,9 @@ func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) selectItem(it item) (tea.Model, tea.Cmd) {
+	if it.disabled {
+		return m, nil
+	}
 	switch {
 	case it.quit:
 		return m, tea.Quit
@@ -545,7 +552,11 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	p := tea.NewProgram(newModelForDevice(dotfiles, device), tea.WithAltScreen())
+	m := newModelForDevice(dotfiles, device)
+	if device == deviceLaptop {
+		m.refresh()
+	}
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)

@@ -23,7 +23,23 @@ func TestLaptopSubtitle(t *testing.T) {
 }
 
 func TestLaptopFirewallMenuAndJob(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".ssh"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range requiredSSHIdentityFiles(deviceNotebook) {
+		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte("ssh-ed25519 YWJj desktop\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, name := range []string{"config", "authorized_keys"} {
+		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte("ssh-ed25519 YWJj desktop\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	m := newModelForDevice("/repo", deviceLaptop)
+	m.ssh = sshStatus{service: unitState{"active", "enabled"}, cfg: map[string]string{"port": "22"}}
 	if got := itemTitles(m.items()); !slices.Equal(got, []string{"Firewall", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", got)
 	}
@@ -34,15 +50,37 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 		t.Fatalf("menu firewall inesperado: %v", got)
 	}
 	labels := jobStepLabels(items[0].job())
-	for _, want := range []string{"Entrada: bloquear por padrão", "Saída: permitir por padrão", "Habilitar ufw.service no boot", "Ativar UFW"} {
+	for _, want := range []string{"Verificar pré-requisito SSH", "Entrada: bloquear por padrão", "Saída: permitir por padrão", "Habilitar ufw.service no boot", "Ativar UFW", "Liberar 22/tcp para 192.168.1.0/24"} {
 		if !slices.Contains(labels, want) {
 			t.Fatalf("passo ausente: %s", want)
 		}
 	}
-	for _, label := range labels {
-		if strings.HasPrefix(label, "Liberar ") {
-			t.Fatalf("laptop não deve liberar SSH: %s", label)
-		}
+	if err := os.Remove(filepath.Join(home, ".ssh", "authorized_keys")); err != nil {
+		t.Fatal(err)
+	}
+	// Um job criado antes da remoção também deve recusar a execução.
+	if _, err := items[0].job().steps[0].run(); err == nil {
+		t.Fatal("job não revalidou o pré-requisito SSH")
+	}
+	locked := m.items()[0]
+	if !locked.disabled || locked.job != nil {
+		t.Fatal("firewall deveria bloquear sem chave autorizada")
+	}
+}
+
+func TestLaptopFirewallLockedWithoutSSH(t *testing.T) {
+	m := newModelForDevice("/repo", deviceLaptop)
+	if m.items()[0].title != "🔒 Firewall" {
+		t.Fatal("cadeado ausente")
+	}
+	m.screen = screenFirewall
+	it := m.items()[0]
+	if !it.disabled || it.job != nil {
+		t.Fatal("firewall disponível sem SSH")
+	}
+	next, cmd := m.selectItem(it)
+	if cmd != nil || next.(model).screen != screenFirewall {
+		t.Fatal("item bloqueado foi executado")
 	}
 }
 
