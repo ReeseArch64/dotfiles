@@ -62,19 +62,19 @@ func detectDevice(hostname string) (deviceProfile, error) {
 	normalized := strings.ToLower(hostname)
 	matches := make([]deviceProfile, 0, 6)
 	for marker, profile := range map[string]deviceProfile{
-		"desktop":    deviceDesktop,
-		"notebook":   deviceNotebook,
-		"macbook":    deviceMacBook,
-		"homelab":    deviceServer,
-		"homeprod":   deviceHomeProd,
-		"latop-alan": deviceLaptop,
+		"desktop":     deviceDesktop,
+		"notebook":    deviceNotebook,
+		"macbook":     deviceMacBook,
+		"homelab":     deviceServer,
+		"homeprod":    deviceHomeProd,
+		"laptop-alan": deviceLaptop,
 	} {
 		if strings.Contains(normalized, marker) {
 			matches = append(matches, profile)
 		}
 	}
 	if len(matches) != 1 {
-		return deviceUnknown, fmt.Errorf("hostname %q deve conter exatamente um destes identificadores: desktop, notebook, macbook, homelab, homeprod ou latop-alan; nenhuma opção disponível", hostname)
+		return deviceUnknown, fmt.Errorf("hostname %q deve conter exatamente um destes identificadores: desktop, notebook, macbook, homelab, homeprod ou laptop-alan; nenhuma opção disponível", hostname)
 	}
 	return matches[0], nil
 }

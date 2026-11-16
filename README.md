@@ -49,7 +49,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
-- `latop-alan`: perfil Laptop (Omarchy Linux, base Arch), com apenas Firewall UFW no menu. Não libera SSH de entrada e só aplica a configuração quando solicitado. É independente do notebook CachyOS (`setup/laptop/`), com diretório reservado `setup/laptop-omarchy/`, sem herdar `setup/config/`. Não prepara ou move pastas, nem cria links simbólicos.
+- `laptop-alan`: perfil Laptop (Omarchy Linux, base Arch), com apenas Firewall UFW no menu. Não libera SSH de entrada e só aplica a configuração quando solicitado. É independente do notebook CachyOS (`setup/laptop/`), com diretório reservado `setup/laptop-omarchy/`, sem herdar `setup/config/`. Não prepara ou move pastas, nem cria links simbólicos.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
 
