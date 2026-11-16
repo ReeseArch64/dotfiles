@@ -48,7 +48,8 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
-- `macbook`: informa que o dispositivo ainda não possui suporte e encerra.
+- `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
+- `latop-alan`: reconhece o novo perfil Laptop (Omarchy Linux) e encerra sem executar ações. É independente do notebook CachyOS (`setup/laptop/`), com diretório reservado `setup/laptop-omarchy/`, sem herdar `setup/config/`.
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
 

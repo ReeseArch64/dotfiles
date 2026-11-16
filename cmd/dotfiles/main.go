@@ -515,6 +515,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "MacBook ainda não é suportado.")
 		return
 	}
+	if device == deviceLaptop {
+		fmt.Println("Laptop (Omarchy Linux) reconhecido; nenhuma ação disponível por enquanto.")
+		return
+	}
 
 	dotfiles := findDotfiles()
 	if err := checkPlatformForDevice(device, "/etc/os-release", exec.LookPath); err != nil {

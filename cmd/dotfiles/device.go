@@ -15,6 +15,7 @@ const (
 	deviceMacBook
 	deviceServer
 	deviceHomeProd
+	deviceLaptop
 )
 
 func (d deviceProfile) String() string {
@@ -29,6 +30,8 @@ func (d deviceProfile) String() string {
 		return "Homelab"
 	case deviceHomeProd:
 		return "HomeProd"
+	case deviceLaptop:
+		return "Laptop (Omarchy Linux)"
 	default:
 		return "Desconhecido"
 	}
@@ -47,6 +50,8 @@ func setupDirectory(dotfiles string, device deviceProfile) string {
 		profile = "homelab"
 	case deviceHomeProd:
 		profile = "homeprod"
+	case deviceLaptop:
+		profile = "laptop-omarchy"
 	default:
 		return ""
 	}
@@ -55,20 +60,21 @@ func setupDirectory(dotfiles string, device deviceProfile) string {
 
 func detectDevice(hostname string) (deviceProfile, error) {
 	normalized := strings.ToLower(hostname)
-	matches := make([]deviceProfile, 0, 5)
+	matches := make([]deviceProfile, 0, 6)
 	for marker, profile := range map[string]deviceProfile{
-		"desktop":  deviceDesktop,
-		"notebook": deviceNotebook,
-		"macbook":  deviceMacBook,
-		"homelab":  deviceServer,
-		"homeprod": deviceHomeProd,
+		"desktop":    deviceDesktop,
+		"notebook":   deviceNotebook,
+		"macbook":    deviceMacBook,
+		"homelab":    deviceServer,
+		"homeprod":   deviceHomeProd,
+		"latop-alan": deviceLaptop,
 	} {
 		if strings.Contains(normalized, marker) {
 			matches = append(matches, profile)
 		}
 	}
 	if len(matches) != 1 {
-		return deviceUnknown, fmt.Errorf("hostname %q deve conter exatamente um destes identificadores: desktop, notebook, macbook, homelab ou homeprod; nenhuma opção disponível", hostname)
+		return deviceUnknown, fmt.Errorf("hostname %q deve conter exatamente um destes identificadores: desktop, notebook, macbook, homelab, homeprod ou latop-alan; nenhuma opção disponível", hostname)
 	}
 	return matches[0], nil
 }

@@ -42,7 +42,7 @@ func TestConfigPathSharedFallbackAndProfilePriority(t *testing.T) {
 func TestConfigPathDoesNotInheritForOtherProfiles(t *testing.T) {
 	root := t.TempDir()
 	writeSharedConfigTestFile(t, filepath.Join(root, "setup", "config", "app", "config"), "shared")
-	for _, device := range []deviceProfile{deviceServer, deviceHomeProd, deviceMacBook} {
+	for _, device := range []deviceProfile{deviceServer, deviceHomeProd, deviceMacBook, deviceLaptop} {
 		profile := setupDirectory(root, device)
 		local := filepath.Join(profile, "app", "config")
 		if got := configPath(profile, "app", "config"); got != local {
