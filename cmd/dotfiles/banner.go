@@ -87,8 +87,7 @@ func renderWord(word string) []string {
 // bannerLines escolhe o layout que cabe na largura do terminal.
 func bannerLines(width int) []string {
 	layouts := [][]string{
-		{"REESEARCH64", "DOTFILES"},
-		{"REESE", "ARCH64", "DOTFILES"},
+		{"DOTFILES"},
 	}
 	for _, words := range layouts {
 		var lines []string
@@ -122,7 +121,7 @@ func renderBanner(width int, elapsed time.Duration, compact bool) string {
 		lines = bannerLines(width)
 	}
 	if lines == nil {
-		return renderGradientText("ReeseArch64 Dotfiles", elapsed, true)
+		return renderGradientText("DOTFILES", elapsed, true)
 	}
 
 	maxW := 0

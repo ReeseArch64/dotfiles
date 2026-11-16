@@ -31,7 +31,7 @@ func (d deviceProfile) String() string {
 	case deviceHomeProd:
 		return "HomeProd"
 	case deviceLaptop:
-		return "Laptop (Omarchy Linux)"
+		return "Laptop"
 	default:
 		return "Desconhecido"
 	}

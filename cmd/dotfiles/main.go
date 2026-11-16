@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "0.15.0"
+const version = "1.0.0"
 
 type screen int
 
@@ -391,6 +391,9 @@ func (m model) View() string {
 		Render(header + "\n\n" + body)
 
 	environment := "CachyOS · Niri · Noctalia Shell"
+	if m.device == deviceLaptop {
+		environment = "Omarchy · Wayland · by ReeseArch64"
+	}
 	if m.device == deviceServer || m.device == deviceHomeProd {
 		environment = "Ubuntu"
 	}
