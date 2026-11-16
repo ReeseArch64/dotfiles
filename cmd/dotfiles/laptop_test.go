@@ -70,8 +70,16 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 
 func TestLaptopFirewallLockedWithoutSSH(t *testing.T) {
 	m := newModelForDevice("/repo", deviceLaptop)
-	if m.items()[0].title != "🔒 Firewall" {
-		t.Fatal("cadeado ausente")
+	mainItem := m.items()[0]
+	if mainItem.title != "Firewall" || mainItem.desc != "Requer SSH configurado" || !mainItem.disabled {
+		t.Fatal("firewall deve aparecer desativado e sem cadeado")
+	}
+	nextMain, cmdMain := m.selectItem(mainItem)
+	if cmdMain != nil || nextMain.(model).screen != screenMain {
+		t.Fatal("firewall desativado abriu a tela")
+	}
+	if strings.Contains(m.viewMenu(60, 0), "▌") {
+		t.Fatal("item desativado não deve receber destaque de seleção")
 	}
 	m.screen = screenFirewall
 	it := m.items()[0]

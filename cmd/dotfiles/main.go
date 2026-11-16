@@ -434,7 +434,12 @@ func (m model) viewMenu(width int, elapsed time.Duration) string {
 	for i, it := range items {
 		num := fmt.Sprintf("%d", i+1)
 		desc := ansi.Truncate(it.desc, width-4, "…")
-		if i == cur {
+		if it.disabled {
+			dim := lipgloss.NewStyle().Foreground(colDimmer)
+			rows = append(rows,
+				"  "+dim.Render(it.title+" "+num),
+				"  "+dim.Render(desc))
+		} else if i == cur {
 			bar := renderGradientText("▌", elapsed, true)
 			title := renderGradientText(it.title, elapsed, true)
 			rows = append(rows,

@@ -2,7 +2,7 @@
 
 Perfil reconhecido pelo identificador de hostname `laptop-alan`, com Omarchy Linux (`ID=omarchy` em `/etc/os-release`). Não exige Niri nem Noctalia.
 
-Oferece somente **Firewall > Configurar Firewall**. Um cadeado indica que a ação está bloqueada por pré-requisitos SSH. Não existe configuração SSH neste perfil por enquanto: a CLI apenas verifica, sem instalar, copiar chaves ou configurar SSH.
+Oferece somente **Firewall > Configurar Firewall**. A opção fica escurecida, sem destaque de seleção e sem permitir execução enquanto os pré-requisitos SSH não forem atendidos. O subtítulo mostra apenas “Requer SSH configurado”. Não existe configuração SSH neste perfil por enquanto: a CLI apenas verifica, sem instalar, copiar chaves ou configurar SSH.
 
 A checagem exige OpenSSH instalado, configuração do servidor legível, porta válida, `sshd.service` ativo e habilitado no boot, os arquivos de identidades exigidos pelo notebook CachyOS, `~/.ssh/config` não vazio e `authorized_keys` contendo somente a chave de `id_trabalho_desktop.pub`. A existência dos arquivos não comprova que as chaves privadas funcionam ou que o acesso remoto foi testado. O estado é relido ao abrir a CLI, entrar/voltar nas telas e antes de executar o job; não depende de flags `ssh=true` ou `firewall=true` em `config.txt`.
 

@@ -62,17 +62,13 @@ func (m model) laptopItems() []item {
 	}
 	switch m.screen {
 	case screenMain:
-		title := "Firewall"
-		if requirement != nil {
-			title = "🔒 Firewall"
-		}
 		return []item{
-			{title: title, desc: "Requer SSH configurado como no notebook", goTo: screenFirewall},
+			{title: "Firewall", desc: "Requer SSH configurado", goTo: screenFirewall, disabled: requirement != nil},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenFirewall:
 		if requirement != nil {
-			return []item{{title: "🔒 Configurar Firewall", desc: requirement.Error(), disabled: true}}
+			return []item{{title: "Configurar Firewall", desc: "Requer SSH configurado", disabled: true}}
 		}
 		return []item{{title: "Configurar Firewall", desc: "Ativar UFW e permitir SSH somente na LAN", job: func() job {
 			j := configureFirewallJob(m.fw.port, m.fw.lan, true)
