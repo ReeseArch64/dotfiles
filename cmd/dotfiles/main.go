@@ -34,6 +34,7 @@ const (
 	screenNoctalia
 	screenCleanup
 	screenSSHKeys
+	screenWebBrowser
 	screenJob
 )
 
@@ -47,6 +48,7 @@ var screenTitles = map[screen]string{
 	screenPiAgent:     "Pi Agent",
 	screenSSH:         "SSH",
 	screenSSHKeys:     "Chaves autorizadas",
+	screenWebBrowser:  "Navegador Web",
 	screenFirewall:    "Firewall",
 	screenDocker:      "Docker",
 	screenGit:         "Git",

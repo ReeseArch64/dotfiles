@@ -30,7 +30,7 @@ func TestLaptopOnlyHasSSHAndFirewall(t *testing.T) {
 	}
 	for screen := screenMain; screen <= screenJob; screen++ {
 		m.screen = screen
-		if screen == screenMain || screen == screenFirewall || screen == screenSSH || screen == screenSSHKeys {
+		if screen == screenMain || screen == screenFirewall || screen == screenSSH || screen == screenSSHKeys || screen == screenWebBrowser {
 			continue
 		}
 		if items := m.items(); len(items) != 0 {

@@ -73,6 +73,8 @@ func (m model) laptopSSHJob(action, title string) job {
 
 func (m model) laptopItems() []item {
 	switch m.screen {
+	case screenWebBrowser:
+		return []item{{title: "Firefox", desc: "Validar Mozilla, preparar pasta de restauração e definir padrão", job: laptopFirefoxJob}}
 	case screenSSH:
 		return []item{
 			{title: "Configurar SSH", desc: "Gerar id_laptop e configurar acesso somente por chave", job: func() job { return m.laptopSSHJob("configure", "Configurar SSH") }},
@@ -96,6 +98,7 @@ func (m model) laptopItems() []item {
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
 			{title: "Firewall", desc: "Requer SSH configurado", goTo: screenFirewall, disabled: requirement != nil},
 			{title: "Aparência", desc: "Copiar foto de perfil e wallpaper do laptop", job: func() job { return laptopAppearanceJob(m.dotfiles) }},
+			{title: "Navegador Web", desc: "Configurar Firefox", goTo: screenWebBrowser},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenFirewall:

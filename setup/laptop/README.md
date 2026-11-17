@@ -39,11 +39,19 @@ Antes de alterar o firewall, solicita sudo se necessário e revalida as pública
 
 Após isso, instala UFW e iptables-nft se ausentes, bloqueia entrada por padrão, permite saída, substitui a liberação SSH global pela regra SSH somente na LAN e habilita o serviço no boot. Outras regras UFW existentes são preservadas; revise-as antes de ativar. Execute preferencialmente localmente.
 
+## Navegador Web — Firefox
+
+**Navegador Web > Firefox** exige que `~/.config/mozilla` já exista como diretório, antes de instalar pacotes ou pedir autenticação sudo. Não cria, copia nem restaura o perfil Mozilla. Execute a CLI como usuário normal.
+
+A ação instala `firefox` e `xdg-utils` via Pacman se faltarem, cria `/mnt/backups/Restore Firefox` com `sudo install -d`, atribui o UID/GID do usuário atual e aplica permissão `0700`. Cria os pais ausentes, sem alterar recursivamente donos/permissões de outros backups, e verifica escrita como o usuário. Caminhos de backup com symlinks são recusados. Se algum pai existente impedir o acesso do usuário, é necessário revisar suas permissões: a ação não as amplia silenciosamente.
+
+Por fim, define `firefox.desktop` como navegador padrão com `xdg-settings`. Tudo é manual; abrir a CLI não cria diretórios nem inicia o Firefox.
+
 ## Aparência
 
 A ação manual **Aparência** copia `assets/face.jpg` para `~/.face` como arquivo regular e `assets/wallpapers/laptop.jpg` para `~/.config/omarchy/backgrounds/dracula/laptop.jpg`. Cria os diretórios ausentes com `os.MkdirAll` (equivalente a `mkdir -p`) e preserva os demais backgrounds. Reexecutar substitui somente esses dois arquivos, sem backup; um symlink existente em `~/.face` é substituído pela cópia, sem modificar seu alvo. Não ativa o wallpaper automaticamente.
 
-Nada é aplicado automaticamente ao abrir a CLI. Não move pastas, não cria links simbólicos e não herda `setup/notebook/` nem `setup/config/`. Além do SSH, cria somente os diretórios necessários às cópias de aparência quando essa ação é solicitada.
+Nada é aplicado automaticamente ao abrir a CLI. Não move pastas, não cria links simbólicos e não herda `setup/notebook/` nem `setup/config/`. Além do SSH, cria somente os diretórios das ações de aparência e a pasta de restauração do Firefox quando essas ações são solicitadas.
 
 ## Testes
 
