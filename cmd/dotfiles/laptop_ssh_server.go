@@ -15,6 +15,35 @@ import (
 	"syscall"
 )
 
+// OpenSSH pode listar a mesma porta mais de uma vez após expandir Includes.
+func effectiveLaptopSSHPort(effective string) (string, error) {
+	var ports []string
+	for _, line := range strings.Split(effective, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 0 || fields[0] != "port" {
+			continue
+		}
+		if len(fields) != 2 {
+			return "", fmt.Errorf("diretiva de porta SSH inválida: %q", line)
+		}
+		number, err := strconv.Atoi(fields[1])
+		if err != nil || number < 1 || number > 65535 {
+			return "", fmt.Errorf("porta SSH inválida: %q", fields[1])
+		}
+		port := strconv.Itoa(number)
+		if !slices.Contains(ports, port) {
+			ports = append(ports, port)
+		}
+	}
+	if len(ports) == 0 {
+		return "", errors.New("sshd -T não informou nenhuma porta SSH")
+	}
+	if len(ports) != 1 {
+		return "", fmt.Errorf("foram encontradas portas SSH distintas (%s); revise a configuração antes de continuar", strings.Join(ports, ", "))
+	}
+	return ports[0], nil
+}
+
 func laptopSSHPolicy(username, port string) string {
 	return "# Gerenciado pelo perfil Laptop Omarchy do DOTFILES.\nPort " + port + "\n" +
 		"PermitRootLogin no\nPubkeyAuthentication yes\nAuthenticationMethods publickey\n" +
@@ -108,19 +137,9 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 	if err != nil {
 		return "", err
 	}
-	var ports []string
-	for _, line := range strings.Split(effective, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 2 && fields[0] == "port" {
-			ports = append(ports, fields[1])
-		}
-	}
-	if len(ports) != 1 {
-		return "", errors.New("é necessária uma única porta SSH")
-	}
-	port, err := strconv.Atoi(ports[0])
-	if err != nil || port < 1 || port > 65535 {
-		return "", errors.New("porta SSH inválida")
+	port, err := effectiveLaptopSSHPort(effective)
+	if err != nil {
+		return "", err
 	}
 	original, err := os.ReadFile(s.config)
 	if err != nil {
@@ -144,7 +163,7 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 		return backup, err
 	}
 	candidate := filepath.Join(backup, "candidate")
-	policy := []byte(laptopSSHPolicy(s.username, ports[0]))
+	policy := []byte(laptopSSHPolicy(s.username, port))
 	if err := os.WriteFile(candidate, policy, 0600); err != nil {
 		return backup, err
 	}
@@ -206,7 +225,7 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 	if probe == nil {
 		probe = waitLaptopSSHPort
 	}
-	if err := probe(ports[0]); err != nil {
+	if err := probe(port); err != nil {
 		return backup, err
 	}
 	return backup, nil

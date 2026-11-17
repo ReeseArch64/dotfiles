@@ -480,11 +480,9 @@ func (c *laptopSSHConsole) verify() error {
 			return errors.New("sshd.socket deve estar inativo e desabilitado")
 		}
 	}
-	port := ""
-	for _, line := range strings.Split(effective, "\n") {
-		if fields := strings.Fields(line); len(fields) == 2 && fields[0] == "port" {
-			port = fields[1]
-		}
+	port, err := effectiveLaptopSSHPort(effective)
+	if err != nil {
+		return err
 	}
 	probe := c.probe
 	if probe == nil {

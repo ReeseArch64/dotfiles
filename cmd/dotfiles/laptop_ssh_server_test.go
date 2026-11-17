@@ -10,6 +10,32 @@ import (
 	"testing"
 )
 
+func TestEffectiveLaptopSSHPort(t *testing.T) {
+	for _, tc := range []struct{ name, output, want, errorText string }{
+		{"single", "port 22\n", "22", ""},
+		{"duplicates", "port 22\nport 22\n", "22", ""},
+		{"normalized", "port 022\nport 22\n", "22", ""},
+		{"whitespace", "  port\t2222  \npasswordauthentication no\nport 2222\n", "2222", ""},
+		{"distinct", "port 22\nport 2222\n", "", "22, 2222"},
+		{"missing", "permitrootlogin no\n", "", "nenhuma porta"},
+		{"invalid", "port abc\n", "", "inválida"},
+		{"zero", "port 0\n", "", "inválida"},
+		{"range", "port 65536\n", "", "inválida"},
+		{"malformed", "port 22 2222\n", "", "inválida"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := effectiveLaptopSSHPort(tc.output)
+			if tc.errorText != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.errorText) {
+					t.Fatalf("erro esperado %q, obtido %v", tc.errorText, err)
+				}
+			} else if err != nil || got != tc.want {
+				t.Fatalf("porta obtida %q, erro %v", got, err)
+			}
+		})
+	}
+}
+
 func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 	for _, failure := range []string{"", "empty", "inactive", "candidate", "restart", "policy", "port"} {
 		t.Run(failure, func(t *testing.T) {
@@ -63,7 +89,7 @@ func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 					}
 					if args[1] == "-T" {
 						if !slices.Contains(args, "-f") {
-							return "port 2222\n", nil
+							return "port 2222\nport 2222\n", nil
 						}
 						policy := strings.ToLower(laptopSSHPolicy("alan", "2222"))
 						if failure == "policy" {
