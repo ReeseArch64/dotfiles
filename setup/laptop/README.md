@@ -45,7 +45,7 @@ Após isso, instala UFW e iptables-nft se ausentes, bloqueia entrada por padrão
 
 A ação instala `firefox` e `xdg-utils` via Pacman se faltarem, cria `/mnt/backups/Restore Firefox` com `sudo install -d`, atribui o UID/GID do usuário atual e aplica permissão `0700`. Cria os pais ausentes, sem alterar recursivamente donos/permissões de outros backups, e verifica escrita como o usuário. Caminhos de backup com symlinks são recusados. Se algum pai existente impedir o acesso do usuário, é necessário revisar suas permissões: a ação não as amplia silenciosamente.
 
-Por fim, define `firefox.desktop` como navegador padrão com `xdg-settings`. Tudo é manual; abrir a CLI não cria diretórios nem inicia o Firefox.
+Por fim, define `firefox.desktop` como navegador padrão com `env -u BROWSER xdg-settings set default-web-browser firefox.desktop`, removendo `$BROWSER` apenas desse subprocesso para evitar a recusa do `xdg-settings`. Não altera a variável na sessão nem em arquivos de configuração; aplicativos que priorizam um `$BROWSER` diferente ainda podem respeitar esse valor. Tudo é manual; abrir a CLI não cria diretórios nem inicia o Firefox.
 
 ## Aparência
 

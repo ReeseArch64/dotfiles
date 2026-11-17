@@ -65,7 +65,7 @@ func laptopFirefoxJobFor(home string, uid, gid int, packageSteps []step, run fun
 	setup := append([]step{}, packageSteps...)
 	setup = append(setup, nativeStep("Preparar /mnt/backups/Restore Firefox para o usuário", func() error {
 		return prepareLaptopFirefoxRestore(laptopFirefoxRestorePath, uid, gid, run)
-	}), terminalStep("Definir Firefox como navegador padrão", "xdg-settings", "set", "default-web-browser", "firefox.desktop"))
+	}), terminalStep("Definir Firefox como navegador padrão", "env", "-u", "BROWSER", "xdg-settings", "set", "default-web-browser", "firefox.desktop"))
 	steps = append(steps, withSudo(setup...)...)
 	return job{title: "Configurar Firefox", steps: steps}
 }

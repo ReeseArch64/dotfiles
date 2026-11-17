@@ -120,6 +120,27 @@ func TestPrepareLaptopFirefoxRestoreRejectsLinksAndSudoFailure(t *testing.T) {
 	}
 }
 
+func TestLaptopFirefoxDefaultIgnoresBrowserOnlyInChild(t *testing.T) {
+	home, bin := t.TempDir(), t.TempDir()
+	log := filepath.Join(home, "browser-env")
+	t.Setenv("BROWSER", "chromium")
+	t.Setenv("BROWSER_ENV_LOG", log)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	writeTestExecutable(t, bin, "clear", "exit 0")
+	writeTestExecutable(t, bin, "xdg-settings", `printf '%s' "${BROWSER-unset}" > "$BROWSER_ENV_LOG"`)
+	j := laptopFirefoxJobFor(home, 123, 456, nil, func(...string) error { return nil })
+	if output, err := j.steps[len(j.steps)-1].cmd().CombinedOutput(); err != nil {
+		t.Fatalf("configurar padrão: %v: %s", err, output)
+	}
+	contents, err := os.ReadFile(log)
+	if err != nil || string(contents) != "unset" {
+		t.Fatalf("BROWSER chegou ao xdg-settings: %q, %v", contents, err)
+	}
+	if os.Getenv("BROWSER") != "chromium" {
+		t.Fatal("ambiente da sessão foi alterado")
+	}
+}
+
 func TestLaptopFirefoxMenuAndJobOrdering(t *testing.T) {
 	m := newModelForDevice("/repo", deviceLaptop)
 	m.screen = screenWebBrowser
@@ -139,7 +160,7 @@ func TestLaptopFirefoxMenuAndJobOrdering(t *testing.T) {
 		t.Fatal("validação não bloqueou configuração")
 	}
 	last := job.steps[len(job.steps)-1].cmd().Args
-	want := []string{"xdg-settings", "set", "default-web-browser", "firefox.desktop"}
+	want := []string{"env", "-u", "BROWSER", "xdg-settings", "set", "default-web-browser", "firefox.desktop"}
 	if !slices.Equal(last[len(last)-len(want):], want) {
 		t.Fatalf("padrão Firefox incorreto: %v", last)
 	}
