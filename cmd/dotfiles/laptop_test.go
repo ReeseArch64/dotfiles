@@ -44,7 +44,7 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.ssh = sshStatus{service: unitState{"active", "enabled"}, cfg: map[string]string{
+	m.ssh = sshStatus{listening: true, service: unitState{"active", "enabled"}, cfg: map[string]string{
 		"port": "22", "permitrootlogin": "no", "passwordauthentication": "no", "kbdinteractiveauthentication": "no",
 		"pubkeyauthentication": "yes", "authenticationmethods": "publickey", "allowusers": account.Username,
 		"authorizedkeysfile": ".ssh/authorized_keys", "authorizedkeyscommand": "none", "trustedusercakeys": "none",
@@ -64,6 +64,17 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 			t.Fatalf("passo ausente: %s", want)
 		}
 	}
+	if err := os.WriteFile(filepath.Join(home, ".ssh", "authorized_keys"), nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if m.items()[0].disabled {
+		t.Fatal("firewall bloqueado com authorized_keys vazio")
+	}
+	m.ssh.listening = false
+	if !m.items()[0].disabled {
+		t.Fatal("firewall disponível sem porta SSH escutando")
+	}
+	m.ssh.listening = true
 	if err := os.Remove(filepath.Join(home, ".ssh", "authorized_keys")); err != nil {
 		t.Fatal(err)
 	}

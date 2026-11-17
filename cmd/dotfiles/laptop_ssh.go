@@ -161,6 +161,7 @@ type laptopSSHConsole struct {
 	input          *bufio.Reader
 	output         io.Writer
 	commands       laptopSSHCommands
+	probe          func(string) error
 }
 
 func (c *laptopSSHConsole) prompt(label string) (string, error) {
@@ -380,29 +381,36 @@ func (c *laptopSSHConsole) configureIdentity() error {
 	if err != nil {
 		return err
 	}
+	path := filepath.Join(directory, "authorized_keys")
 	if len(keys) == 0 {
-		return errors.New("adicione primeiro uma chave em Chaves autorizadas > Adicionar e execute Configurar SSH novamente")
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return writeLaptopAuthorizedKeys(path, nil)
+		}
 	}
-	return os.Chmod(filepath.Join(directory, "authorized_keys"), 0600)
+	return os.Chmod(path, 0600)
 }
 
 func (c *laptopSSHConsole) configure() error {
 	if err := c.configureIdentity(); err != nil {
 		return err
 	}
-	fmt.Fprintln(c.output, "Será iniciado o sshd com a política atual para testar o acesso. O firewall não será alterado.")
-	if err := c.confirm("Digite INICIAR para continuar: ", "INICIAR"); err != nil {
+	keys, err := readLaptopAuthorizedKeys(filepath.Join(c.home, ".ssh", "authorized_keys"), c.commands)
+	if err != nil {
 		return err
 	}
-	for _, args := range [][]string{{"sudo", "ssh-keygen", "-A"}, {"sudo", "sshd", "-t"}, {"sudo", "systemctl", "start", "sshd.service"}} {
-		if err := c.commands.interactive(args...); err != nil {
-			return err
-		}
+	if os.Getenv("SSH_CONNECTION") != "" && len(keys) == 0 {
+		return errors.New("sem chaves autorizadas, configure pelo console local para não perder acesso")
 	}
-	fmt.Fprintf(c.output, "Mantenha esta sessão aberta. De OUTRO dispositivo, teste acesso por chave e sudo -v:\nssh -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o PreferredAuthentications=publickey %s@<IP_DO_LAPTOP>\n", c.username)
-	fmt.Fprintln(c.output, "Tenha console/recuperação disponível. A próxima etapa substitui /etc/ssh/sshd_config por política exclusiva deste usuário, com backup.")
-	if err := c.confirm("Após testar acesso e recuperação, digite CONFIRMO: ", "CONFIRMO"); err != nil {
-		return fmt.Errorf("política restritiva não aplicada; sshd pode continuar ativo com a política anterior: %w", err)
+	fmt.Fprintln(c.output, "O SSH será configurado e iniciado somente por chave, sem senha e sem root. O firewall não será alterado.")
+	if len(keys) == 0 {
+		fmt.Fprintln(c.output, "Nenhuma chave autorizada: a porta ficará escutando, mas ninguém poderá autenticar até adicionar uma pública.")
+	}
+	fmt.Fprintln(c.output, "A configuração substitui /etc/ssh/sshd_config, com backup. Tenha console/recuperação disponível; não é obrigatório testar login remoto.")
+	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
+		return err
+	}
+	if err := c.commands.interactive("sudo", "ssh-keygen", "-A"); err != nil {
+		return err
 	}
 	executable, err := os.Executable()
 	if err != nil {
@@ -443,12 +451,8 @@ func (c *laptopSSHConsole) verify() error {
 	if _, _, err := validateLaptopPublicKey(strings.TrimSpace(string(public)), c.commands); err != nil {
 		return err
 	}
-	keys, err := readLaptopAuthorizedKeys(filepath.Join(directory, "authorized_keys"), c.commands)
-	if err != nil {
+	if _, err := readLaptopAuthorizedKeys(filepath.Join(directory, "authorized_keys"), c.commands); err != nil {
 		return err
-	}
-	if len(keys) == 0 {
-		return errors.New("nenhuma chave autorizada")
 	}
 	client, err := c.commands.capture("", "ssh", "-G", "-F", filepath.Join(directory, "config"), "localhost")
 	if err != nil {
@@ -476,7 +480,20 @@ func (c *laptopSSHConsole) verify() error {
 			return errors.New("sshd.socket deve estar inativo e desabilitado")
 		}
 	}
-	fmt.Fprintln(c.output, "Pré-requisitos SSH verificados.")
+	port := ""
+	for _, line := range strings.Split(effective, "\n") {
+		if fields := strings.Fields(line); len(fields) == 2 && fields[0] == "port" {
+			port = fields[1]
+		}
+	}
+	probe := c.probe
+	if probe == nil {
+		probe = probeLaptopSSHPort
+	}
+	if err := probe(port); err != nil {
+		return err
+	}
+	fmt.Fprintln(c.output, "Pré-requisitos SSH verificados; porta escutando.")
 	return nil
 }
 

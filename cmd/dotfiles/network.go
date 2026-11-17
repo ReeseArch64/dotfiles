@@ -43,6 +43,7 @@ type sshStatus struct {
 	service, socket unitState
 	cfg             map[string]string
 	partial         bool
+	listening       bool
 	keys            int
 	addrs           []ifaceAddr
 }
@@ -58,15 +59,17 @@ func loadSSHStatusForDevice(device deviceProfile) sshStatus {
 	service, socket := sshUnits(device)
 	units := unitStates(service, socket)
 	cfg, partial := readSSHDConfig()
+	listening := device == deviceLaptop && units[service].isActive() && probeLaptopSSHPort(cfg["port"]) == nil
 	return sshStatus{
-		missing: sshMissingPkgs(device),
-		device:  device,
-		service: units[service],
-		socket:  units[socket],
-		cfg:     cfg,
-		partial: partial,
-		keys:    authorizedKeys(),
-		addrs:   lanAddrs(),
+		listening: listening,
+		missing:   sshMissingPkgs(device),
+		device:    device,
+		service:   units[service],
+		socket:    units[socket],
+		cfg:       cfg,
+		partial:   partial,
+		keys:      authorizedKeys(),
+		addrs:     lanAddrs(),
 	}
 }
 
@@ -122,7 +125,7 @@ func (s sshStatus) card(width int) string {
 		rows = append(rows, cardRow{keyColor, "Chaves", fmt.Sprintf("%d autorizadas; esperado 0", s.keys)})
 	} else {
 		keyColor := colOK
-		if s.keys == 0 {
+		if s.keys == 0 && s.device != deviceLaptop {
 			keyColor = colWarn
 		}
 		rows = append(rows, cardRow{keyColor, "Chaves", fmt.Sprintf("%d em ~/.ssh/authorized_keys", s.keys)})

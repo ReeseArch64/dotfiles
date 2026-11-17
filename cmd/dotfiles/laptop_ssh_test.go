@@ -35,7 +35,7 @@ func newLaptopSSHConsoleTest(t *testing.T) (*laptopSSHConsole, string, string) {
 		}
 		keys = append(keys, strings.TrimSpace(string(public)))
 	}
-	c := &laptopSSHConsole{home: home, username: "alan", input: bufio.NewReader(strings.NewReader("")), output: &bytes.Buffer{}, commands: systemLaptopSSHCommands()}
+	c := &laptopSSHConsole{home: home, username: "alan", input: bufio.NewReader(strings.NewReader("")), output: &bytes.Buffer{}, commands: systemLaptopSSHCommands(), probe: func(string) error { return nil }}
 	return c, keys[0], keys[1]
 }
 
@@ -198,8 +198,8 @@ func TestLaptopSSHExistingIdentityPreserved(t *testing.T) {
 	c, _, _ := newLaptopSSHConsoleTest(t)
 	path := filepath.Join(c.home, ".ssh", "id_laptop")
 	before, _ := os.ReadFile(path)
-	if err := c.configureIdentity(); err == nil || !strings.Contains(err.Error(), "adicione primeiro") {
-		t.Fatalf("deveria exigir chave autorizada: %v", err)
+	if err := c.configureIdentity(); err != nil {
+		t.Fatalf("deve permitir authorized_keys vazio: %v", err)
 	}
 	after, _ := os.ReadFile(path)
 	if !bytes.Equal(before, after) {
@@ -238,7 +238,7 @@ func TestLaptopSSHGenerateIdentityNativePrompts(t *testing.T) {
 		return exec.Command(argv[0], args...).Run()
 	}
 	laptopSSHAnswers(c, "laptop@example.com")
-	if err := c.configureIdentity(); err == nil || !strings.Contains(err.Error(), "adicione primeiro") {
+	if err := c.configureIdentity(); err != nil {
 		t.Fatalf("resultado inesperado: %v", err)
 	}
 	if !slices.Equal(generated, []string{"ssh-keygen", "-t", "ed25519", "-C", "laptop@example.com", "-f", path}) {
@@ -249,15 +249,15 @@ func TestLaptopSSHGenerateIdentityNativePrompts(t *testing.T) {
 	}
 }
 
-func TestLaptopSSHConfigureRequiresTestConfirmation(t *testing.T) {
+func TestLaptopSSHConfigureRequiresPolicyConfirmation(t *testing.T) {
 	c, first, _ := newLaptopSSHConsoleTest(t)
 	if err := writeLaptopAuthorizedKeys(filepath.Join(c.home, ".ssh", "authorized_keys"), []string{first}); err != nil {
 		t.Fatal(err)
 	}
 	var commands [][]string
 	c.commands.interactive = func(argv ...string) error { commands = append(commands, slices.Clone(argv)); return nil }
-	laptopSSHAnswers(c, "INICIAR", "cancelar")
-	if err := c.configure(); err == nil || !strings.Contains(err.Error(), "não aplicada") {
+	laptopSSHAnswers(c, "cancelar")
+	if err := c.configure(); err == nil {
 		t.Fatalf("confirmação não exigida: %v", err)
 	}
 	for _, args := range commands {
@@ -265,12 +265,41 @@ func TestLaptopSSHConfigureRequiresTestConfirmation(t *testing.T) {
 			t.Fatal("servidor endurecido sem confirmação")
 		}
 	}
-	laptopSSHAnswers(c, "INICIAR", "CONFIRMO")
+	laptopSSHAnswers(c, "CONFIRMO")
 	if err := c.configure(); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Contains(commands[len(commands)-1], "apply-server") {
 		t.Fatal("política não executada após confirmação")
+	}
+}
+
+func TestLaptopSSHConfigureWithoutAuthorizedKeys(t *testing.T) {
+	c, _, _ := newLaptopSSHConsoleTest(t)
+	t.Setenv("SSH_CONNECTION", "")
+	var commands [][]string
+	c.commands.interactive = func(argv ...string) error { commands = append(commands, slices.Clone(argv)); return nil }
+	laptopSSHAnswers(c, "CONFIRMO")
+	if err := c.configure(); err != nil {
+		t.Fatalf("SSH deve configurar sem públicas: %v", err)
+	}
+	contents, err := os.ReadFile(filepath.Join(c.home, ".ssh", "authorized_keys"))
+	if err != nil || len(contents) != 0 {
+		t.Fatal("authorized_keys vazio não foi criado")
+	}
+	if !slices.Contains(commands[len(commands)-1], "apply-server") {
+		t.Fatal("política não aplicada")
+	}
+	if strings.Contains(c.output.(*bytes.Buffer).String(), "De OUTRO dispositivo") {
+		t.Fatal("teste remoto não deve ser obrigatório")
+	}
+	commands = nil
+	t.Setenv("SSH_CONNECTION", "192.168.1.2 12345 192.168.1.3 22")
+	if err := c.configure(); err == nil {
+		t.Fatal("configuração remota sem chaves deve exigir console local")
+	}
+	if len(commands) != 0 {
+		t.Fatal("servidor alterado sem meio de acesso remoto")
 	}
 }
 
@@ -300,6 +329,17 @@ func TestLaptopSSHVerifyEffectivePolicy(t *testing.T) {
 	if err := c.verify(); err != nil {
 		t.Fatal(err)
 	}
+	if err := writeLaptopAuthorizedKeys(filepath.Join(c.home, ".ssh", "authorized_keys"), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.verify(); err != nil {
+		t.Fatalf("verificação deve aceitar zero chaves: %v", err)
+	}
+	c.probe = func(string) error { return errors.New("porta fechada") }
+	if err := c.verify(); err == nil {
+		t.Fatal("porta fechada aceita")
+	}
+	c.probe = func(string) error { return nil }
 	policy = strings.ReplaceAll(policy, "passwordauthentication no", "passwordauthentication yes")
 	if err := c.verify(); err == nil {
 		t.Fatal("senha SSH permitida na política")

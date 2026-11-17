@@ -12,7 +12,7 @@ import (
 
 // Apenas leitura. O job também verifica chaves e política efetiva com sshd -T.
 func laptopSSHRequirement(s sshStatus, home string) error {
-	if len(s.missing) != 0 || s.partial || !s.service.isActive() || !s.service.isEnabled() || s.socket.isActive() || s.socket.isEnabled() {
+	if len(s.missing) != 0 || s.partial || !s.service.isActive() || !s.service.isEnabled() || !s.listening || s.socket.isActive() || s.socket.isEnabled() {
 		return fmt.Errorf("configure primeiro o SSH: OpenSSH e sshd.service ativo no boot, com configuração legível")
 	}
 	port, err := strconv.Atoi(s.port())
@@ -38,7 +38,7 @@ func laptopSSHRequirement(s sshStatus, home string) error {
 	}
 	for _, name := range []string{"id_laptop", "id_laptop.pub", "authorized_keys", "config"} {
 		info, err := os.Lstat(filepath.Join(home, ".ssh", name))
-		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+		if err != nil || !info.Mode().IsRegular() || (name != "authorized_keys" && info.Size() == 0) {
 			return fmt.Errorf("configure primeiro o SSH: %s ausente ou inválido", name)
 		}
 		if (name == "id_laptop" || name == "authorized_keys") && info.Mode().Perm()&0077 != 0 {
@@ -53,7 +53,6 @@ func laptopSSHRequirement(s sshStatus, home string) error {
 	if err != nil {
 		return err
 	}
-	count := 0
 	for _, line := range strings.Split(string(contents), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -62,10 +61,6 @@ func laptopSSHRequirement(s sshStatus, home string) error {
 		if _, _, valid := publicKeyID(line); !valid {
 			return fmt.Errorf("chave autorizada inválida")
 		}
-		count++
-	}
-	if count == 0 {
-		return fmt.Errorf("adicione uma chave autorizada primeiro")
 	}
 	return nil
 }

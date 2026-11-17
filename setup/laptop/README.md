@@ -20,18 +20,18 @@ As chaves são gravadas diretamente em `~/.ssh/authorized_keys`, atomicamente, c
 
 ### Configuração inicial recomendada
 
-1. Adicione a chave pública de outro dispositivo em **Chaves autorizadas > Adicionar chave pública**. As ações instalam somente `openssh` via Pacman se faltar. Não dependem de Python.
-2. Execute **Configurar SSH**. A ação gera a identidade do laptop, se ausente, configura o cliente e mostra sua pública para cadastrar nos outros dispositivos.
-3. Havendo ao menos uma chave autorizada, confirme `INICIAR`: gera host keys ausentes, valida a configuração atual e inicia `sshd.service` com a política que já existe. Essa etapa não altera o firewall nem endurece a política anterior. Se cancelar depois, o serviço pode permanecer ativo com essa política.
-4. Mantenha a sessão atual aberta. De outro dispositivo, teste o acesso exclusivamente por chave e `sudo -v`. Tenha console local ou recuperação disponível. Se o firewall atual bloquear o teste, revise o acesso localmente; a CLI não abre portas nesta etapa.
-5. Somente após `CONFIRMO`, o fluxo substitui `/etc/ssh/sshd_config` por uma configuração dedicada ao usuário atual, preservando a porta existente e mantendo o original em `/etc/ssh/laptop-backup.*` (root, `0700`). A nova política permite **somente publickey**, sem senha, autenticação interativa ou root, usa somente `.ssh/authorized_keys`, restringe `AllowUsers` ao usuário atual e oferece SFTP interno. Configurações antigas, Includes e Match deixam de ser usados; revise antes de confirmar se havia customizações.
-6. Valida com `sshd -t` e `sshd -T`, habilita o serviço no boot e reinicia o servidor. Em erro na aplicação, restaura a configuração anterior e tenta reiniciar o serviço. `sshd.socket` ativo/habilitado é recusado, não alterado silenciosamente. Teste uma **nova** conexão antes de fechar a atual.
+1. Execute **Configurar SSH**, preferencialmente pelo console local. A ação instala somente `openssh` se faltar, gera a identidade do laptop se ausente e configura o cliente. Não depende de Python.
+2. `authorized_keys` é criado vazio se ainda não existir; chaves existentes são preservadas. Não é obrigatório cadastrar públicas nem testar login remoto. Sem públicas autorizadas, o servidor escuta, mas ninguém pode autenticar.
+3. Confirme `CONFIRMO` após revisar o aviso e garantir console/recuperação disponível. Sem chaves autorizadas, executar de uma sessão SSH é recusado para evitar perda de acesso. O firewall não é alterado nesta etapa.
+4. Gera host keys ausentes e substitui `/etc/ssh/sshd_config` por uma configuração dedicada ao usuário atual, preservando a porta existente e mantendo o original em `/etc/ssh/laptop-backup.*` (root, `0700`). A política permite **somente publickey**, sem senha, autenticação interativa ou root, usa somente `.ssh/authorized_keys`, restringe `AllowUsers` ao usuário atual e oferece SFTP interno. Configurações antigas, Includes e Match deixam de ser usados; revise antes de confirmar se havia customizações.
+5. Valida com `sshd -t` e `sshd -T`, habilita o serviço no boot, inicia/reinicia o servidor e verifica a resposta SSH na porta local, sem autenticação. Não exige que o serviço já estivesse ativo. Em erro na aplicação, restaura a configuração e tenta restaurar os estados anteriores de atividade/habilitação do serviço. `sshd.socket` ativo/habilitado é recusado, não alterado silenciosamente.
+6. Quando quiser permitir login de outro dispositivo, adicione a pública dele em **Chaves autorizadas > Adicionar chave pública**. Isso é independente da configuração inicial. Se estiver conectado remotamente, mantenha a sessão atual aberta e teste uma nova conexão antes de encerrá-la.
 
-A confirmação é manual: a CLI não comprova o teste remoto. A geração local de `id_laptop` não autoriza outros dispositivos a entrar; para isso é necessário adicionar as públicas deles.
+A geração local de `id_laptop` não autoriza outros dispositivos a entrar. A verificação da porta é local, não comprova acesso de outra rede.
 
 ## Firewall
 
-A opção permanece escurecida e sem execução, com **Requer SSH configurado**, até detectar `id_laptop`, `id_laptop.pub`, chaves autorizadas, serviço SSH ativo/habilitado e política restrita a chaves. Não exige as identidades antigas do notebook, chaves de plataformas Git ou flags em `config.txt`.
+A opção permanece escurecida e sem execução, com **Requer SSH configurado**, até detectar `id_laptop`, `id_laptop.pub`, `authorized_keys` válido (pode estar vazio), serviço SSH ativo/habilitado, porta respondendo ao protocolo SSH localmente e política restrita a chaves. Não exige as identidades antigas do notebook, chaves de plataformas Git ou flags em `config.txt`.
 
 Antes de alterar o firewall, solicita sudo se necessário e revalida as públicas com `ssh-keygen`, permissões e proprietário dos arquivos, política efetiva com `sshd -T`, serviço, porta e LAN privada detectada. Uma conexão administrativa fora dessa LAN é recusada. A validação não substitui um teste remoto nem uma auditoria completa do sistema.
 

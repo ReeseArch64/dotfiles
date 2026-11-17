@@ -65,6 +65,7 @@ type laptopSSHServer struct {
 	username, home, config, lockPath string
 	commands                         laptopSSHCommands
 	recoveryCommands                 laptopSSHCommands
+	probe                            func(string) error
 }
 
 // Não executa shell: valida candidato e política efetiva antes da substituição.
@@ -79,12 +80,16 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 	if err != nil || !directory.IsDir() {
 		return "", errors.New("diretório SSH inválido")
 	}
-	keys, err := readLaptopAuthorizedKeys(filepath.Join(s.home, ".ssh", "authorized_keys"), s.commands)
+	keyPath := filepath.Join(s.home, ".ssh", "authorized_keys")
+	if err := laptopSSHRegular(keyPath, false); err != nil {
+		return "", err
+	}
+	keys, err := readLaptopAuthorizedKeys(keyPath, s.commands)
 	if err != nil {
 		return "", err
 	}
-	if len(keys) == 0 {
-		return "", errors.New("adicione uma chave autorizada primeiro")
+	if len(keys) == 0 && os.Getenv("SSH_CONNECTION") != "" {
+		return "", errors.New("sem chaves autorizadas, configure pelo console local")
 	}
 	if err := laptopSSHRegular(s.config, false); err != nil {
 		return "", err
@@ -94,9 +99,8 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 			return "", errors.New("sshd.socket ativo/habilitado; revise antes de configurar sshd.service")
 		}
 	}
-	if _, err := s.commands.capture("", "systemctl", "is-active", "--quiet", "sshd.service"); err != nil {
-		return "", errors.New("inicie e teste sshd.service antes de aplicar a política")
-	}
+	_, activeErr := s.commands.capture("", "systemctl", "is-active", "--quiet", "sshd.service")
+	wasActive := activeErr == nil
 	if _, err := s.commands.capture("", "sshd", "-t"); err != nil {
 		return "", err
 	}
@@ -179,7 +183,11 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 				restoreErr = errors.Join(restoreErr, err)
 			}
 		}
-		_, restartErr := recovery.capture("", "systemctl", "restart", "sshd.service")
+		action := "stop"
+		if wasActive {
+			action = "restart"
+		}
+		_, restartErr := recovery.capture("", "systemctl", action, "sshd.service")
 		result = errors.Join(result, restoreErr, restartErr, fmt.Errorf("tentativa de restaurar política anterior; backup: %s", backup))
 	}()
 	if err := writeLaptopServerConfig(s.config, policy, 0644); err != nil {
@@ -193,6 +201,13 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 		if _, err := s.commands.capture("", args...); err != nil {
 			return backup, err
 		}
+	}
+	probe := s.probe
+	if probe == nil {
+		probe = waitLaptopSSHPort
+	}
+	if err := probe(ports[0]); err != nil {
+		return backup, err
 	}
 	return backup, nil
 }

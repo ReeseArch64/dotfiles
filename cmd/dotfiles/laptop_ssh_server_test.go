@@ -11,10 +11,15 @@ import (
 )
 
 func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
-	for _, failure := range []string{"", "candidate", "restart", "policy"} {
+	for _, failure := range []string{"", "empty", "inactive", "candidate", "restart", "policy", "port"} {
 		t.Run(failure, func(t *testing.T) {
 			c, key, _ := newLaptopSSHConsoleTest(t)
-			if err := writeLaptopAuthorizedKeys(filepath.Join(c.home, ".ssh", "authorized_keys"), []string{key}); err != nil {
+			t.Setenv("SSH_CONNECTION", "")
+			keys := []string{key}
+			if failure == "empty" {
+				keys = nil
+			}
+			if err := writeLaptopAuthorizedKeys(filepath.Join(c.home, ".ssh", "authorized_keys"), keys); err != nil {
 				t.Fatal(err)
 			}
 			directory := t.TempDir()
@@ -25,12 +30,19 @@ func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 			}
 			var commands [][]string
 			restarts := 0
+			activeChecks := 0
 			capture := func(input string, args ...string) (string, error) {
 				commands = append(commands, slices.Clone(args))
 				if args[0] == "ssh-keygen" {
 					return c.commands.capture(input, args...)
 				}
 				if args[0] == "systemctl" {
+					if args[1] == "is-active" && args[len(args)-1] == "sshd.service" {
+						activeChecks++
+						if failure == "inactive" && activeChecks == 1 {
+							return "", errors.New("inactive")
+						}
+					}
 					if args[len(args)-1] == "sshd.socket" {
 						return "", errors.New("inactive")
 					}
@@ -63,10 +75,15 @@ func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 				}
 				return "", errors.New("unexpected command")
 			}
-			server := laptopSSHServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), commands: laptopSSHCommands{capture: capture}}
+			server := laptopSSHServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), commands: laptopSSHCommands{capture: capture}, probe: func(string) error {
+				if failure == "port" {
+					return errors.New("porta fechada")
+				}
+				return nil
+			}}
 			backup, err := server.apply()
 			after, _ := os.ReadFile(config)
-			if failure == "" {
+			if failure == "" || failure == "empty" || failure == "inactive" {
 				if err != nil {
 					t.Fatal(err)
 				}
