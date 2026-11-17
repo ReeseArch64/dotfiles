@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -104,6 +106,21 @@ func TestInstallLaptopAppearanceValidatesSourcesBeforeReplacingFace(t *testing.T
 	}
 }
 
+func TestLaptopAppearanceStopsIfThemeInstallFails(t *testing.T) {
+	root, home := prepareLaptopAppearanceTest(t)
+	t.Setenv("HOME", home)
+	j := laptopAppearanceJob(root)
+	run := newJobRun(j)
+	if next := run.handle(stepDoneMsg{err: errors.New("tema não instalado")}); next != nil || !run.failed || !run.done || run.cur != 0 {
+		t.Fatal("falha do instalador não interrompeu as cópias")
+	}
+	for _, path := range []string{filepath.Join(home, ".face"), filepath.Join(home, ".config", "omarchy", "backgrounds", "dracula", "laptop.jpg")} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("arquivo copiado após erro: %s", path)
+		}
+	}
+}
+
 func TestLaptopAppearanceMenuWorksWithoutSSH(t *testing.T) {
 	root, home := prepareLaptopAppearanceTest(t)
 	t.Setenv("HOME", home)
@@ -112,13 +129,31 @@ func TestLaptopAppearanceMenuWorksWithoutSSH(t *testing.T) {
 	if it.title != "Aparência" || it.disabled || it.job == nil {
 		t.Fatal("ação de aparência indisponível")
 	}
-	for _, step := range it.job().steps {
-		if step.cmd != nil || step.run == nil {
-			t.Fatal("aparência deve usar somente código Go sem sudo")
-		}
-		if _, err := step.run(); err != nil {
-			t.Fatal(err)
-		}
+	bin := t.TempDir()
+	log := filepath.Join(home, "theme-command.log")
+	t.Setenv("THEME_COMMAND_LOG", log)
+	writeTestExecutable(t, bin, "omarchy-theme-install", `printf '%s\n' "$@" > "$THEME_COMMAND_LOG"`)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	steps := it.job().steps
+	if len(steps) != 2 || steps[0].cmd == nil || steps[1].run == nil {
+		t.Fatal("tema deve ser instalado antes das cópias")
+	}
+	cmd := steps[0].cmd()
+	if !slices.Equal(cmd.Args, []string{"omarchy-theme-install", "https://github.com/catlee/omarchy-dracula-theme"}) {
+		t.Fatalf("comando de instalação inesperado: %v", cmd.Args)
+	}
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(home, ".face")); !os.IsNotExist(err) {
+		t.Fatal("foto copiada antes do tema")
+	}
+	if _, err := steps[1].run(); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(log)
+	if err != nil || string(contents) != "https://github.com/catlee/omarchy-dracula-theme\n" {
+		t.Fatal("instalador não recebeu a URL correta")
 	}
 	if _, err := os.Stat(filepath.Join(home, ".face")); err != nil {
 		t.Fatal(err)

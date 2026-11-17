@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -33,13 +34,17 @@ func installLaptopAppearance(dotfiles, home string) error {
 func laptopAppearanceJob(dotfiles string) job {
 	return job{
 		title: "Configurar aparência do laptop",
-		steps: []step{nativeStep("Copiar ~/.face e wallpaper do laptop", func() error {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return err
-			}
-			return installLaptopAppearance(dotfiles, home)
-		})},
+		steps: []step{
+			{label: "Instalar tema Dracula", cmd: func() *exec.Cmd {
+				return exec.Command("omarchy-theme-install", "https://github.com/catlee/omarchy-dracula-theme")
+			}},
+			nativeStep("Copiar ~/.face e wallpaper do laptop", func() error {
+				home, err := os.UserHomeDir()
+				if err != nil {
+					return err
+				}
+				return installLaptopAppearance(dotfiles, home)
+			})},
 		result: func() string {
 			return "Foto copiada para ~/.face e wallpaper para ~/.config/omarchy/backgrounds/dracula/laptop.jpg."
 		},
