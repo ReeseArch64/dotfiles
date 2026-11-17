@@ -465,7 +465,10 @@ func (c *laptopSSHConsole) verify() error {
 	if fields := strings.Fields(os.Getenv("SSH_CONNECTION")); len(fields) > 0 {
 		address = fields[0]
 	}
-	effective, err := c.commands.capture("", "sudo", "-n", "sshd", "-T", "-C", "user="+c.username+",host=localhost,addr="+address)
+	if _, err := c.commands.capture("", "sudo", "-n", "sshd", "-t"); err != nil {
+		return err
+	}
+	effective, err := dumpLaptopSSHConfig(c.commands, []string{"sudo", "-n", "sshd"}, "-C", "user="+c.username+",host=localhost,addr="+address)
 	if err != nil {
 		return err
 	}
@@ -481,6 +484,9 @@ func (c *laptopSSHConsole) verify() error {
 		}
 	}
 	port, err := effectiveLaptopSSHPort(effective)
+	if errors.Is(err, errNoLaptopSSHPort) {
+		port, err = configuredLaptopSSHPort("/etc/ssh/sshd_config")
+	}
 	if err != nil {
 		return err
 	}

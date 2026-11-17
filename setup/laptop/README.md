@@ -29,6 +29,8 @@ As chaves são gravadas diretamente em `~/.ssh/authorized_keys`, atomicamente, c
 
 A geração local de `id_laptop` não autoriza outros dispositivos a entrar. A verificação da porta é local, não comprova acesso de outra rede.
 
+A leitura aceita `Port 22`, `port=22`, aspas/comentários e portas repetidas. Se `sshd -T` não imprimir configuração reconhecível, tenta `sshd -G`. Na descoberta inicial, se ainda faltar a porta, lê `sshd_config` e seus Includes; usa o padrão 22 somente quando não existe `Port` explícito e todos os arquivos necessários foram lidos. Portas distintas, Includes cíclicos e arquivos ilegíveis são recusados. A política candidata continua exigindo `sshd -t` e uma saída efetiva verificável: nunca considera configuração vazia como segura. Erros mostram as tentativas `-T`/`-G` diretamente no terminal da CLI.
+
 ## Firewall
 
 A opção permanece escurecida e sem execução, com **Requer SSH configurado**, até detectar `id_laptop`, `id_laptop.pub`, `authorized_keys` válido (pode estar vazio), serviço SSH ativo/habilitado, porta respondendo ao protocolo SSH localmente e política restrita a chaves. Não exige as identidades antigas do notebook, chaves de plataformas Git ou flags em `config.txt`.

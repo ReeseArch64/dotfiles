@@ -13,6 +13,7 @@ import (
 func TestEffectiveLaptopSSHPort(t *testing.T) {
 	for _, tc := range []struct{ name, output, want, errorText string }{
 		{"single", "port 22\n", "22", ""},
+		{"equals", "Port=22\nport =22\nPORT = 22 # comment\n", "22", ""},
 		{"duplicates", "port 22\nport 22\n", "22", ""},
 		{"normalized", "port 022\nport 22\n", "22", ""},
 		{"whitespace", "  port\t2222  \npasswordauthentication no\nport 2222\n", "2222", ""},
@@ -37,7 +38,7 @@ func TestEffectiveLaptopSSHPort(t *testing.T) {
 }
 
 func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
-	for _, failure := range []string{"", "empty", "inactive", "candidate", "restart", "policy", "port"} {
+	for _, failure := range []string{"", "empty", "inactive", "dump-T-empty", "dump-empty", "unverifiable", "candidate", "restart", "policy", "port"} {
 		t.Run(failure, func(t *testing.T) {
 			c, key, _ := newLaptopSSHConsoleTest(t)
 			t.Setenv("SSH_CONNECTION", "")
@@ -87,7 +88,16 @@ func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 					if args[1] == "-t" && slices.Contains(args, "-f") && failure == "candidate" {
 						return "", errors.New("invalid candidate")
 					}
-					if args[1] == "-T" {
+					if args[1] == "-T" || args[1] == "-G" {
+						if failure == "unverifiable" && slices.Contains(args, "-f") {
+							return "", nil
+						}
+						if failure == "dump-T-empty" && args[1] == "-T" {
+							return "", nil
+						}
+						if failure == "dump-empty" && !slices.Contains(args, "-f") {
+							return "", nil
+						}
 						if !slices.Contains(args, "-f") {
 							return "port 2222\nport 2222\n", nil
 						}
@@ -109,7 +119,7 @@ func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 			}}
 			backup, err := server.apply()
 			after, _ := os.ReadFile(config)
-			if failure == "" || failure == "empty" || failure == "inactive" {
+			if failure == "" || failure == "empty" || failure == "inactive" || failure == "dump-T-empty" || failure == "dump-empty" {
 				if err != nil {
 					t.Fatal(err)
 				}
