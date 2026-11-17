@@ -39,7 +39,11 @@ Antes de alterar o firewall, solicita sudo se necessário e revalida as pública
 
 Após isso, instala UFW e iptables-nft se ausentes, bloqueia entrada por padrão, permite saída, substitui a liberação SSH global pela regra SSH somente na LAN e habilita o serviço no boot. Outras regras UFW existentes são preservadas; revise-as antes de ativar. Execute preferencialmente localmente.
 
-Nada é aplicado automaticamente ao abrir a CLI. Não prepara ou move pastas, não cria links simbólicos e não herda `setup/notebook/` nem `setup/config/`. Apenas cria/atualiza os arquivos SSH descritos acima e seus backups, quando uma ação é solicitada.
+## Aparência
+
+A ação manual **Aparência** copia `assets/face.jpg` para `~/.face` como arquivo regular e `assets/wallpapers/laptop.jpg` para `~/.config/omarchy/backgrounds/dracula/laptop.jpg`. Cria os diretórios ausentes com `os.MkdirAll` (equivalente a `mkdir -p`) e preserva os demais backgrounds. Reexecutar substitui somente esses dois arquivos, sem backup; um symlink existente em `~/.face` é substituído pela cópia, sem modificar seu alvo. Não ativa o wallpaper automaticamente.
+
+Nada é aplicado automaticamente ao abrir a CLI. Não move pastas, não cria links simbólicos e não herda `setup/notebook/` nem `setup/config/`. Além do SSH, cria somente os diretórios necessários às cópias de aparência quando essa ação é solicitada.
 
 ## Testes
 

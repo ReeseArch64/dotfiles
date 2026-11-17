@@ -95,6 +95,7 @@ func (m model) laptopItems() []item {
 		return []item{
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
 			{title: "Firewall", desc: "Requer SSH configurado", goTo: screenFirewall, disabled: requirement != nil},
+			{title: "Aparência", desc: "Copiar foto de perfil e wallpaper do laptop", job: func() job { return laptopAppearanceJob(m.dotfiles) }},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenFirewall:

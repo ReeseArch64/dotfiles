@@ -49,7 +49,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
-- `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH e Firewall UFW. Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root. A configuração aceita zero chaves autorizadas e não exige teste de login remoto: verifica o serviço ativo/habilitado e a porta SSH respondendo localmente. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não prepara ou move pastas nem cria links simbólicos. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
+- `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH, Firewall UFW e a ação manual Aparência (`~/.face` e wallpaper em `~/.config/omarchy/backgrounds/dracula/laptop.jpg`). Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root. A configuração aceita zero chaves autorizadas e não exige teste de login remoto: verifica o serviço ativo/habilitado e a porta SSH respondendo localmente. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não move pastas nem cria links simbólicos; cria apenas os diretórios necessários às ações solicitadas. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
 
@@ -786,18 +786,19 @@ A instalação não inicia o programa automaticamente. A configuração do Niri 
 
 `Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`.
 
-A pasta contém dez imagens destinadas a diferentes telas:
+A pasta contém onze imagens destinadas a diferentes telas:
 
-- `android.jpg`
 - `browser.jpg`
-- `desktop.jpg`
-- `desktop-ultrawide.jpg`
-- `dual-monitor.jpg`
-- `ipad.jpg`
+- `desktop-4k.jpg`
+- `desktop-ultrawide.jpg` — 3440×1440
+- `dual-monitor.jpg` — 7680×2160, com laterais desfocadas para preservar a arte
+- `ipad.jpg` — 2048×2732
+- `ipad-mini.jpg` — 1488×2266
 - `iphone.jpg`
+- `laptop.jpg`
 - `macbook.jpg`
-- `notebook.jpg`
-- `tablet.jpg`
+- `smartphone-android.jpg`
+- `tablet.jpg` — 1600×2560
 
 ### Foto de perfil
 

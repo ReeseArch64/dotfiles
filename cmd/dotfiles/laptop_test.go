@@ -49,7 +49,7 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 		"pubkeyauthentication": "yes", "authenticationmethods": "publickey", "allowusers": account.Username,
 		"authorizedkeysfile": ".ssh/authorized_keys", "authorizedkeyscommand": "none", "trustedusercakeys": "none",
 	}}
-	if got := itemTitles(m.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Sair"}) {
+	if got := itemTitles(m.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Aparência", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", got)
 	}
 	m.screen = screenFirewall

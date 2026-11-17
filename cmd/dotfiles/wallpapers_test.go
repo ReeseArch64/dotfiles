@@ -8,15 +8,16 @@ import (
 )
 
 var wallpaperNames = []string{
-	"android.jpg",
 	"browser.jpg",
+	"desktop-4k.jpg",
 	"desktop-ultrawide.jpg",
-	"desktop.jpg",
 	"dual-monitor.jpg",
 	"ipad.jpg",
+	"ipad-mini.jpg",
 	"iphone.jpg",
+	"laptop.jpg",
 	"macbook.jpg",
-	"notebook.jpg",
+	"smartphone-android.jpg",
 	"tablet.jpg",
 }
 
@@ -82,7 +83,7 @@ func TestInstallWallpapersPreservesExistingDirectory(t *testing.T) {
 	if content, err := os.ReadFile(filepath.Join(backup, "old.jpg")); err != nil || string(content) != "old" {
 		t.Fatalf("backup inesperado: content=%q err=%v", content, err)
 	}
-	if _, err := os.Stat(filepath.Join(destination, "desktop.jpg")); err != nil {
+	if _, err := os.Stat(filepath.Join(destination, "desktop-4k.jpg")); err != nil {
 		t.Fatal(err)
 	}
 }
