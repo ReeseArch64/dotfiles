@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -28,19 +29,27 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, ".ssh"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range requiredSSHIdentityFiles(deviceNotebook) {
+	for _, name := range requiredSSHIdentityFiles(deviceLaptop) {
 		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte("ssh-ed25519 YWJj desktop\n"), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, name := range []string{"config", "authorized_keys"} {
-		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte("ssh-ed25519 YWJj desktop\n"), 0600); err != nil {
+	for name, contents := range map[string]string{"config": "Host *\n IdentityFile ~/.ssh/id_laptop\n", "authorized_keys": "ssh-ed25519 YWJj desktop\n"} {
+		if err := os.WriteFile(filepath.Join(home, ".ssh", name), []byte(contents), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	m := newModelForDevice("/repo", deviceLaptop)
-	m.ssh = sshStatus{service: unitState{"active", "enabled"}, cfg: map[string]string{"port": "22"}}
-	if got := itemTitles(m.items()); !slices.Equal(got, []string{"Firewall", "Sair"}) {
+	account, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.ssh = sshStatus{service: unitState{"active", "enabled"}, cfg: map[string]string{
+		"port": "22", "permitrootlogin": "no", "passwordauthentication": "no", "kbdinteractiveauthentication": "no",
+		"pubkeyauthentication": "yes", "authenticationmethods": "publickey", "allowusers": account.Username,
+		"authorizedkeysfile": ".ssh/authorized_keys", "authorizedkeyscommand": "none", "trustedusercakeys": "none",
+	}}
+	if got := itemTitles(m.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Sair"}) {
 		t.Fatalf("menu inesperado: %v", got)
 	}
 	m.screen = screenFirewall
@@ -58,9 +67,14 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 	if err := os.Remove(filepath.Join(home, ".ssh", "authorized_keys")); err != nil {
 		t.Fatal(err)
 	}
-	// Um job criado antes da remoção também deve recusar a execução.
-	if _, err := items[0].job().steps[0].run(); err == nil {
-		t.Fatal("job não revalidou o pré-requisito SSH")
+	// A revalidação nativa permanece antes de todas as alterações de firewall.
+	job := items[0].job()
+	for _, step := range job.steps {
+		if step.label == "Revalidar porta SSH e LAN" {
+			if _, err := step.run(); err == nil {
+				t.Fatal("job não revalidou o pré-requisito SSH")
+			}
+		}
 	}
 	locked := m.items()[0]
 	if !locked.disabled || locked.job != nil {
@@ -70,7 +84,7 @@ func TestLaptopFirewallMenuAndJob(t *testing.T) {
 
 func TestLaptopFirewallLockedWithoutSSH(t *testing.T) {
 	m := newModelForDevice("/repo", deviceLaptop)
-	mainItem := m.items()[0]
+	mainItem := m.items()[1]
 	if mainItem.title != "Firewall" || mainItem.desc != "Requer SSH configurado" || !mainItem.disabled {
 		t.Fatal("firewall deve aparecer desativado e sem cadeado")
 	}
@@ -78,6 +92,7 @@ func TestLaptopFirewallLockedWithoutSSH(t *testing.T) {
 	if cmdMain != nil || nextMain.(model).screen != screenMain {
 		t.Fatal("firewall desativado abriu a tela")
 	}
+	m.cursor[screenMain] = 1
 	if strings.Contains(m.viewMenu(60, 0), "▌") {
 		t.Fatal("item desativado não deve receber destaque de seleção")
 	}
@@ -89,6 +104,30 @@ func TestLaptopFirewallLockedWithoutSSH(t *testing.T) {
 	next, cmd := m.selectItem(it)
 	if cmd != nil || next.(model).screen != screenFirewall {
 		t.Fatal("item bloqueado foi executado")
+	}
+}
+
+func TestLaptopSSHMenus(t *testing.T) {
+	m := newModelForDevice("/repo", deviceLaptop)
+	m.screen = screenSSH
+	if got := itemTitles(m.items()); !slices.Equal(got, []string{"Configurar SSH", "Chaves autorizadas"}) {
+		t.Fatalf("menu SSH inesperado: %v", got)
+	}
+	m.screen = screenSSHKeys
+	if got := itemTitles(m.items()); !slices.Equal(got, []string{"Adicionar chave pública", "Visualizar chaves atuais", "Remover chave pública"}) {
+		t.Fatalf("menu de chaves inesperado: %v", got)
+	}
+	if got := requiredSSHIdentityFiles(deviceLaptop); !slices.Equal(got, []string{"id_laptop", "id_laptop.pub"}) {
+		t.Fatalf("laptop ainda exige identidades de plataformas: %v", got)
+	}
+	job := m.laptopSSHJob("configure", "Configurar SSH")
+	command := job.steps[len(job.steps)-1].cmd()
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(command.Args, []string{executable, "--laptop-ssh", "configure"}) {
+		t.Fatalf("configuração deve usar o próprio binário Go: %v", command.Args)
 	}
 }
 

@@ -27,6 +27,8 @@ func requiredSSHIdentityFiles(device deviceProfile) []string {
 			"id_trabalho_desktop", "id_trabalho_desktop.pub",
 			"id_pessoal_desktop", "id_pessoal_desktop.pub",
 		}
+	case deviceLaptop:
+		return []string{"id_laptop", "id_laptop.pub"}
 	case deviceNotebook:
 		deviceFiles = []string{
 			"id_trabalho_notebook", "id_trabalho_notebook.pub",

@@ -49,7 +49,7 @@ A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exat
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
-- `laptop-alan`: perfil Laptop (Omarchy Linux, base Arch), com apenas Firewall UFW no menu, desativado e escurecido até verificar os pré-requisitos SSH do notebook. Após a verificação, permite SSH somente na LAN e só aplica a configuração quando solicitado. Não configura SSH automaticamente nem usa flags em `config.txt`. É independente do notebook CachyOS (`setup/laptop/`), com diretório reservado `setup/laptop-omarchy/`, sem herdar `setup/config/`. Não prepara ou move pastas, nem cria links simbólicos.
+- `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH e Firewall UFW. Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root após confirmação de acesso testado. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não prepara ou move pastas nem cria links simbólicos. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
 
@@ -89,11 +89,11 @@ git clone https://github.com/ReeseArch64/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ```
 
-Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/laptop/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
+Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
 A base compartilhada contém `btop`, `cursor`, `fastfetch`, `ghostty`, `mise`, `noctalia`, `pi`, os arquivos estáticos de `git` e os arquivos comuns de `niri`. Permanecem separados `fish/config.fish`, `ssh/config`, `niri/cfg/autostart.kdl` e `niri/cfg/display.kdl`. O arquivo `git/.gitconfig` também permanece por perfil, mesmo inicialmente idêntico, pois recebe a chave GPG específica do dispositivo e nunca deve usar fallback compartilhado.
 
-Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/laptop/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise atualiza seu link simbólico para a nova origem em `setup/config/`.
+Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise atualiza seu link simbólico para a nova origem em `setup/config/`.
 
 Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
@@ -202,7 +202,7 @@ Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu princi
 1. Valida a configuração própria do servidor e `assets/face.jpg` antes de instalar pacotes.
 2. Garante que Chafa esteja disponível para renderizar a foto; quando ausente, instala `chafa` via APT. Preserva um Fastfetch já disponível e funcional. Quando ausente, instala a release oficial 2.70.0 via pacote `.deb`, com SHA-256 fixado para Ubuntu amd64 ou arm64. Usa APT para dependências, sem PPA ou novos repositórios; requer internet. Outras arquiteturas são recusadas pelo instalador.
 3. Copia `setup/homelab/fastfetch/config.json` ou `setup/homeprod/fastfetch/config.json` para `~/.config/fastfetch/config.json`, sem herdar `setup/config/`. O sistema operacional é detectado automaticamente; não há módulos gráficos nem consulta de IP público. O logo usa `command-raw` para executar Chafa sobre `~/.face`, em blocos coloridos de até 30 colunas por 15 linhas. Isso funciona no SSH sem depender da detecção das dimensões em pixels do terminal pelo Fastfetch, que pode falhar no modo `chafa` interno.
-4. Cria `~/.face` como link simbólico para `assets/face.jpg`, como nos perfis desktop/laptop. Mantenha o checkout acessível para que o link continue válido.
+4. Cria `~/.face` como link simbólico para `assets/face.jpg`, como nos perfis desktop/notebook. Mantenha o checkout acessível para que o link continue válido.
 
 Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação isolada `Fastfetch e foto de perfil` não altera o shell de login, não executa Fastfetch automaticamente. Para visualizar as informações com a foto, execute `fastfetch`. A ação `Configurar Fish` também instala o greeting que o executa ao abrir uma sessão interativa.
 
@@ -468,7 +468,7 @@ Desktop e notebook também exigem os pares compartilhados `id_github`, `id_gitla
 
 O alias SSH `gitea` usa `HostName 192.168.1.107`, porta `2222`, usuário `git` e `IdentityFile ~/.ssh/id_gitea`, sem encaminhar o agente. Use URLs como `git@gitea:usuario/repositorio.git` no remoto `backup`. O acesso direto ao IP continua na porta SSH normal, sem afetar o acesso administrativo ao Homelab. Disponibilize `~/.ssh/id_gitea` e `~/.ssh/id_gitea.pub` antes de configurar o SSH e cadastre a chave pública no Gitea. O SSH usa o padrão `StrictHostKeyChecking ask`: no primeiro acesso, confira o fingerprint antes de aceitar a chave de `[192.168.1.107]:2222` em `known_hosts`.
 
-A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. Nos perfis desktop e notebook não há `StrictHostKeyChecking` global: aplica-se o padrão `ask`, que solicita confirmação para chaves de hosts novos. Confira o fingerprint antes de aceitar. No desktop, as conexões administrativas aceitam `ssh notebook` (`192.168.1.103`), `ssh homelab` (`192.168.1.107`) e `ssh homeprod` (endereço definido em `HostName` no bloco HOMEPROD). O bloco do notebook aceita `Host notebook 192.168.1.103`, para que o acesso pelo IP também use o usuário `alsgy` e a chave `id_trabalho_desktop`. Os outros blocos administrativos usam seus aliases nas linhas `Host`. O HomeProd ainda usa um placeholder no repositório e requer preencher o endereço real antes do acesso. No explorador de arquivos, use `sftp://alsgy@192.168.1.103/home/alsgy/` ou, se ele respeitar os aliases do OpenSSH, `sftp://notebook/home/alsgy/`. Se a chave estiver protegida por passphrase, faça primeiro `ssh notebook` no terminal para desbloqueá-la no agente. Esses aliases não adicionam acessos administrativos ao perfil laptop. O bloco HOMEPROD do desktop mantém explicitamente `IdentitiesOnly yes`, assim como notebook e homelab. As configurações de `setup/homelab/` e `setup/homeprod/` não são alteradas por essas opções.
+A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. Nos perfis desktop e notebook não há `StrictHostKeyChecking` global: aplica-se o padrão `ask`, que solicita confirmação para chaves de hosts novos. Confira o fingerprint antes de aceitar. No desktop, as conexões administrativas aceitam `ssh notebook` (`192.168.1.103`), `ssh homelab` (`192.168.1.107`) e `ssh homeprod` (endereço definido em `HostName` no bloco HOMEPROD). O bloco do notebook aceita `Host notebook 192.168.1.103`, para que o acesso pelo IP também use o usuário `alsgy` e a chave `id_trabalho_desktop`. Os outros blocos administrativos usam seus aliases nas linhas `Host`. O HomeProd ainda usa um placeholder no repositório e requer preencher o endereço real antes do acesso. No explorador de arquivos, use `sftp://alsgy@192.168.1.103/home/alsgy/` ou, se ele respeitar os aliases do OpenSSH, `sftp://notebook/home/alsgy/`. Se a chave estiver protegida por passphrase, faça primeiro `ssh notebook` no terminal para desbloqueá-la no agente. Esses aliases não adicionam acessos administrativos ao perfil notebook. O bloco HOMEPROD do desktop mantém explicitamente `IdentitiesOnly yes`, assim como notebook e homelab. As configurações de `setup/homelab/` e `setup/homeprod/` não são alteradas por essas opções.
 
 No desktop e no notebook, a ação `Configurar SSH` executa `systemctl --user enable --now ssh-agent.socket`, sem sudo: inicia o socket imediatamente e habilita sua ativação nas próximas sessões do usuário. A ativação não depende do autostart do Niri. Nos dois perfis, `IdentityAgent /run/user/%i/ssh-agent.socket` aponta explicitamente para esse agente, compartilhado entre os terminais. Cada chave privada criptografada solicita sua passphrase no primeiro uso; `AddKeysToAgent yes` mantém a chave desbloqueada somente em memória enquanto o agente estiver ativo. Reiniciar o agente ou o computador exige desbloquear novamente. O dotfiles não remove nem armazena a passphrase. Isso não memoriza senhas de login dos servidores nem senhas de `sudo`.
 
@@ -590,7 +590,7 @@ A Vercel CLI é instalada pelo Mise e fica disponível como `vercel`. Para auten
 
 A Neon CLI também é instalada pelo Mise nos dois perfis. Usa o pacote oficial `neon`, recomendado para novas instalações, e disponibiliza o comando `neon`. Após instalar com a mesma ação ou com `mise install`, execute `neon login` para autenticar.
 
-Os perfis desktop e laptop incluem o alias `gpa` (`git push origin && git push ogle && git push backup`): envia para GitHub, GitLab e Gitea, interrompendo se algum push falhar. Os três remotos devem estar configurados no repositório. O alias `piu` (`pi update --all`) substitui `pu` e atualiza tanto o Pi Agent quanto suas extensões.
+Os perfis desktop e notebook incluem o alias `gpa` (`git push origin && git push ogle && git push backup`): envia para GitHub, GitLab e Gitea, interrompendo se algum push falhar. Os três remotos devem estar configurados no repositório. O alias `piu` (`pi update --all`) substitui `pu` e atualiza tanto o Pi Agent quanto suas extensões.
 
 A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada. Também remove `~/.bashrc`, `~/.bash_logout`, `~/.bash_profile` e `~/.zshrc`.
 
@@ -710,9 +710,9 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 
 `Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O cursor de `setup/config/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`, também permitindo arquivos específicos do perfil.
 
-Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do laptop contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
+Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do notebook contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
 
-A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/autostart.kdl`. O laptop não inicia esse serviço.
+A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/autostart.kdl`. O notebook não inicia esse serviço.
 
 Quando o cursor de destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`.
 
@@ -948,7 +948,8 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 ├── cmd/dotfiles/          # Código e testes da CLI
 ├── setup/
 │   ├── desktop/          # Configurações completas CachyOS
-│   ├── laptop/           # Cópia independente CachyOS
+│   ├── notebook/         # Configurações específicas CachyOS
+│   ├── laptop/           # Laptop Omarchy (SSH implementado em Go)
 │   ├── homelab/          # Homelab Ubuntu
 │   ├── homeprod/         # Bootstrap da VPS Ubuntu
 │   └── macbook/          # Reservado para macOS

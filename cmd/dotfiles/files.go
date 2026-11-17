@@ -16,7 +16,7 @@ import (
 func sharedConfigDirectory(setupDir string) string {
 	clean := filepath.Clean(setupDir)
 	profile := filepath.Base(clean)
-	if filepath.Base(filepath.Dir(clean)) != "setup" || (profile != "desktop" && profile != "laptop") {
+	if filepath.Base(filepath.Dir(clean)) != "setup" || (profile != "desktop" && profile != "notebook") {
 		return ""
 	}
 	return filepath.Join(filepath.Dir(clean), "config")

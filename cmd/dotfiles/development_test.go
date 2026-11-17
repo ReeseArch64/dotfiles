@@ -207,8 +207,8 @@ func TestDevelopmentPacmanPackagesIncludeFishRustupAndTk(t *testing.T) {
 }
 
 func TestDevelopmentToolsInstallStepUsesMiseConfig(t *testing.T) {
-	current := developmentToolsInstallStep("/tmp/dotfiles/setup/laptop")
-	want := []string{"mise", "--cd", "/tmp/dotfiles/setup/laptop/mise", "install"}
+	current := developmentToolsInstallStep("/tmp/dotfiles/setup/notebook")
+	want := []string{"mise", "--cd", "/tmp/dotfiles/setup/notebook/mise", "install"}
 	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
 		t.Fatalf("comando mise inesperado: %v", got)
 	}

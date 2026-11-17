@@ -33,6 +33,7 @@ const (
 	screenGPG
 	screenNoctalia
 	screenCleanup
+	screenSSHKeys
 	screenJob
 )
 
@@ -45,6 +46,7 @@ var screenTitles = map[screen]string{
 	screenBackup:      "Backup",
 	screenPiAgent:     "Pi Agent",
 	screenSSH:         "SSH",
+	screenSSHKeys:     "Chaves autorizadas",
 	screenFirewall:    "Firewall",
 	screenDocker:      "Docker",
 	screenGit:         "Git",
@@ -281,7 +283,7 @@ func (m model) back() model {
 // refresh relê o estado usado pela tela atual.
 func (m *model) refresh() {
 	if m.device == deviceLaptop {
-		m.ssh = loadSSHStatusForDevice(deviceNotebook)
+		m.ssh = loadSSHStatusForDevice(deviceLaptop)
 	}
 	switch m.screen {
 	case screenSSH:
@@ -519,6 +521,17 @@ func findSetupRepository(directory string) string {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--laptop-ssh" {
+		if len(os.Args) != 3 {
+			fmt.Fprintln(os.Stderr, "erro: ação SSH obrigatória")
+			os.Exit(1)
+		}
+		if err := runLaptopSSHCommand(os.Args[2]); err != nil {
+			fmt.Fprintln(os.Stderr, "erro:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	hostname, err := os.Hostname()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "erro: detectar dispositivo:", err)

@@ -43,7 +43,7 @@ func setupDirectory(dotfiles string, device deviceProfile) string {
 	case deviceDesktop:
 		profile = "desktop"
 	case deviceNotebook:
-		profile = "laptop"
+		profile = "notebook"
 	case deviceMacBook:
 		profile = "macbook"
 	case deviceServer:
@@ -51,7 +51,7 @@ func setupDirectory(dotfiles string, device deviceProfile) string {
 	case deviceHomeProd:
 		profile = "homeprod"
 	case deviceLaptop:
-		profile = "laptop-omarchy"
+		profile = "laptop"
 	default:
 		return ""
 	}

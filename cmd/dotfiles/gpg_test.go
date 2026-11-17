@@ -10,7 +10,7 @@ import (
 )
 
 func TestGPGGenerateStepsOrder(t *testing.T) {
-	steps := gpgGenerateSteps("/dotfiles/setup/laptop", "/home/test", []step{{label: "Instalar gnupg"}})
+	steps := gpgGenerateSteps("/dotfiles/setup/notebook", "/home/test", []step{{label: "Instalar gnupg"}})
 	want := []string{
 		"Validar Git e identidade do dispositivo", "Instalar gnupg", "Preparar geração GPG",
 		"Gerar chave GPG com senha", "Identificar chave gerada",

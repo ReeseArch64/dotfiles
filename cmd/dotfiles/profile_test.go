@@ -29,7 +29,7 @@ func TestModelSelectsSetupDirectory(t *testing.T) {
 	for _, tc := range []struct {
 		device  deviceProfile
 		profile string
-	}{{deviceDesktop, "desktop"}, {deviceNotebook, "laptop"}} {
+	}{{deviceDesktop, "desktop"}, {deviceNotebook, "notebook"}} {
 		m := newModelForDevice("/repo", tc.device)
 		if m.dotfiles != "/repo" || m.setupDir != filepath.Join("/repo", "setup", tc.profile) {
 			t.Fatalf("raízes inesperadas: repo=%s setup=%s", m.dotfiles, m.setupDir)
@@ -163,7 +163,7 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 		home := t.TempDir()
 		t.Setenv("HOME", home)
 		device := deviceDesktop
-		if filepath.Base(source) == "laptop" {
+		if filepath.Base(source) == "notebook" {
 			device = deviceNotebook
 		}
 		m := newModelForDevice(t.TempDir(), device)

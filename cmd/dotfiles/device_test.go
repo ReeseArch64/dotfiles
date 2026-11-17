@@ -23,14 +23,14 @@ func TestUnknownDeviceHasNoOptions(t *testing.T) {
 	assertNoDeviceOptions(t, deviceProfile(999))
 }
 
-func TestLaptopOnlyHasFirewall(t *testing.T) {
+func TestLaptopOnlyHasSSHAndFirewall(t *testing.T) {
 	m := newModelForDevice("/repo", deviceLaptop)
-	if m.setupDir != "/repo/setup/laptop-omarchy" {
+	if m.setupDir != "/repo/setup/laptop" {
 		t.Fatalf("diretório do laptop incorreto: %q", m.setupDir)
 	}
 	for screen := screenMain; screen <= screenJob; screen++ {
 		m.screen = screen
-		if screen == screenMain || screen == screenFirewall {
+		if screen == screenMain || screen == screenFirewall || screen == screenSSH || screen == screenSSHKeys {
 			continue
 		}
 		if items := m.items(); len(items) != 0 {
