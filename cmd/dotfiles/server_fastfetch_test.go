@@ -39,7 +39,7 @@ func TestServerFastfetchAndFaceAppliesUserConfiguration(t *testing.T) {
 			installed = true
 			return nil
 		})})
-		want := []string{"Validar configuração Fastfetch e imagem de perfil", "Instalar Fastfetch", "Copiar configuração para ~/.config/fastfetch", "Criar symlink ~/.face"}
+		want := []string{"Validar configuração Fastfetch e imagem de perfil", "Instalar Fastfetch", "Copiar configuração para ~/.config/fastfetch", "Copiar foto para ~/.face"}
 		if got := jobStepLabels(configured); !slices.Equal(got, want) {
 			t.Fatalf("passos inesperados: %v", got)
 		}
@@ -60,8 +60,8 @@ func TestServerFastfetchAndFaceAppliesUserConfiguration(t *testing.T) {
 		if !regularFileMatches(source, filepath.Join(home, ".config", "fastfetch", "config.json")) {
 			t.Fatal("configuração do Fastfetch não foi copiada como arquivo regular")
 		}
-		if target, err := os.Readlink(filepath.Join(home, ".face")); err != nil || target != assetPath(root, "face.jpg") {
-			t.Fatalf("foto de perfil incorreta: %s, %v", target, err)
+		if !regularFileMatches(assetPath(root, "face.jpg"), filepath.Join(home, ".face")) {
+			t.Fatal("foto de perfil não foi copiada como arquivo regular")
 		}
 	}, deviceServer, deviceHomeProd)
 }

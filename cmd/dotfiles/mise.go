@@ -1,44 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 )
 
 func installMiseConfig(setupDir, home string) error {
-	source, err := filepath.Abs(configPath(setupDir, "mise", "mise.toml"))
-	if err != nil {
-		return fmt.Errorf("resolver mise.toml: %w", err)
-	}
-	info, err := os.Stat(source)
-	if err != nil {
-		return fmt.Errorf("ler %s: %w", source, err)
-	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("%s não é um arquivo regular", source)
-	}
-	destination := filepath.Join(home, ".config", "mise", "config.toml")
-	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
-		return fmt.Errorf("criar %s: %w", filepath.Dir(destination), err)
-	}
-	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("remover %s: %w", destination, err)
-	}
-	if err := os.Symlink(source, destination); err != nil {
-		return fmt.Errorf("criar %s: %w", destination, err)
-	}
-	return nil
+	return copyFileAtomic(configPath(setupDir, "mise", "mise.toml"), filepath.Join(home, ".config", "mise", "config.toml"))
 }
 
-func miseSetupSteps(setupDir string) []step {
-	home, _ := os.UserHomeDir()
+func miseSetupSteps(setupDir, home string) []step {
 	steps := ensureYayPkgs("mise")
 	steps = append(steps,
-		nativeStep("Symlink ~/.config/mise/config.toml", func() error {
+		nativeStep("Copiar configuração para ~/.config/mise/config.toml", func() error {
 			return installMiseConfig(setupDir, home)
 		}),
-		terminalStep("Confiar na configuração do mise", "mise", "trust", configPath(setupDir, "mise", "mise.toml")),
+		terminalStep("Confiar na configuração do mise", "mise", "trust", filepath.Join(home, ".config", "mise", "config.toml")),
 	)
 	return steps
 }

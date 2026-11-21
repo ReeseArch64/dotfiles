@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestInstallMiseConfigCreatesSymlink(t *testing.T) {
+func TestInstallMiseConfigReplacesSymlinkWithCopy(t *testing.T) {
 	dotfiles := filepath.Join(t.TempDir(), "dotfiles")
 	home := filepath.Join(t.TempDir(), "home")
 	if err := os.MkdirAll(configPath(dotfiles, "mise"), 0755); err != nil {
@@ -22,19 +22,15 @@ func TestInstallMiseConfigCreatesSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	destination := filepath.Join(home, ".config", "mise", "config.toml")
-	if err := os.WriteFile(destination, []byte("old"), 0644); err != nil {
+	if err := os.Symlink(source, destination); err != nil {
 		t.Fatal(err)
 	}
 
 	if err := installMiseConfig(dotfiles, home); err != nil {
 		t.Fatal(err)
 	}
-	target, err := os.Readlink(destination)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if target != source {
-		t.Fatalf("destino inesperado: %s", target)
+	if !regularFileMatches(source, destination) {
+		t.Fatal("configuração do mise não foi copiada como arquivo regular")
 	}
 }
 
@@ -114,18 +110,18 @@ func TestMiseConfigIncludesPHPWithoutComposer(t *testing.T) {
 }
 
 func TestMiseSetupActivatesToolsAfterConfig(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
-	steps := miseSetupSteps("/tmp/dotfiles/setup/desktop")
+	home := t.TempDir()
+	steps := miseSetupSteps("/tmp/dotfiles/setup/desktop", home)
 	if len(steps) < 2 {
 		t.Fatalf("passos insuficientes: %d", len(steps))
 	}
-	if steps[len(steps)-2].label != "Symlink ~/.config/mise/config.toml" {
+	if steps[len(steps)-2].label != "Copiar configuração para ~/.config/mise/config.toml" {
 		t.Fatalf("configuração ausente: %s", steps[len(steps)-2].label)
 	}
 	if steps[len(steps)-1].label != "Confiar na configuração do mise" {
 		t.Fatalf("confiança ausente: %s", steps[len(steps)-1].label)
 	}
-	want := []string{"mise", "trust", "/tmp/dotfiles/setup/desktop/mise/mise.toml"}
+	want := []string{"mise", "trust", filepath.Join(home, ".config", "mise", "config.toml")}
 	if got := commandTail(t, steps[len(steps)-1], len(want)); !slices.Equal(got, want) {
 		t.Fatalf("comando de confiança inesperado: %v", got)
 	}

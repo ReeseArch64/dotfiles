@@ -1,10 +1,9 @@
-// Comando dotfiles: menu interativo para configurar esta máquina.
+// Comando dotfiles: menu interativo.
 package main
 
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -522,61 +521,26 @@ func findSetupRepository(directory string) string {
 	}
 }
 
-func main() {
-	if len(os.Args) > 1 && os.Args[1] == "--laptop-ssh" {
-		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, "erro: ação SSH obrigatória")
-			os.Exit(1)
-		}
-		if err := runLaptopSSHCommand(os.Args[2]); err != nil {
-			fmt.Fprintln(os.Stderr, "erro:", err)
-			os.Exit(1)
-		}
-		return
-	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "erro: detectar dispositivo:", err)
-		os.Exit(1)
-	}
-	device, err := detectDevice(hostname)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "erro:", err)
-		os.Exit(1)
-	}
-	if device == deviceMacBook {
-		fmt.Fprintln(os.Stderr, "MacBook ainda não é suportado.")
-		return
-	}
+type exitMenu struct{}
 
-	dotfiles := findDotfiles()
-	if err := checkPlatformForDevice(device, "/etc/os-release", exec.LookPath); err != nil {
-		fmt.Fprintln(os.Stderr, "erro:", err)
-		os.Exit(1)
-	}
-	if device == deviceDesktop || device == deviceNotebook {
-		if err := prepareSystemMountDirectories(); err != nil {
-			fmt.Fprintln(os.Stderr, "erro:", err)
-			os.Exit(1)
-		}
-		if err := prepareSystemSDKDirectories(); err != nil {
-			fmt.Fprintln(os.Stderr, "erro:", err)
-			os.Exit(1)
-		}
-		if err := prepareSystemTrashDirectory(); err != nil {
-			fmt.Fprintln(os.Stderr, "erro: preparar lixeira:", err)
-			os.Exit(1)
-		}
-		if err := prepareSystemStorageDirectories(); err != nil {
-			fmt.Fprintln(os.Stderr, "erro:", err)
-			os.Exit(1)
+func (exitMenu) Init() tea.Cmd { return nil }
+
+func (menu exitMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "enter", "q", "ctrl+c":
+			return menu, tea.Quit
 		}
 	}
-	m := newModelForDevice(dotfiles, device)
-	if device == deviceLaptop {
-		m.refresh()
-	}
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	return menu, nil
+}
+
+func (exitMenu) View() string {
+	return "Dotfiles\n\n› Sair\n\nEnter ou q para sair\n"
+}
+
+func main() {
+	p := tea.NewProgram(exitMenu{}, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)

@@ -169,21 +169,26 @@ func TestNoctaliaResolvesEachFileIndependently(t *testing.T) {
 	}
 }
 
-func TestMiseRunsBesideResolvedConfiguration(t *testing.T) {
-	root := t.TempDir()
+func TestMiseCopiesProfileConfigurationWithSharedFallback(t *testing.T) {
+	root, home := t.TempDir(), t.TempDir()
 	shared := filepath.Join(root, "setup", "config", "mise", "mise.toml")
 	writeSharedConfigTestFile(t, shared, "[tools]\n")
 	profile := setupDirectory(root, deviceNotebook)
-	writeSharedConfigTestFile(t, filepath.Join(profile, "mise", "README.md"), "profile notes")
-	args := commandTail(t, developmentToolsInstallStep(profile), 4)
-	if args[2] != filepath.Dir(shared) {
-		t.Fatalf("mise não usa o diretório da configuração compartilhada: %v", args)
+	destination := filepath.Join(home, ".config", "mise", "config.toml")
+	if err := installMiseConfig(profile, home); err != nil {
+		t.Fatal(err)
 	}
+	if !regularFileMatches(shared, destination) {
+		t.Fatal("mise não recebeu a configuração compartilhada")
+	}
+
 	local := filepath.Join(profile, "mise", "mise.toml")
-	writeSharedConfigTestFile(t, local, "[tools]\n")
-	args = commandTail(t, developmentToolsInstallStep(profile), 4)
-	if args[2] != filepath.Dir(local) {
-		t.Fatalf("mise não usa a configuração específica: %v", args)
+	writeSharedConfigTestFile(t, local, "[tools]\nnode = 'latest'\n")
+	if err := installMiseConfig(profile, home); err != nil {
+		t.Fatal(err)
+	}
+	if !regularFileMatches(local, destination) {
+		t.Fatal("mise não recebeu a configuração específica")
 	}
 }
 

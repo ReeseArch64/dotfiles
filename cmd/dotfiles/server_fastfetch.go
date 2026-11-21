@@ -58,7 +58,7 @@ func serverFastfetchJobFor(dotfiles, setupDir, home string, install []step) job 
 	steps = append(steps, install...)
 	steps = append(steps,
 		fastfetchConfigStep(setupDir, home),
-		nativeStep("Criar symlink ~/.face", func() error { return installFace(dotfiles, home) }),
+		nativeStep("Copiar foto para ~/.face", func() error { return installFace(dotfiles, home) }),
 	)
 	return job{
 		title: "Fastfetch e foto de perfil",

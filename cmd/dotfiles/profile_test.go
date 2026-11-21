@@ -203,20 +203,20 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 			}
 			for _, current := range it.job().steps {
 				switch current.label {
-				case "Symlink ~/.config/mise/config.toml", "Copiar configuração para ~/.config/fish/config.fish":
+				case "Copiar configuração para ~/.config/mise/config.toml", "Copiar configuração para ~/.config/fish/config.fish":
 					if _, err := current.run(); err != nil {
 						t.Fatal(err)
 					}
 				case "Instalar ferramentas configuradas via mise":
-					want := []string{"mise", "--cd", configPath(m.setupDir, "mise"), "install"}
+					want := []string{"mise", "--cd", filepath.Join(home, ".config", "mise"), "install"}
 					if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
-						t.Fatalf("mise não usa perfil selecionado: %v", got)
+						t.Fatalf("mise não usa a configuração instalada: %v", got)
 					}
 				}
 			}
 		}
-		if target, err := os.Readlink(filepath.Join(home, ".config", "mise", "config.toml")); err != nil || target != configPath(m.setupDir, "mise", "mise.toml") {
-			t.Fatalf("mise incorreto: %s, %v", target, err)
+		if !regularFileMatches(configPath(m.setupDir, "mise", "mise.toml"), filepath.Join(home, ".config", "mise", "config.toml")) {
+			t.Fatal("mise não recebeu a configuração do perfil")
 		}
 	})
 }

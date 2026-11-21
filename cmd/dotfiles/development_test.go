@@ -207,8 +207,8 @@ func TestDevelopmentPacmanPackagesIncludeFishRustupAndTk(t *testing.T) {
 }
 
 func TestDevelopmentToolsInstallStepUsesMiseConfig(t *testing.T) {
-	current := developmentToolsInstallStep("/tmp/dotfiles/setup/notebook")
-	want := []string{"mise", "--cd", "/tmp/dotfiles/setup/notebook/mise", "install"}
+	current := developmentToolsInstallStep("/home/test")
+	want := []string{"mise", "--cd", "/home/test/.config/mise", "install"}
 	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
 		t.Fatalf("comando mise inesperado: %v", got)
 	}
@@ -309,7 +309,7 @@ func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 	steps := developmentEnvironmentSteps("/tmp/dotfiles", home, []step{{label: "Instalar fish, rustup, tk"}})
 	labels := jobStepLabels(job{steps: steps})
 	for _, want := range []string{
-		"Symlink ~/.config/mise/config.toml",
+		"Copiar configuração para ~/.config/mise/config.toml",
 		"Instalar ferramentas configuradas via mise",
 		"Autenticar na AWS",
 		"Autenticar no Google Cloud",

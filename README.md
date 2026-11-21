@@ -2,11 +2,24 @@
 
 Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
 
-O repositório fornece uma CLI interativa para instalar ferramentas, configurar serviços e aplicar arquivos do ambiente. As ações são selecionadas automaticamente para Desktop, Notebook, Homelab ou HomeProd pelo hostname; o MacBook ainda não possui suporte.
+A CLI abre um menu interativo com a opção **Sair**. As ações de configuração e os perfis descritos abaixo ficam como referência para o desenvolvimento.
+
+## Instalação rápida
+
+Depois que a primeira release for publicada, instale o pacote Linux `amd64` com `curl`, `tar` e GNU coreutils.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh
+dotfiles
+```
+
+Se `~/.local/bin` estiver fora do `PATH`, execute `~/.local/bin/dotfiles`. O instalador verifica o SHA-256 e grava o binário diretamente nessa pasta. Na primeira instalação, extrai `setup/` e `assets/` em `~/.dotfiles`. Se a pasta já existir, repetir o comando atualiza o binário e preserva os arquivos locais.
+
+O GitHub Actions testa e compila a CLI em pull requests e pushes na `main`. Uma tag `v*` publica o pacote e o checksum em GitHub Releases.
 
 ## Visão geral
 
-A CLI organiza as ações em cinco áreas:
+As ações de configuração implementadas no repositório se dividem em cinco áreas.
 
 | Área | Ações |
 | --- | --- |
@@ -28,6 +41,7 @@ Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache p
 
 - [Requisitos](#requisitos)
 - [Instalação rápida](#instalação-rápida)
+- [Configurações dos perfis](#configurações-dos-perfis)
 - [Navegação](#navegação)
 - [Sistema](#sistema)
 - [Desenvolvimento](#desenvolvimento)
@@ -42,7 +56,9 @@ Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache p
 
 ## Requisitos
 
-A CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exatamente um destes termos, sem diferenciar maiúsculas de minúsculas:
+Os requisitos abaixo se referem às ações de configuração em desenvolvimento.
+
+Ao executar essas ações, a CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exatamente um destes termos, sem diferenciar maiúsculas de minúsculas:
 
 - `desktop`: disponibiliza todas as ações;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
@@ -80,38 +96,19 @@ Algumas ações possuem requisitos próprios. Eles estão descritos nas seções
 
 CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
 
-## Instalação rápida
-
-Clone o repositório no diretório padrão:
-
-```bash
-git clone https://github.com/ReeseArch64/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
-```
+## Configurações dos perfis
 
 Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
 A base compartilhada contém `btop`, `cursor`, `fastfetch`, `ghostty`, `mise`, `noctalia`, `pi`, os arquivos estáticos de `git` e os arquivos comuns de `niri`. Permanecem separados `fish/config.fish`, `ssh/config`, `niri/cfg/autostart.kdl` e `niri/cfg/display.kdl`. O arquivo `git/.gitconfig` também permanece por perfil, mesmo inicialmente idêntico, pois recebe a chave GPG específica do dispositivo e nunca deve usar fallback compartilhado.
 
-Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise atualiza seu link simbólico para a nova origem em `setup/config/`.
+Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
 Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
 A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
 
 As chaves GPG são geradas localmente por dispositivo em `Desenvolvimento > GPG`; não é necessário fornecer arquivos de chaves externos.
-
-Compile a CLI e crie o comando em `~/.local/bin`:
-
-```bash
-make install
-```
-
-Adicione `~/.local/bin` ao `PATH`, se necessário. Depois, execute:
-
-```bash
-dotfiles
-```
 
 Somente nos perfis Desktop e Notebook, antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
 
@@ -202,7 +199,7 @@ Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu princi
 1. Valida a configuração própria do servidor e `assets/face.jpg` antes de instalar pacotes.
 2. Garante que Chafa esteja disponível para renderizar a foto; quando ausente, instala `chafa` via APT. Preserva um Fastfetch já disponível e funcional. Quando ausente, instala a release oficial 2.70.0 via pacote `.deb`, com SHA-256 fixado para Ubuntu amd64 ou arm64. Usa APT para dependências, sem PPA ou novos repositórios; requer internet. Outras arquiteturas são recusadas pelo instalador.
 3. Copia `setup/homelab/fastfetch/config.json` ou `setup/homeprod/fastfetch/config.json` para `~/.config/fastfetch/config.json`, sem herdar `setup/config/`. O sistema operacional é detectado automaticamente; não há módulos gráficos nem consulta de IP público. O logo usa `command-raw` para executar Chafa sobre `~/.face`, em blocos coloridos de até 30 colunas por 15 linhas. Isso funciona no SSH sem depender da detecção das dimensões em pixels do terminal pelo Fastfetch, que pode falhar no modo `chafa` interno.
-4. Cria `~/.face` como link simbólico para `assets/face.jpg`, como nos perfis desktop/notebook. Mantenha o checkout acessível para que o link continue válido.
+4. Copia `assets/face.jpg` para `~/.face`, como nos perfis desktop/notebook.
 
 Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação isolada `Fastfetch e foto de perfil` não altera o shell de login, não executa Fastfetch automaticamente. Para visualizar as informações com a foto, execute `fastfetch`. A ação `Configurar Fish` também instala o greeting que o executa ao abrir uma sessão interativa.
 
@@ -802,7 +799,7 @@ A pasta contém onze imagens destinadas a diferentes telas:
 
 ### Foto de perfil
 
-`Desktop > Foto de perfil` cria `~/.face` como link simbólico para `assets/face.jpg`.
+`Desktop > Foto de perfil` copia `assets/face.jpg` para `~/.face`.
 
 A ação substitui o destino existente. Faça uma cópia manual quando quiser preservar a foto atual.
 
@@ -974,14 +971,6 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/firewal
 ```
 
 Os testes de firewall usam comandos simulados e namespaces descartáveis para tráfego real IPv4/IPv6, incluindo DNAT equivalente a portas Docker publicadas. Não alteram regras do host. O teste de rede exige `unshare`, `nsenter`, `ip`, `nft`, `sysctl` e user/network namespaces liberados; quando indisponíveis, ele é marcado como ignorado, não como validação de rede bem-sucedida. A execução na VPS e os testes externos continuam necessários.
-
-Use outro checkout com `DOTFILES_DIR`:
-
-```bash
-DOTFILES_DIR=/caminho/para/dotfiles dotfiles
-```
-
-Sem essa variável, a CLI resolve o repositório pelo executável. Se isso falhar, ela usa `~/.dotfiles`.
 
 ## Solução de problemas
 

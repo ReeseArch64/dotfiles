@@ -1,0 +1,61 @@
+name: Build da CLI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Testar
+        run: go test ./...
+      - name: Compilar para Linux amd64
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: make cli
+      - name: Empacotar
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir dist
+          tar -czf dist/dotfiles-linux-amd64.tar.gz bin/dotfiles setup assets
+          cd dist
+          sha256sum dotfiles-linux-amd64.tar.gz > dotfiles-linux-amd64.tar.gz.sha256
+      - uses: actions/upload-artifact@v7
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: dotfiles-linux-amd64
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dotfiles-linux-amd64
+          path: dist
+      - name: Publicar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --generate-notes dist/dotfiles-linux-amd64.tar.gz dist/dotfiles-linux-amd64.tar.gz.sha256
