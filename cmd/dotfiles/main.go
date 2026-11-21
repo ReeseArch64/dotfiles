@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "1.0.2"
+const version = "1.0.3"
 
 type screen int
 
@@ -115,16 +115,23 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 }
 
 func newExitMenu(hostname string) model {
+	profiles := map[string]deviceProfile{
+		"desktop":  deviceDesktop,
+		"laptop":   deviceLaptop,
+		"homeprod": deviceHomeProd,
+		"homelab":  deviceServer,
+	}
 	device := deviceUnknown
-	switch strings.ToLower(hostname) {
-	case "desktop":
-		device = deviceDesktop
-	case "laptop":
-		device = deviceLaptop
-	case "homeprod":
-		device = deviceHomeProd
-	case "homelab":
-		device = deviceServer
+	for part := range strings.SplitSeq(strings.ToLower(hostname), "-") {
+		profile := profiles[part]
+		if profile == deviceUnknown {
+			continue
+		}
+		if device != deviceUnknown && device != profile {
+			device = deviceUnknown
+			break
+		}
+		device = profile
 	}
 	menu := newModelForDevice("", device)
 	menu.exitOnly = true
