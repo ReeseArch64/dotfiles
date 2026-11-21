@@ -77,6 +77,10 @@ func sshDirectory(home string) (string, error) {
 }
 
 func sshLock(path string) (func(), error) {
+	return lockOperation(path, "SSH")
+}
+
+func lockOperation(path, operation string) (func(), error) {
 	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0600)
 	if err != nil {
 		return nil, err
@@ -89,7 +93,7 @@ func sshLock(path string) (func(), error) {
 	}
 	if err := syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		file.Close()
-		return nil, errors.New("outra operação SSH está em andamento")
+		return nil, fmt.Errorf("outra operação de %s está em andamento", operation)
 	}
 	return func() { file.Close() }, nil
 }
@@ -148,7 +152,7 @@ func writeAuthorizedKeys(path string, lines []string) error {
 	if len(lines) > 0 {
 		content = strings.Join(lines, "\n") + "\n"
 	}
-	return writeSSHConfig(path, []byte(content), 0600)
+	return writeConfigAtomic(path, []byte(content), 0600)
 }
 
 type sshConsole struct {

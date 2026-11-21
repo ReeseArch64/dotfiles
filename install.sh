@@ -29,6 +29,10 @@ main() {
 
     if [ -d "$dotfiles_dir" ]; then
         printf 'Mantendo os arquivos existentes em %s.\n' "$dotfiles_dir"
+        if [ -d package/cachyos ]; then
+            mkdir -p "$dotfiles_dir/cachyos"
+            cp -Rn -- package/cachyos/. "$dotfiles_dir/cachyos/"
+        fi
     elif [ -e "$dotfiles_dir" ] || [ -L "$dotfiles_dir" ]; then
         printf 'O caminho %s precisa ser um diretório.\n' "$dotfiles_dir" >&2
         exit 1

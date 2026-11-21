@@ -12,7 +12,7 @@ O identificador pode aparecer como parte do hostname separada por hífen, como e
 
 ## SSH e firewall
 
-Em Desktop e Laptop, o menu **SSH** oferece estas ações.
+Em Desktop e Laptop, o menu **Sistema Operacional → SSH** oferece estas ações.
 
 - **Configurar SSH** cria ou reaproveita a identidade Ed25519 do dispositivo. Instala um `~/.ssh/config` com a identidade única para qualquer destino. Guarda a configuração anterior em `~/.ssh/config.backup-*`, sem transportar aliases por IP ou chaves diferentes por destino. Valida e habilita o servidor OpenSSH para o usuário atual, somente por chave pública e sem login como root. O servidor mantém a porta já configurada e guarda o `sshd_config` anterior em `/etc/ssh/dotfiles-ssh-backup.*`.
 - **Criar chave SSH** gera somente o par local. A passphrase é informada ao OpenSSH no terminal. Arquivos existentes são preservados.
@@ -24,9 +24,13 @@ Em Desktop e Laptop, o menu **SSH** oferece estas ações.
 
 HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop podem usar suas próprias chaves para acessá-los quando as públicas estiverem autorizadas nesses servidores.
 
+## Mouse personalizado
+
+**Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica o `cachyos/niri/cfg/misc.kdl` do legado. A ação espera que o `config.kdl` do Niri inclua `cfg/misc.kdl` e valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups.
+
 ## Instalação
 
-O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Em uma instalação nova, também prepara `~/.dotfiles`. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
+O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS que estiverem faltando. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh

@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.1.2"
+const version = "1.2.0"
 
 type profile struct {
 	prefix      string
@@ -52,6 +52,13 @@ func main() {
 	hostname, _ := os.Hostname()
 	if len(os.Args) > 1 && os.Args[1] == "--network" {
 		if err := runNetworkAction(identifyProfile(hostname), os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+	if len(os.Args) == 2 && os.Args[1] == "--cursor" {
+		if err := runCursorAction(identifyProfile(hostname)); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

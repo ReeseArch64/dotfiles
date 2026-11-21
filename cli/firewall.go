@@ -277,7 +277,7 @@ func (f firewall) apply(lan localNetwork, port string) (result error) {
 			rollbackErr = errors.Join(rollbackErr, err)
 		}
 		for _, file := range files {
-			rollbackErr = errors.Join(rollbackErr, writeSSHConfig(file.path, file.data, file.mode))
+			rollbackErr = errors.Join(rollbackErr, writeConfigAtomic(file.path, file.data, file.mode))
 		}
 		if ufwWasOn {
 			_, err := commands.capture("", "ufw", "reload")

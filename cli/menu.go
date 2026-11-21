@@ -10,6 +10,7 @@ type screen int
 
 const (
 	screenMain screen = iota
+	screenSystem
 	screenSSH
 	screenSSHKeys
 	screenFirewall
@@ -18,6 +19,7 @@ const (
 
 var screenTitles = map[screen]string{
 	screenMain:     "Menu principal",
+	screenSystem:   "Sistema Operacional",
 	screenSSH:      "SSH",
 	screenSSHKeys:  "Chaves autorizadas",
 	screenFirewall: "Firewall",
@@ -68,6 +70,16 @@ type menuItem struct {
 
 func (m model) items() []menuItem {
 	switch m.screen {
+	case screenSystem:
+		firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
+		if !m.status.sshReady {
+			firewallDescription = "Requer SSH configurado"
+		}
+		return []menuItem{
+			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
+			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall, disabled: !m.status.sshReady},
+			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
+		}
 	case screenSSH:
 		return []menuItem{
 			{title: "Configurar SSH", desc: "Configurar cliente e permitir acesso somente por chave", action: "configure"},
@@ -89,13 +101,8 @@ func (m model) items() []menuItem {
 	if m.profile.sshKeyName() == "" {
 		return []menuItem{quit}
 	}
-	firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
-	if !m.status.sshReady {
-		firewallDescription = "Requer SSH configurado"
-	}
 	return []menuItem{
-		{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
-		{title: "Firewall", desc: firewallDescription, goTo: screenFirewall, disabled: !m.status.sshReady},
+		{title: "Sistema Operacional", desc: "Configurar SSH, firewall e cursor", goTo: screenSystem},
 		quit,
 	}
 }
@@ -195,7 +202,7 @@ func (m model) selectItem(item menuItem) (tea.Model, tea.Cmd) {
 		m.stack = append(m.stack, m.screen)
 		m.screen = screenJob
 		m.job = &jobRun{title: item.title}
-		command, err := networkCommand(item.action, item.title)
+		command, err := actionCommand(item.action, item.title)
 		if err != nil {
 			m.job.done, m.job.err = true, err
 			return m, nil

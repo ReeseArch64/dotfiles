@@ -69,7 +69,7 @@ func verifySSHPolicy(effective, username string) error {
 	return nil
 }
 
-func writeSSHConfig(path string, contents []byte, mode os.FileMode) error {
+func writeConfigAtomic(path string, contents []byte, mode os.FileMode) error {
 	if err := sshRegular(path, true); err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (s sshServer) apply() (backupPath string, result error) {
 		if result == nil || !installed {
 			return
 		}
-		restoreErr := writeSSHConfig(s.config, original, originalInfo.Mode().Perm())
+		restoreErr := writeConfigAtomic(s.config, original, originalInfo.Mode().Perm())
 		recovery := s.recoveryCommands
 		if recovery.capture == nil {
 			recovery = s.commands
@@ -216,7 +216,7 @@ func (s sshServer) apply() (backupPath string, result error) {
 		_, restartErr := recovery.capture("", "systemctl", action, "sshd.service")
 		result = errors.Join(result, restoreErr, restartErr, fmt.Errorf("tentativa de restaurar política anterior; backup: %s", backup))
 	}()
-	if err := writeSSHConfig(s.config, policy, 0644); err != nil {
+	if err := writeConfigAtomic(s.config, policy, 0644); err != nil {
 		return backup, err
 	}
 	installed = true

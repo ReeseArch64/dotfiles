@@ -43,7 +43,12 @@ func (m model) View() string {
 		crumbs = append(crumbs, screenTitles[m.screen])
 	}
 	dim := lipgloss.NewStyle().Foreground(colDim)
-	header := dim.Render(strings.Join(crumbs, " › "))
+	breadcrumb := strings.Join(crumbs, " › ")
+	if len(crumbs) > 1 && lipgloss.Width(breadcrumb) > inner {
+		last := len(crumbs) - 1
+		breadcrumb = strings.Join(crumbs[:last], " › ") + " ›\n" + crumbs[last]
+	}
+	header := dim.Render(breadcrumb)
 	subtitle := dim.Width(width).Align(lipgloss.Center).Render(m.subtitle())
 	help := m.viewHelp(false)
 	if lipgloss.Width(help) > width {

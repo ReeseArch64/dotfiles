@@ -33,13 +33,18 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			}
 			want := []string{"Sair"}
 			if tt.keyName != "" {
-				want = []string{"SSH", "Firewall", "Sair"}
+				want = []string{"Sistema Operacional", "Sair"}
 			}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}
 			if tt.keyName != "" {
-				submenu, _ := m.selectItem(m.items()[0])
+				system, _ := m.selectItem(m.items()[0])
+				osMenu := system.(model)
+				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Mouse personalizado"}) {
+					t.Fatalf("menu do sistema = %v", got)
+				}
+				submenu, _ := osMenu.selectItem(osMenu.items()[0])
 				ssh := submenu.(model)
 				want := []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}
 				if got := menuTitles(ssh.items()); !slices.Equal(got, want) {
@@ -59,28 +64,31 @@ func TestLegacyMenuCardsAndCursor(t *testing.T) {
 	m := newMenu("laptop-alan")
 	m.width, m.height = 100, 35
 	m.status = networkStatus{loaded: true, sshInstalled: true, sshActive: true, sshEnabled: true, port: "22", password: "no", root: "no"}
+	operatingSystem, _ := m.handleKey("1")
+	m = operatingSystem.(model)
 	view := ansi.Strip(m.View())
-	for _, want := range []string{"▌ SSH", "▌ Configurar SSH e gerenciar chaves autorizadas", "Firewall 2", "Requer SSH configurado", "1-9 atalho"} {
+	for _, want := range []string{"Menu principal › Sistema Operacional", "▌ SSH", "▌ Configurar SSH e gerenciar chaves autorizadas", "Firewall 2", "Requer SSH configurado", "Mouse personalizado 3", "1-9 atalho"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("menu principal deve conter %q", want)
 		}
 	}
 	blocked, cmd := m.handleKey("2")
-	if blocked.(model).screen != screenMain || cmd != nil {
+	if blocked.(model).screen != screenSystem || cmd != nil {
 		t.Fatal("o firewall deve ficar desabilitado antes de configurar SSH")
 	}
 	m.status.sshReady = true
 	firewall, _ := m.handleKey("2")
-	if view := ansi.Strip(firewall.(model).View()); !strings.Contains(view, "Menu principal › Firewall") || !strings.Contains(view, "LAN") {
+	if view := ansi.Strip(firewall.(model).View()); !strings.Contains(view, "Sistema Operacional › Firewall") || !strings.Contains(view, "LAN") {
 		t.Fatalf("cartão de firewall ausente: %s", view)
 	}
 	ssh, _ := m.handleKey("1")
-	if view := ansi.Strip(ssh.(model).View()); !strings.Contains(view, "Menu principal › SSH") || !strings.Contains(view, "rodando (sshd.service)") {
+	if view := ansi.Strip(ssh.(model).View()); !strings.Contains(view, "Sistema Operacional › SSH") || !strings.Contains(view, "rodando (sshd.service)") {
 		t.Fatalf("cartão de SSH ausente: %s", view)
 	}
 	keys, _ := ssh.(model).handleKey("3")
-	if !strings.Contains(ansi.Strip(keys.(model).View()), "Menu principal › SSH › Chaves autorizadas") {
-		t.Fatal("caminho do submenu de chaves ausente")
+	if view := ansi.Strip(keys.(model).View()); !strings.Contains(view, "Sistema Operacional › SSH ›") ||
+		!strings.Contains(view, "Chaves autorizadas") {
+		t.Fatalf("caminho do submenu de chaves ausente: %s", view)
 	}
 	job, cmd := keys.(model).handleKey("1")
 	if cmd == nil || job.(model).screen != screenJob {
