@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "1.0.0"
+const version = "1.0.1"
 
 type screen int
 
@@ -84,6 +84,7 @@ type model struct {
 	noctalia noctaliaStatus
 	piAgent  piAgentStatus
 	device   deviceProfile
+	exitOnly bool
 	job      *jobRun
 }
 
@@ -114,6 +115,9 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 }
 
 func (m model) items() []item {
+	if m.exitOnly {
+		return []item{{title: "Sair", desc: "Até a próxima!", quit: true}}
+	}
 	if m.device == deviceLaptop {
 		return m.laptopItems()
 	}
@@ -307,8 +311,9 @@ func (m *model) refresh() {
 func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	items := m.items()
 	cur := m.cursor[m.screen]
+	key := k.String()
 
-	switch k.String() {
+	switch key {
 	case "ctrl+c", "q":
 		return m, tea.Quit
 	case "up", "k":
@@ -326,9 +331,11 @@ func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.selectItem(items[cur])
 		}
 	default:
-		if n := int(k.String()[0] - '1'); len(k.String()) == 1 && n >= 0 && n < len(items) {
-			m.cursor[m.screen] = n
-			return m.selectItem(items[n])
+		if len(key) == 1 {
+			if n := int(key[0] - '1'); n >= 0 && n < len(items) {
+				m.cursor[m.screen] = n
+				return m.selectItem(items[n])
+			}
 		}
 	}
 	return m, nil
@@ -400,14 +407,18 @@ func (m model) View() string {
 		Width(boxW).
 		Render(header + "\n\n" + body)
 
-	environment := "CachyOS · Niri · Noctalia Shell"
-	if m.device == deviceLaptop {
-		environment = "Omarchy · Wayland · by ReeseArch64"
+	subtitleText := "v" + version
+	if !m.exitOnly {
+		environment := "CachyOS · Niri · Noctalia Shell"
+		switch m.device {
+		case deviceLaptop:
+			environment = "Omarchy · Wayland · by ReeseArch64"
+		case deviceServer, deviceHomeProd:
+			environment = "Ubuntu"
+		}
+		subtitleText = environment + " · " + m.device.String() + " · " + subtitleText
 	}
-	if m.device == deviceServer || m.device == deviceHomeProd {
-		environment = "Ubuntu"
-	}
-	subtitle := lipgloss.NewStyle().Foreground(colDim).Render(environment + " · " + m.device.String() + " · v" + version)
+	subtitle := lipgloss.NewStyle().Foreground(colDim).Render(subtitleText)
 
 	help := m.viewHelp(false)
 	if lipgloss.Width(help) > m.width {
@@ -471,9 +482,13 @@ func (m model) viewHelp(compact bool) string {
 		}
 		return key.Render("enter") + " " + txt.Render("voltar")
 	}
-	pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
-	if len(m.stack) > 0 {
-		pairs = append(pairs, [2]string{"esc", "voltar"})
+	if m.exitOnly {
+		pairs = append(pairs, [2]string{"enter", "selecionar"})
+	} else {
+		pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
+		if len(m.stack) > 0 {
+			pairs = append(pairs, [2]string{"esc", "voltar"})
+		}
 	}
 	pairs = append(pairs, [2]string{"q", "sair"})
 	var parts []string
@@ -521,26 +536,10 @@ func findSetupRepository(directory string) string {
 	}
 }
 
-type exitMenu struct{}
-
-func (exitMenu) Init() tea.Cmd { return nil }
-
-func (menu exitMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
-		switch key.String() {
-		case "enter", "q", "ctrl+c":
-			return menu, tea.Quit
-		}
-	}
-	return menu, nil
-}
-
-func (exitMenu) View() string {
-	return "Dotfiles\n\n› Sair\n\nEnter ou q para sair\n"
-}
-
 func main() {
-	p := tea.NewProgram(exitMenu{}, tea.WithAltScreen())
+	menu := newModelForDevice("", deviceUnknown)
+	menu.exitOnly = true
+	p := tea.NewProgram(menu, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)

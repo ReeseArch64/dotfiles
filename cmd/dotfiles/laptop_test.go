@@ -13,7 +13,7 @@ func TestLaptopSubtitle(t *testing.T) {
 	m := newModelForDevice("/repo", deviceLaptop)
 	m.width, m.height = 120, 40
 	view := m.View()
-	if !strings.Contains(view, "Omarchy · Wayland · by ReeseArch64 · Laptop · v1.0.0") {
+	if !strings.Contains(view, "Omarchy · Wayland · by ReeseArch64 · Laptop · v"+version) {
 		t.Fatalf("subtítulo do laptop incorreto: %s", view)
 	}
 	for _, old := range []string{"CachyOS", "Noctalia Shell", "Laptop (Omarchy Linux)", "v0.15.0"} {
