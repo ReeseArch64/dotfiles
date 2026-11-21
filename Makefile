@@ -1,10 +1,13 @@
 BIN := bin/dotfiles
 
-.PHONY: cli install run clean
+.PHONY: cli test install run clean
 
 cli:
 	mkdir -p $(dir $(BIN))
-	go build -trimpath -ldflags "-s -w" -o $(BIN) ./cmd/dotfiles
+	cd cli && go build -trimpath -ldflags "-s -w" -o "$(abspath $(BIN))" .
+
+test:
+	cd cli && go test ./...
 
 install: cli
 	mkdir -p "$$HOME/.local/bin"

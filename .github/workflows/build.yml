@@ -19,9 +19,10 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
       - name: Testar
-        run: go test ./...
+        run: make test
       - name: Compilar para Linux amd64
         env:
           CGO_ENABLED: '0'
@@ -32,7 +33,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           mkdir dist
-          tar -czf dist/dotfiles-linux-amd64.tar.gz bin/dotfiles setup assets
+          tar -czf dist/dotfiles-linux-amd64.tar.gz bin/dotfiles cachyos ubuntu
           cd dist
           sha256sum dotfiles-linux-amd64.tar.gz > dotfiles-linux-amd64.tar.gz.sha256
       - uses: actions/upload-artifact@v7

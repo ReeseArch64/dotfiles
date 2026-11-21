@@ -34,7 +34,13 @@ main() {
         exit 1
     else
         mkdir data
-        mv package/setup package/assets data/
+        for environment in cachyos ubuntu; do
+            if [ -d "package/$environment" ]; then
+                mv "package/$environment" data/
+            else
+                mkdir "data/$environment"
+            fi
+        done
         mv -T --no-clobber data "$dotfiles_dir"
     fi
 
