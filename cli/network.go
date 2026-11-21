@@ -101,8 +101,20 @@ func (c *sshConsole) generateIdentity() error {
 func clientSSHConfig(keyName string) string {
 	return "# Gerenciado pelo Dotfiles.\nHost *\n" +
 		"    IdentityFile ~/.ssh/" + keyName + "\n" +
-		"    IdentitiesOnly yes\n    AddKeysToAgent yes\n" +
+		"    IdentitiesOnly yes\n    IdentityAgent /run/user/%i/ssh-agent.socket\n" +
+		"    AddKeysToAgent 8h\n" +
 		"    PreferredAuthentications publickey\n    ForwardAgent no\n"
+}
+
+func (c *sshConsole) enableSSHAgent() error {
+	const socket = "ssh-agent.socket"
+	if _, err := c.commands.capture("", "systemctl", "--user", "enable", "--now", socket); err != nil {
+		return fmt.Errorf("habilitar o agente SSH do usuário: %w", err)
+	}
+	if _, err := c.commands.capture("", "systemctl", "--user", "is-active", "--quiet", socket); err != nil {
+		return fmt.Errorf("o socket do agente SSH não está ativo: %w", err)
+	}
+	return nil
 }
 
 func (c *sshConsole) configure() error {
@@ -146,6 +158,9 @@ func (c *sshConsole) configure() error {
 		return err
 	}
 	defer applyClient.cleanup()
+	if err := c.enableSSHAgent(); err != nil {
+		return err
+	}
 	if err := c.privileged("apply-server"); err != nil {
 		return err
 	}

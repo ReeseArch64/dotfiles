@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const version = "1.1.0"
+const version = "1.1.1"
 
 type profile struct {
 	prefix      string

@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -105,6 +107,11 @@ func TestConfigureSSHClientUsesOneIdentityAndBacksUpLegacy(t *testing.T) {
 	}
 	if len(identities) != 1 || identities[0] != "~/.ssh/id_desktop" {
 		t.Fatalf("identidades efetivas: %v", identities)
+	}
+	socket := "identityagent /run/user/" + strconv.Itoa(os.Getuid()) + "/ssh-agent.socket"
+	if !slices.Contains(strings.Split(effective, "\n"), socket) ||
+		!slices.Contains(strings.Split(effective, "\n"), "addkeystoagent 28800") {
+		t.Fatal("o cliente deve usar o agente do usuário e guardar a chave por oito horas")
 	}
 	backups, err := filepath.Glob(path + ".backup-*")
 	if err != nil || len(backups) != 1 {
