@@ -21,7 +21,7 @@ func TestHomeProdCasaOSInstallerFailures(t *testing.T) {
 			t.Setenv("TEST_WORK", work)
 			t.Setenv("SCENARIO", scenario)
 			writeTestExecutable(t, bin, "id", `echo 0`)
-			writeTestExecutable(t, bin, "usermod", `[[ "$*" == '--append --groups docker alsgy' ]] || exit 99
+			writeTestExecutable(t, bin, "usermod", `[ "$*" = '--append --groups docker alsgy' ] || exit 99
 touch "$TEST_WORK/docker-group"`)
 			writeTestExecutable(t, bin, "mktemp", `printf '%s\n' "$TEST_WORK"`)
 			writeTestExecutable(t, bin, "infocmp", `exit 1`)
@@ -38,13 +38,15 @@ echo 'installer output'
 			if err := os.WriteFile(filepath.Join(work, "fixture"), []byte(fixture), 0600); err != nil {
 				t.Fatal(err)
 			}
-			writeTestExecutable(t, bin, "curl", `url="${@: -3:1}"
-output="${@: -1}"
-if [[ "$url" == https://get.casaos.io ]]; then
-  [[ "$SCENARIO" != download-failure ]] || exit 22
+			writeTestExecutable(t, bin, "curl", `while [ "$#" -gt 3 ]; do shift; done
+[ "$#" -eq 3 ] && [ "$2" = -o ] || exit 99
+url=$1
+output=$3
+if [ "$url" = https://get.casaos.io ]; then
+  [ "$SCENARIO" != download-failure ] || exit 22
   cp "$TEST_WORK/fixture" "$output"
-elif [[ "$url" == https://get.casaos.io/uninstall/v0.4.16 ]]; then
-  [[ "$SCENARIO" != fallback && "$SCENARIO" != bad-checksum ]] || exit 22
+elif [ "$url" = https://get.casaos.io/uninstall/v0.4.16 ]; then
+  [ "$SCENARIO" != fallback ] && [ "$SCENARIO" != bad-checksum ] || exit 22
   printf '#!/bin/bash\nexit 99\n' > "$output"
 else
   printf '#!/bin/bash\nexit 99\n' > "$output"
