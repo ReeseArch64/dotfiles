@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
@@ -38,12 +40,60 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			}
 			if tt.keyName != "" {
 				submenu, _ := m.selectItem(m.items()[0])
-				want := []string{"Configurar SSH", "Criar chave SSH", "Adicionar chave pública", "Visualizar chaves autorizadas", "Remover chave pública", "Voltar"}
-				if got := menuTitles(submenu.(model).items()); !slices.Equal(got, want) {
+				ssh := submenu.(model)
+				want := []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}
+				if got := menuTitles(ssh.items()); !slices.Equal(got, want) {
 					t.Fatalf("submenu SSH = %v, esperado %v", got, want)
+				}
+				keys, _ := ssh.selectItem(ssh.items()[2])
+				want = []string{"Adicionar chave pública", "Visualizar chaves atuais", "Remover chave pública"}
+				if got := menuTitles(keys.(model).items()); !slices.Equal(got, want) {
+					t.Fatalf("submenu de chaves = %v, esperado %v", got, want)
 				}
 			}
 		})
+	}
+}
+
+func TestLegacyMenuCardsAndCursor(t *testing.T) {
+	m := newMenu("laptop-alan")
+	m.width, m.height = 100, 35
+	m.status = networkStatus{loaded: true, sshInstalled: true, sshActive: true, sshEnabled: true, port: "22", password: "no", root: "no"}
+	view := ansi.Strip(m.View())
+	for _, want := range []string{"▌ SSH", "▌ Configurar SSH e gerenciar chaves autorizadas", "Firewall 2", "Requer SSH configurado", "1-9 atalho"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("menu principal deve conter %q", want)
+		}
+	}
+	blocked, cmd := m.handleKey("2")
+	if blocked.(model).screen != screenMain || cmd != nil {
+		t.Fatal("o firewall deve ficar desabilitado antes de configurar SSH")
+	}
+	m.status.sshReady = true
+	firewall, _ := m.handleKey("2")
+	if view := ansi.Strip(firewall.(model).View()); !strings.Contains(view, "Menu principal › Firewall") || !strings.Contains(view, "LAN") {
+		t.Fatalf("cartão de firewall ausente: %s", view)
+	}
+	ssh, _ := m.handleKey("1")
+	if view := ansi.Strip(ssh.(model).View()); !strings.Contains(view, "Menu principal › SSH") || !strings.Contains(view, "rodando (sshd.service)") {
+		t.Fatalf("cartão de SSH ausente: %s", view)
+	}
+	keys, _ := ssh.(model).handleKey("3")
+	if !strings.Contains(ansi.Strip(keys.(model).View()), "Menu principal › SSH › Chaves autorizadas") {
+		t.Fatal("caminho do submenu de chaves ausente")
+	}
+	job, cmd := keys.(model).handleKey("1")
+	if cmd == nil || job.(model).screen != screenJob {
+		t.Fatal("selecionar ação deve abrir uma tela de execução")
+	}
+	done, _ := job.Update(actionResult{})
+	if !strings.Contains(ansi.Strip(done.View()), "Concluído") {
+		t.Fatal("tela de execução não mostra resultado")
+	}
+	back, _ := done.(model).handleJobKey("q")
+	back, _ = back.(model).handleKey("esc")
+	if back.(model).screen != screenSSH || back.(model).cursor[screenSSH] != 2 {
+		t.Fatal("retorno deve preservar a posição no menu SSH")
 	}
 }
 

@@ -1,0 +1,154 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+)
+
+var (
+	colTitle   = lipgloss.Color("#E4E4F0")
+	colDim     = lipgloss.Color("#6B6B85")
+	colDimmer  = lipgloss.Color("#45455A")
+	colDescSel = lipgloss.Color("#B8B4D8")
+	colOK      = lipgloss.Color("#4ADE80")
+	colErr     = lipgloss.Color("#F87171")
+	colWarn    = lipgloss.Color("#FACC15")
+)
+
+func (m model) subtitle() string {
+	if m.profile.prefix == "" {
+		return "Sem suporte · by ReeseArch64 · v" + version
+	}
+	return m.profile.environment + " · by ReeseArch64 · " + m.profile.name + " · v" + version
+}
+
+func (m model) View() string {
+	width, height := max(m.width, 1), max(m.height, 1)
+	elapsed := m.now.Sub(m.start)
+	boxW := min(max(width-4, 30), 66)
+	inner := boxW - 4
+
+	var crumbs []string
+	for _, s := range m.stack {
+		crumbs = append(crumbs, screenTitles[s])
+	}
+	switch m.screen {
+	case screenJob:
+		crumbs = append(crumbs, m.job.title)
+	default:
+		crumbs = append(crumbs, screenTitles[m.screen])
+	}
+	dim := lipgloss.NewStyle().Foreground(colDim)
+	header := dim.Render(strings.Join(crumbs, " › "))
+	subtitle := dim.Width(width).Align(lipgloss.Center).Render(m.subtitle())
+	help := m.viewHelp(false)
+	if lipgloss.Width(help) > width {
+		help = m.viewHelp(true)
+	}
+	layout := func(compactBanner, compactMenu bool) string {
+		var body string
+		switch m.screen {
+		case screenJob:
+			body = m.job.view(inner, elapsed)
+		case screenSSH, screenFirewall:
+			divider := lipgloss.NewStyle().Foreground(colDimmer).Render(strings.Repeat("─", inner))
+			card := m.status.card(m.screen, inner, compactMenu)
+			gap := "\n\n"
+			if compactMenu {
+				gap = "\n"
+			}
+			body = card + gap + divider + gap + m.viewMenu(inner, elapsed, compactMenu)
+		default:
+			body = m.viewMenu(inner, elapsed, compactMenu)
+		}
+		box := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color(gradientAt(-elapsed.Seconds()*20).Hex())).
+			Padding(1, 2).
+			Width(boxW).
+			Render(header + "\n\n" + body)
+		return lipgloss.JoinVertical(lipgloss.Center, renderBanner(width, elapsed, compactBanner), "", subtitle, "", box, "", help)
+	}
+	content := layout(false, false)
+	if lipgloss.Height(content) > height {
+		content = layout(true, false)
+	}
+	if lipgloss.Height(content) > height {
+		content = layout(true, true)
+	}
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
+}
+
+func (m model) viewMenu(width int, elapsed time.Duration, compact bool) string {
+	items := m.items()
+	if len(items) == 0 {
+		return lipgloss.NewStyle().Foreground(colDim).Render("Nenhuma opção disponível.")
+	}
+	cur := m.cursor[m.screen]
+	var rows []string
+	for i, it := range items {
+		num := fmt.Sprintf("%d", i+1)
+		desc := ansi.Truncate(it.desc, width-4, "…")
+		if it.disabled {
+			dim := lipgloss.NewStyle().Foreground(colDimmer)
+			rows = append(rows,
+				"  "+dim.Render(it.title+" "+num),
+				"  "+dim.Render(desc))
+		} else if i == cur {
+			bar := renderGradientText("▌", elapsed, true)
+			title := renderGradientText(it.title, elapsed, true)
+			rows = append(rows,
+				bar+" "+title,
+				bar+" "+lipgloss.NewStyle().Foreground(colDescSel).Render(desc))
+		} else {
+			rows = append(rows,
+				"  "+lipgloss.NewStyle().Foreground(colTitle).Render(it.title)+" "+
+					lipgloss.NewStyle().Foreground(colDimmer).Render(num),
+				"  "+lipgloss.NewStyle().Foreground(colDim).Render(desc))
+		}
+		if !compact && i < len(items)-1 {
+			rows = append(rows, "")
+		}
+	}
+	return strings.Join(rows, "\n")
+}
+
+func (m model) viewHelp(compact bool) string {
+	key := lipgloss.NewStyle().Foreground(colTitle).Bold(true)
+	txt := lipgloss.NewStyle().Foreground(colDim)
+	var pairs [][2]string
+	if m.screen == screenJob {
+		if !m.job.done {
+			return txt.Render("executando… ") + key.Render("ctrl+c") + txt.Render(" aborta")
+		}
+		return key.Render("enter") + " " + txt.Render("voltar")
+	}
+	if len(m.items()) == 1 && m.screen == screenMain {
+		pairs = append(pairs, [2]string{"enter", "selecionar"})
+	} else {
+		pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
+		if len(m.stack) > 0 {
+			pairs = append(pairs, [2]string{"esc", "voltar"})
+		}
+	}
+	pairs = append(pairs, [2]string{"q", "sair"})
+	var parts []string
+	for _, p := range pairs {
+		if compact {
+			if p[0] != "1-9" {
+				parts = append(parts, key.Render(p[0]))
+			}
+			continue
+		}
+		parts = append(parts, key.Render(p[0])+" "+txt.Render(p[1]))
+	}
+	sep := "  ·  "
+	if compact {
+		sep = " · "
+	}
+	return strings.Join(parts, txt.Render(sep))
+}

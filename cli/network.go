@@ -34,6 +34,9 @@ func runNetworkAction(device profile, args []string) error {
 		home: account.HomeDir, keyName: device.sshKeyName(),
 		input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands(),
 	}
+	if title := os.Getenv("DOTFILES_ACTION_TITLE"); title != "" {
+		fmt.Fprintf(console.output, "\x1b[2J\x1b[H\n  \x1b[1;35m━━ %s ━━\x1b[0m\n\n", title)
+	}
 	switch args[0] {
 	case "configure":
 		err = console.configure()
@@ -266,10 +269,12 @@ func (c *sshConsole) firewall() error {
 	return c.privileged("apply-firewall")
 }
 
-func networkCommand(action string) (*exec.Cmd, error) {
+func networkCommand(action, title string) (*exec.Cmd, error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	return exec.Command(executable, "--network", action), nil
+	command := exec.Command(executable, "--network", action)
+	command.Env = append(command.Environ(), "DOTFILES_ACTION_TITLE="+title)
+	return command, nil
 }
