@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const version = "1.0.1"
+const version = "1.0.2"
 
 type screen int
 
@@ -112,6 +112,23 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 		cursor:   map[screen]int{},
 		device:   device,
 	}
+}
+
+func newExitMenu(hostname string) model {
+	device := deviceUnknown
+	switch strings.ToLower(hostname) {
+	case "desktop":
+		device = deviceDesktop
+	case "laptop":
+		device = deviceLaptop
+	case "homeprod":
+		device = deviceHomeProd
+	case "homelab":
+		device = deviceServer
+	}
+	menu := newModelForDevice("", device)
+	menu.exitOnly = true
+	return menu
 }
 
 func (m model) items() []item {
@@ -407,18 +424,11 @@ func (m model) View() string {
 		Width(boxW).
 		Render(header + "\n\n" + body)
 
-	subtitleText := "v" + version
-	if !m.exitOnly {
-		environment := "CachyOS · Niri · Noctalia Shell"
-		switch m.device {
-		case deviceLaptop:
-			environment = "Omarchy · Wayland · by ReeseArch64"
-		case deviceServer, deviceHomeProd:
-			environment = "Ubuntu"
-		}
-		subtitleText = environment + " · " + m.device.String() + " · " + subtitleText
+	subtitleStyle := lipgloss.NewStyle().Foreground(colDim)
+	if m.exitOnly && m.width > 0 {
+		subtitleStyle = subtitleStyle.Width(m.width).Align(lipgloss.Center)
 	}
-	subtitle := lipgloss.NewStyle().Foreground(colDim).Render(subtitleText)
+	subtitle := subtitleStyle.Render(m.subtitle())
 
 	help := m.viewHelp(false)
 	if lipgloss.Width(help) > m.width {
@@ -436,6 +446,31 @@ func (m model) View() string {
 	}
 
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+}
+
+func (m model) subtitle() string {
+	environment := "CachyOS · Niri · Noctalia Shell"
+	switch m.device {
+	case deviceLaptop:
+		if !m.exitOnly {
+			environment = "Omarchy · Wayland"
+		}
+	case deviceServer, deviceHomeProd:
+		environment = "Ubuntu"
+	case deviceUnknown:
+		if m.exitOnly {
+			environment = "Sem suporte"
+		}
+	}
+
+	parts := []string{environment}
+	if m.exitOnly || m.device == deviceLaptop {
+		parts = append(parts, "by ReeseArch64")
+	}
+	if !m.exitOnly || m.device != deviceUnknown {
+		parts = append(parts, m.device.String())
+	}
+	return strings.Join(append(parts, "v"+version), " · ")
 }
 
 func (m model) viewMenu(width int, elapsed time.Duration) string {
@@ -537,9 +572,8 @@ func findSetupRepository(directory string) string {
 }
 
 func main() {
-	menu := newModelForDevice("", deviceUnknown)
-	menu.exitOnly = true
-	p := tea.NewProgram(menu, tea.WithAltScreen())
+	hostname, _ := os.Hostname()
+	p := tea.NewProgram(newExitMenu(hostname), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
 		os.Exit(1)

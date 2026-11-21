@@ -2,7 +2,9 @@
 
 Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
 
-A CLI abre um menu interativo com a opção **Sair**. As ações de configuração e os perfis descritos abaixo ficam como referência para o desenvolvimento.
+A CLI identifica o ambiente pelo hostname, exibe o autor e abre um menu interativo com a opção **Sair**. Para `desktop` e `laptop`, exibe CachyOS · Niri · Noctalia Shell. Para `homeprod` e `homelab`, exibe Ubuntu. A comparação usa o hostname completo e ignora maiúsculas e minúsculas. Qualquer outro nome aparece como **Sem suporte**.
+
+A identificação é feita apenas pelo nome da máquina. As ações de configuração e seus requisitos ficam descritos abaixo como referência para o desenvolvimento.
 
 ## Instalação rápida
 

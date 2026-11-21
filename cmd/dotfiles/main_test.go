@@ -2,6 +2,7 @@ package main
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -11,6 +12,35 @@ func itemTitles(items []item) []string {
 		titles[i] = item.title
 	}
 	return titles
+}
+
+func TestExitMenuIdentifiesHostname(t *testing.T) {
+	tests := []struct {
+		hostname string
+		subtitle string
+	}{
+		{"desktop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
+		{"DESKTOP", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
+		{"laptop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Laptop"},
+		{"homeprod", "Ubuntu · by ReeseArch64 · HomeProd"},
+		{"homelab", "Ubuntu · by ReeseArch64 · Homelab"},
+		{"notebook", "Sem suporte · by ReeseArch64"},
+		{"laptop-alan", "Sem suporte · by ReeseArch64"},
+		{"desktop-notebook", "Sem suporte · by ReeseArch64"},
+		{"", "Sem suporte · by ReeseArch64"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.hostname, func(t *testing.T) {
+			m := newExitMenu(tt.hostname)
+			m.width, m.height = 100, 30
+			if !strings.Contains(m.View(), tt.subtitle+" · v"+version) {
+				t.Fatalf("subtítulo incorreto: %q", m.subtitle())
+			}
+			if items := m.items(); len(items) != 1 || items[0].title != "Sair" || !items[0].quit {
+				t.Fatalf("opções inesperadas: %v", itemTitles(items))
+			}
+		})
+	}
 }
 
 func TestMainMenuOptions(t *testing.T) {
