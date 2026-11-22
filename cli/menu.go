@@ -14,6 +14,7 @@ const (
 	screenEssentials
 	screenTerminalTools
 	screenDrivers
+	screenDocker
 	screenFish
 	screenFastfetch
 	screenTerminal
@@ -36,6 +37,7 @@ var screenTitles = map[screen]string{
 	screenEssentials:    "Ferramentas Essenciais",
 	screenTerminalTools: "Ferramentas de Terminal",
 	screenDrivers:       "Drivers",
+	screenDocker:        "Docker",
 	screenFish:          "Fish",
 	screenFastfetch:     "Fastfetch",
 	screenTerminal:      "Terminal",
@@ -68,6 +70,7 @@ type model struct {
 	cursor        [screenJob]int
 	job           *jobRun
 	status        networkStatus
+	docker        dockerStatus
 	statusRequest int
 }
 
@@ -96,7 +99,7 @@ type menuItem struct {
 }
 
 func (m model) items() []menuItem {
-	items := screenItems(m.screen)
+	items := screenItems(m.screen, m.profile)
 	for i := range items {
 		items[i].disabled = !m.menuItemAvailable(items[i])
 		if items[i].goTo == screenFirewall && items[i].disabled && m.profile.sshKeyName() != "" {
@@ -116,6 +119,8 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return homelab
 	case item.goTo == screenSystem:
 		return workstation || homelab
+	case item.goTo == screenDocker || item.action == "setup-docker":
+		return m.profile.prefix == "desktop"
 	case item.action == "sdk-links":
 		return m.profile.canMigrateSDK(m.osID)
 	case item.goTo == screenFish || item.goTo == screenFastfetch || item.goTo == screenTerminalTools ||
@@ -132,7 +137,7 @@ func (m model) menuItemAvailable(item menuItem) bool {
 	}
 }
 
-func screenItems(page screen) []menuItem {
+func screenItems(page screen, device profile) []menuItem {
 	switch page {
 	case screenSystem:
 		return []menuItem{
@@ -155,6 +160,8 @@ func screenItems(page screen) []menuItem {
 		}
 	case screenDrivers:
 		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}
+	case screenDocker:
+		return []menuItem{{title: "Configurar Docker", desc: "Instalar Docker, Compose, Buildx, Machine e LazyDocker", action: "setup-docker"}}
 	case screenFish:
 		return []menuItem{{title: "Configurar Fish", desc: "Instalar as dependências e aplicar o config.fish", action: "setup-fish"}}
 	case screenFastfetch:
@@ -167,10 +174,14 @@ func screenItems(page screen) []menuItem {
 			{title: "Configurar swap", desc: "Ativar 2 GiB de swap persistente", action: "homelab-swap"},
 		}
 	case screenProgramming:
-		return []menuItem{
+		items := []menuItem{
 			{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit},
 			{title: "Mise", desc: "Configurar o Mise e instalar as ferramentas", goTo: screenMise},
 		}
+		if device.prefix == "desktop" {
+			items = append(items, menuItem{title: "Docker", desc: "Instalar pacotes, ativar o serviço e autenticar", goTo: screenDocker})
+		}
+		return items
 	case screenGit:
 		return []menuItem{{title: "Configurar Git", desc: "Instalar ferramentas e aplicar a configuração global", action: "setup-git"}}
 	case screenMise:
@@ -219,6 +230,11 @@ func (m model) loadStatus() tea.Cmd {
 }
 
 func (m model) refresh() (model, tea.Cmd) {
+	if m.screen == screenDocker {
+		m.statusRequest++
+		request := m.statusRequest
+		return m, func() tea.Msg { return dockerStatusResult{request, readDockerStatus()} }
+	}
 	if m.profile.sshKeyName() != "" || m.profile.prefix == "homelab" {
 		m.statusRequest++
 		return m, m.loadStatus()
@@ -236,6 +252,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case statusResult:
 		if msg.request == m.statusRequest {
 			m.status = msg.status
+		}
+	case dockerStatusResult:
+		if msg.request == m.statusRequest {
+			m.docker = msg.status
 		}
 	case actionResult:
 		if m.job != nil {

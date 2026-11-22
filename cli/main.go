@@ -106,6 +106,10 @@ func main() {
 			action = runGitSetup
 		case "--setup-mise":
 			action = runMiseSetup
+		case "--setup-docker":
+			action = runDockerSetup
+		case "--apply-docker":
+			action = runPrivilegedDocker
 		case "--sshd-backup":
 			action = writeSSHDBackup
 		}

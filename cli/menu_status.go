@@ -51,6 +51,64 @@ type networkStatus struct {
 	rulesErr                  error
 }
 
+type dockerStatusResult struct {
+	request int
+	status  dockerStatus
+}
+
+type dockerStatus struct {
+	loaded, active, enabled, inGroup bool
+	missing                          []string
+}
+
+func readDockerStatus() dockerStatus {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	commands := sshCommandsWithContext(ctx)
+	s := dockerStatus{loaded: true}
+	for _, name := range dockerTools {
+		if _, err := commands.capture("", "pacman", "-Q", name); err != nil {
+			s.missing = append(s.missing, name)
+		}
+	}
+	s.active = isActive(dockerService, commands)
+	s.enabled = isEnabled(dockerService, commands)
+	if account, err := user.Current(); err == nil {
+		if group, err := user.LookupGroup("docker"); err == nil {
+			ids, err := account.GroupIds()
+			s.inGroup = err == nil && slices.Contains(ids, group.Gid)
+		}
+	}
+	return s
+}
+
+func (s dockerStatus) rows() []cardRow {
+	if !s.loaded {
+		return []cardRow{{colDim, "Estado", "carregando…"}}
+	}
+	rows := make([]cardRow, 0, len(dockerTools)+3)
+	for _, name := range dockerTools {
+		color, state := colOK, " instalado"
+		if slices.Contains(s.missing, name) {
+			color, state = colErr, " ausente"
+		}
+		rows = append(rows, cardRow{color, "Pacote", name + state})
+	}
+	service := cardRow{colWarn, "Serviço", "docker.service parado"}
+	if s.active {
+		service = cardRow{colOK, "Serviço", "docker.service ativo"}
+	}
+	boot := cardRow{colWarn, "Boot", "desabilitado"}
+	if s.enabled {
+		boot = cardRow{colOK, "Boot", "habilitado"}
+	}
+	group := cardRow{colWarn, "Grupo", "usuário fora do grupo docker"}
+	if s.inGroup {
+		group = cardRow{colOK, "Grupo", "usuário no grupo docker"}
+	}
+	return append(rows, service, boot, group)
+}
+
 func readNetworkStatus(p profile) networkStatus {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

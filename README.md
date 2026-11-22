@@ -74,6 +74,10 @@ O `~/.gitconfig` recebe o fingerprint local em `user.signingkey` e habilita GPG 
 
 **Programação → Mise → Configurar Mise e instalar ferramentas** instala o Mise e as dependências de compilação, copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A autenticação em cada ferramenta fica a cargo do usuário. Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
 
+No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/etc/docker/dotfiles-backup-*/daemon.json`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
+
+A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
+
 ## Navegador Web
 
 **Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.

@@ -314,6 +314,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--setup-git"}
 	case "setup-mise":
 		args = []string{"--setup-mise"}
+	case "setup-docker":
+		args = []string{"--setup-docker"}
 	case "setup-fish", "setup-fastfetch":
 		args = []string{"--terminal-config", strings.TrimPrefix(action, "setup-")}
 	case "essential-tools", "install-yay", "terminal-tools", "install-kitty", "drivers", "proton-pass":

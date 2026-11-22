@@ -41,7 +41,11 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if tt.keyName != "" {
 				programming, _ := m.selectItem(m.items()[3])
 				programmingMenu := programming.(model)
-				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, []string{"Git", "Mise"}) {
+				wantProgramming := []string{"Git", "Mise"}
+				if m.profile.prefix == "desktop" {
+					wantProgramming = append(wantProgramming, "Docker")
+				}
+				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, wantProgramming) {
 					t.Fatalf("menu de programação = %v", got)
 				}
 				gitMenu, _ := programmingMenu.selectItem(programmingMenu.items()[0])
@@ -154,7 +158,7 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 					}
 					items[i].disabled = false
 				}
-				if !slices.Equal(items, screenItems(page)) {
+				if !slices.Equal(items, screenItems(page, menu.profile)) {
 					t.Fatalf("estrutura diferente em %s: %v", screenTitles[page], items)
 				}
 				switch page {

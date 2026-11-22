@@ -59,9 +59,12 @@ func (m model) View() string {
 		switch m.screen {
 		case screenJob:
 			body = m.job.view(inner, elapsed)
-		case screenSSH, screenFirewall:
+		case screenSSH, screenFirewall, screenDocker:
 			divider := lipgloss.NewStyle().Foreground(colDimmer).Render(strings.Repeat("─", inner))
 			card := m.status.card(m.screen, inner, compactMenu)
+			if m.screen == screenDocker {
+				card = renderCard(m.docker.rows(), inner)
+			}
 			gap := "\n\n"
 			if compactMenu {
 				gap = "\n"
