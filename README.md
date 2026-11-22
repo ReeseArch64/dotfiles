@@ -38,6 +38,12 @@ HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop pode
 
 **Sistema Operacional → Drivers** instala os headers correspondentes aos kernels instalados e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
 
+**Sistema Operacional → Fish → Configurar Fish** aplica o `config.fish` do Desktop em `~/.config/fish/config.fish`.
+
+**Sistema Operacional → Fastfetch → Configurar Fastfetch** aplica o `config.json` compartilhado do legado em `~/.config/fastfetch/config.json`. O `config.fish` usa esse arquivo ao executar o Fastfetch.
+
+As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda. Use os submenus com Fish e Fastfetch já instalados.
+
 ## Programação
 
 **Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. Após confirmação, a ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.

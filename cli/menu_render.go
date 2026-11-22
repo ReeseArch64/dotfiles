@@ -54,7 +54,7 @@ func (m model) View() string {
 	if lipgloss.Width(help) > width {
 		help = m.viewHelp(true)
 	}
-	layout := func(compactBanner, compactMenu bool) string {
+	layout := func(compactBanner, compactMenu, selectedDescriptionOnly bool) string {
 		var body string
 		switch m.screen {
 		case screenJob:
@@ -66,9 +66,9 @@ func (m model) View() string {
 			if compactMenu {
 				gap = "\n"
 			}
-			body = card + gap + divider + gap + m.viewMenu(inner, elapsed, compactMenu)
+			body = card + gap + divider + gap + m.viewMenu(inner, elapsed, compactMenu, selectedDescriptionOnly)
 		default:
-			body = m.viewMenu(inner, elapsed, compactMenu)
+			body = m.viewMenu(inner, elapsed, compactMenu, selectedDescriptionOnly)
 		}
 		box := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -78,17 +78,20 @@ func (m model) View() string {
 			Render(header + "\n\n" + body)
 		return lipgloss.JoinVertical(lipgloss.Center, renderBanner(width, elapsed, compactBanner), "", subtitle, "", box, "", help)
 	}
-	content := layout(false, false)
+	content := layout(false, false, false)
 	if lipgloss.Height(content) > height {
-		content = layout(true, false)
+		content = layout(true, false, false)
 	}
 	if lipgloss.Height(content) > height {
-		content = layout(true, true)
+		content = layout(true, true, false)
+	}
+	if lipgloss.Height(content) > height {
+		content = layout(true, true, true)
 	}
 	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
 }
 
-func (m model) viewMenu(width int, elapsed time.Duration, compact bool) string {
+func (m model) viewMenu(width int, elapsed time.Duration, compact, selectedDescriptionOnly bool) string {
 	items := m.items()
 	if len(items) == 0 {
 		return lipgloss.NewStyle().Foreground(colDim).Render("Nenhuma opção disponível.")
@@ -98,22 +101,23 @@ func (m model) viewMenu(width int, elapsed time.Duration, compact bool) string {
 	for i, it := range items {
 		num := fmt.Sprintf("%d", i+1)
 		desc := ansi.Truncate(it.desc, width-4, "…")
+		var title, description string
 		if it.disabled {
 			dim := lipgloss.NewStyle().Foreground(colDimmer)
-			rows = append(rows,
-				"  "+dim.Render(it.title+" "+num),
-				"  "+dim.Render(desc))
+			title = "  " + dim.Render(it.title+" "+num)
+			description = "  " + dim.Render(desc)
 		} else if i == cur {
 			bar := renderGradientText("▌", elapsed, true)
-			title := renderGradientText(it.title, elapsed, true)
-			rows = append(rows,
-				bar+" "+title,
-				bar+" "+lipgloss.NewStyle().Foreground(colDescSel).Render(desc))
+			title = bar + " " + renderGradientText(it.title, elapsed, true)
+			description = bar + " " + lipgloss.NewStyle().Foreground(colDescSel).Render(desc)
 		} else {
-			rows = append(rows,
-				"  "+lipgloss.NewStyle().Foreground(colTitle).Render(it.title)+" "+
-					lipgloss.NewStyle().Foreground(colDimmer).Render(num),
-				"  "+lipgloss.NewStyle().Foreground(colDim).Render(desc))
+			title = "  " + lipgloss.NewStyle().Foreground(colTitle).Render(it.title) + " " +
+				lipgloss.NewStyle().Foreground(colDimmer).Render(num)
+			description = "  " + lipgloss.NewStyle().Foreground(colDim).Render(desc)
+		}
+		rows = append(rows, title)
+		if !selectedDescriptionOnly || i == cur {
+			rows = append(rows, description)
 		}
 		if !compact && i < len(items)-1 {
 			rows = append(rows, "")

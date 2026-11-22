@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -55,9 +56,23 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
+				}
+				if height := lipgloss.Height(osMenu.View()); height != osMenu.height {
+					t.Fatalf("menu do sistema ocupa %d linhas em terminal com %d", height, osMenu.height)
+				}
+				for index, app := range []string{"fish", "fastfetch"} {
+					child, _ := osMenu.selectItem(osMenu.items()[index+5])
+					items := child.(model).items()
+					if len(items) != 1 {
+						t.Fatalf("submenu de %s: %v", app, items)
+					}
+					command, err := actionCommand(items[0].action, items[0].title)
+					if err != nil || !slices.Equal(command.Args[1:], []string{"--terminal-config", app}) {
+						t.Fatalf("ação de %s: %v, %v", app, command, err)
+					}
 				}
 				for index, actions := range [][]string{{"essential-tools"}, {"install-yay", "terminal-tools"}, {"drivers"}} {
 					child, _ := osMenu.selectItem(osMenu.items()[index+2])
