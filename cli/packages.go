@@ -65,6 +65,9 @@ func (installer packageInstaller) run(action, modules string) error {
 		}
 		official = append(headers, "vulkan-tools", "mesa-utils")
 	case "proton-pass":
+		if err := installer.checkProtonPassFirefox(); err != nil {
+			return err
+		}
 		aur = "proton-pass-cli-bin"
 	case "install-yay":
 	default:
@@ -79,6 +82,9 @@ func (installer packageInstaller) run(action, modules string) error {
 	}
 	if action == "install-yay" || aur != "" {
 		fmt.Fprintln(installer.console.output, "Se necessário, compilar yay em ~/.aur/yay com base-devel.")
+	}
+	if action == "proton-pass" {
+		fmt.Fprintln(installer.console.output, "Iniciar login com pass-cli login após a instalação.")
 	}
 	if err := installer.console.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
 		return err
@@ -97,7 +103,32 @@ func (installer packageInstaller) run(action, modules string) error {
 		return err
 	}
 	if aur != "" {
-		return installer.console.commands.interactive("yay", "-S", "--needed", "--", aur)
+		if err := installer.console.commands.interactive("yay", "-S", "--needed", "--", aur); err != nil {
+			return err
+		}
+	}
+	if action == "proton-pass" {
+		if err := installer.console.commands.interactive("pass-cli", "login"); err != nil {
+			return fmt.Errorf("executar pass-cli login: %w", err)
+		}
+	}
+	return nil
+}
+
+func (installer packageInstaller) checkProtonPassFirefox() error {
+	if _, err := installer.which("firefox"); err != nil {
+		return errors.New("instale o Firefox antes de instalar o Proton Pass")
+	}
+	path := filepath.Join(installer.console.home, ".config", "mozilla")
+	info, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return errors.New("abra o Firefox para inicializar ~/.config/mozilla antes de instalar o Proton Pass")
+	}
+	if err != nil {
+		return fmt.Errorf("verificar ~/.config/mozilla: %w", err)
+	}
+	if !info.IsDir() {
+		return errors.New("~/.config/mozilla precisa ser um diretório")
 	}
 	return nil
 }

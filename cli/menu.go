@@ -113,7 +113,7 @@ func (m model) items() []menuItem {
 		return []menuItem{
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
 			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall, disabled: !m.status.sshReady},
-			{title: "Proton Pass", desc: "Instalar a CLI do Proton Pass", action: "proton-pass"},
+			{title: "Proton Pass", desc: "Instalar a CLI e iniciar o login (requer Firefox configurado)", action: "proton-pass"},
 		}
 	case screenSSH:
 		return []menuItem{

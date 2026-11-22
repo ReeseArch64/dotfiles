@@ -56,7 +56,6 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 			"sudo pacman -S --needed -- bat eza btop fzf ripgrep fd jq yq zoxide ncdu tealdeer wl-clipboard atuin starship yazi sshfs glow",
 			"yay -S --needed -- viddy",
 		}},
-		{"proton-pass", []string{"yay -S --needed -- proton-pass-cli-bin"}},
 		{"install-yay", nil},
 	}
 	for _, tt := range tests {
@@ -76,6 +75,75 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 	installer, commands := newPackageInstallerTest(t, "CANCELAR\n")
 	if err := installer.run("terminal-tools", ""); err == nil || len(*commands) != 0 {
 		t.Fatalf("cancelamento executou comandos: %v, %v", *commands, err)
+	}
+}
+
+func TestProtonPassChecksFirefoxAndStartsLogin(t *testing.T) {
+	install := "yay -S --needed -- proton-pass-cli-bin"
+	login := "pass-cli login"
+	tests := []struct {
+		name, mozilla, answer, fail, wantErr string
+		firefoxMissing, alreadyInstalled     bool
+		want                                 []string
+	}{
+		{name: "Firefox ausente", mozilla: "dir", firefoxMissing: true, wantErr: "instale o Firefox"},
+		{name: "Mozilla ausente", wantErr: "abra o Firefox"},
+		{name: "Mozilla é arquivo", mozilla: "file", wantErr: "precisa ser um diretório"},
+		{name: "cancelamento", mozilla: "dir", answer: "CANCELAR", wantErr: "cancelad"},
+		{name: "instalação seguida de login", mozilla: "dir", want: []string{install, login}},
+		{name: "pacote já instalado", mozilla: "dir", alreadyInstalled: true, want: []string{login}},
+		{name: "instalação falha", mozilla: "dir", fail: install, wantErr: "falha simulada", want: []string{install}},
+		{name: "login falha", mozilla: "dir", fail: login, wantErr: "executar pass-cli login", want: []string{install, login}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			answer := tt.answer
+			if answer == "" {
+				answer = "CONFIRMO"
+			}
+			installer, commands := newPackageInstallerTest(t, answer+"\n")
+			path := filepath.Join(installer.console.home, ".config", "mozilla")
+			switch tt.mozilla {
+			case "dir":
+				if err := os.MkdirAll(path, 0700); err != nil {
+					t.Fatal(err)
+				}
+			case "file":
+				sdkTestFile(t, path, "")
+			}
+			which, capture, run := installer.which, installer.console.commands.capture, installer.console.commands.interactive
+			installer.which = func(name string) (string, error) {
+				if name == "firefox" {
+					if tt.firefoxMissing {
+						return "", exec.ErrNotFound
+					}
+					return "/usr/bin/firefox", nil
+				}
+				return which(name)
+			}
+			installer.console.commands.capture = func(input string, args ...string) (string, error) {
+				if tt.alreadyInstalled && slices.Equal(args, []string{"pacman", "-Q", "proton-pass-cli-bin"}) {
+					return "proton-pass-cli-bin 1.0", nil
+				}
+				return capture(input, args...)
+			}
+			installer.console.commands.interactive = func(args ...string) error {
+				if err := run(args...); err != nil {
+					return err
+				}
+				if strings.Join(args, " ") == tt.fail {
+					return errors.New("falha simulada")
+				}
+				return nil
+			}
+			err := installer.run("proton-pass", "")
+			if tt.wantErr == "" && err != nil || tt.wantErr != "" && (err == nil || !strings.Contains(err.Error(), tt.wantErr)) {
+				t.Fatalf("erro = %v, esperado %q", err, tt.wantErr)
+			}
+			if !slices.Equal(*commands, tt.want) {
+				t.Fatalf("comandos = %q, esperado %q", *commands, tt.want)
+			}
+		})
 	}
 }
 
