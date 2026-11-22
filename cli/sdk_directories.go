@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 )
 
@@ -24,6 +25,7 @@ type sdkMigrationOps struct {
 type sdkMigration struct {
 	home, target, stage, homeBackup, targetBackup, linkDir string
 	homeRetired, targetRetired                             string
+	createdParents                                         []string
 	hasHome, hasTarget, skip, existingLink                 bool
 	homeMoved, targetMoved, targetInstalled, linkInstalled bool
 }
@@ -36,7 +38,7 @@ func copySDKTree(ctx context.Context, source, target string) error {
 	return nil
 }
 
-func prepareSDKDirectories(home, root string, ops sdkMigrationOps) error {
+func prepareSDKDirectories(home, root string, mappings [][2]string, ops sdkMigrationOps) error {
 	home, err := filepath.Abs(home)
 	if err != nil {
 		return err
@@ -54,12 +56,24 @@ func prepareSDKDirectories(home, root string, ops sdkMigrationOps) error {
 		return fmt.Errorf("HOME e destino não podem se sobrepor: %s, %s", home, root)
 	}
 
-	migrations := make([]sdkMigration, 0, len(sdkDirectoryMappings))
-	for _, mapping := range sdkDirectoryMappings {
+	migrations := make([]sdkMigration, 0, len(mappings))
+	for _, mapping := range mappings {
 		migrations = append(migrations, sdkMigration{home: filepath.Join(home, mapping[0]), target: filepath.Join(root, mapping[1])})
 	}
 	return runDirectoryMigrations(migrations, ops)
 }
+
+func sdkMappingsForProfile(p profile) [][2]string {
+	if p.prefix == "homelab" {
+		return homelabSDKMappings
+	}
+	if p.sshKeyName() != "" {
+		return sdkDirectoryMappings
+	}
+	return nil
+}
+
+var homelabSDKMappings = [][2]string{{".local/share/mise", "Mise"}}
 
 var sdkDirectoryMappings = [][2]string{
 	{".aur", "Aur"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
@@ -100,6 +114,13 @@ func runDirectoryMigrations(migrations []sdkMigration, ops sdkMigrationOps) (res
 			for _, path := range []string{m.stage, m.linkDir} {
 				if path != "" {
 					result = errors.Join(result, forceRemoveAll(path))
+				}
+			}
+			if result != nil {
+				for i := len(m.createdParents) - 1; i >= 0; i-- {
+					if err := os.Remove(m.createdParents[i]); err != nil && !os.IsNotExist(err) && !errors.Is(err, syscall.ENOTEMPTY) {
+						result = errors.Join(result, err)
+					}
 				}
 			}
 		}
@@ -143,6 +164,9 @@ func sdkRealDirectoryPath(path string) error {
 }
 
 func (m *sdkMigration) preflight(ops sdkMigrationOps) error {
+	if err := validateBackupPath(filepath.Dir(m.home)); err != nil {
+		return err
+	}
 	info, err := os.Lstat(m.target)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -243,6 +267,9 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 	if m.existingLink {
 		return nil
 	}
+	if err := m.prepareLinkParent(); err != nil {
+		return err
+	}
 	m.linkDir, err = os.MkdirTemp(filepath.Dir(m.home), ".sdk-link-*")
 	if err != nil {
 		return err
@@ -260,6 +287,31 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 		m.targetBackup, err = reserveSDKBackup(ops.backupRoot, m.target, time.Now())
 	}
 	return err
+}
+
+func (m *sdkMigration) prepareLinkParent() error {
+	parent := filepath.Dir(m.home)
+	var missing []string
+	for path := parent; ; path = filepath.Dir(path) {
+		_, err := os.Lstat(path)
+		if err == nil {
+			if err := sdkRealDirectoryPath(path); err != nil {
+				return err
+			}
+			break
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		missing = append(missing, path)
+	}
+	for i := len(missing) - 1; i >= 0; i-- {
+		if err := os.Mkdir(missing[i], 0755); err != nil {
+			return err
+		}
+		m.createdParents = append(m.createdParents, missing[i])
+	}
+	return sdkRealDirectoryPath(parent)
 }
 
 func (m *sdkMigration) activate(ops sdkMigrationOps) error {

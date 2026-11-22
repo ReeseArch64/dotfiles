@@ -115,6 +115,8 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return homelab
 	case item.goTo == screenSystem:
 		return workstation || homelab
+	case item.action == "sdk-links":
+		return len(sdkMappingsForProfile(m.profile)) > 0
 	case item.goTo == screenServer || item.action == "homelab-dns" || item.action == "homelab-swap":
 		return homelab
 	case item.goTo == screenSecurity || item.goTo == screenSSH || item.action == "configure":
@@ -131,7 +133,7 @@ func screenItems(page screen) []menuItem {
 	case screenSystem:
 		return []menuItem{
 			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
-			{title: "Migrar pastas para /mnt/sdk", desc: "Mover dados e criar os 23 links aprovados", action: "sdk-links"},
+			{title: "Migrar pastas para /mnt/sdk", desc: "Mover dados e criar os links previstos para este perfil", action: "sdk-links"},
 			{title: "Ferramentas Essenciais", desc: "Instalar ferramentas básicas do sistema", goTo: screenEssentials},
 			{title: "Ferramentas de Terminal", desc: "Instalar yay e utilitários de linha de comando", goTo: screenTerminalTools},
 			{title: "Drivers", desc: "Instalar headers do kernel e utilitários gráficos", goTo: screenDrivers},

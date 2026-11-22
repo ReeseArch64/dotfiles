@@ -14,6 +14,15 @@ import (
 
 func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 	menu := newMenu("homelab-alan")
+	system, _ := menu.handleKey("1")
+	items := system.(model).items()
+	if len(items) < 2 || items[1].disabled || items[1].action != "sdk-links" {
+		t.Fatalf("migração SDK indisponível no Homelab: %v", items)
+	}
+	command, err := actionCommand(items[1].action, items[1].title)
+	if err != nil || !slices.Equal(command.Args[1:], []string{"--sdk-links"}) {
+		t.Fatalf("ação de migração SDK: %v, %v", command, err)
+	}
 	for _, tt := range []struct {
 		keys   []string
 		action string
