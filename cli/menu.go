@@ -14,6 +14,8 @@ const (
 	screenEssentials
 	screenTerminalTools
 	screenDrivers
+	screenProgramming
+	screenGit
 	screenSecurity
 	screenSSH
 	screenSSHKeys
@@ -28,6 +30,8 @@ var screenTitles = map[screen]string{
 	screenEssentials:    "Ferramentas Essenciais",
 	screenTerminalTools: "Ferramentas de Terminal",
 	screenDrivers:       "Drivers",
+	screenProgramming:   "Programação",
+	screenGit:           "Git",
 	screenSecurity:      "Segurança",
 	screenSSH:           "SSH",
 	screenSSHKeys:       "Chaves autorizadas",
@@ -97,6 +101,10 @@ func (m model) items() []menuItem {
 		}
 	case screenDrivers:
 		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}
+	case screenProgramming:
+		return []menuItem{{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit}}
+	case screenGit:
+		return []menuItem{{title: "Configurar Git", desc: "Instalar ferramentas e aplicar a configuração global", action: "setup-git"}}
 	case screenSecurity:
 		firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
 		if !m.status.sshReady {
@@ -134,6 +142,7 @@ func (m model) items() []menuItem {
 		{title: "Sistema Operacional", desc: "Configurar o sistema e instalar ferramentas", goTo: screenSystem},
 		{title: "Segurança", desc: "Configurar SSH, firewall e Proton Pass", goTo: screenSecurity},
 		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
+		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
 		quit,
 	}
 }

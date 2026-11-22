@@ -1,0 +1,15 @@
+[user]
+    signingkey =
+    email = dev@reesearch64.com
+    username = reesearch64
+    name = Alan Guerra
+
+[gpg]
+    format = openpgp
+    program = gpg
+
+[commit]
+    gpgsign = true
+
+[tag]
+    gpgsign = true

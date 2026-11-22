@@ -38,6 +38,12 @@ HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop pode
 
 **Sistema Operacional → Drivers** instala os headers correspondentes aos kernels instalados e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
 
+## Programação
+
+**Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. Após confirmação, a ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.
+
+O `~/.gitconfig` recebe o fingerprint local em `user.signingkey` e habilita GPG para commits e tags. A CLI reaproveita a chave configurada se ela puder assinar pelo e-mail da identidade Git. Se não houver uma chave de assinatura para esse e-mail, gera uma Ed25519 com senha e validade de dois anos e exibe a chave pública.
+
 ## Navegador Web
 
 **Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.
