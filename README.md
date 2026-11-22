@@ -24,7 +24,7 @@ Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
 **Segurança → Proton Pass** exige que o Firefox já esteja instalado e que exista o diretório `~/.config/mozilla`. Instala `proton-pass-cli-bin` pelo yay, prepara o yay se precisar e executa `pass-cli login` no terminal. Se o pacote já estiver instalado, a ação inicia o login novamente.
 
-HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop podem usar suas próprias chaves para acessá-los quando as públicas estiverem autorizadas nesses servidores.
+Os perfis Homelab e HomeProd são identificados como Ubuntu e oferecem apenas **Sair**. Desktop e Laptop podem usar suas próprias chaves para acessá-los quando as públicas estiverem autorizadas nesses servidores.
 
 Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/backups` e aos subdiretórios usados pela ação. Usa `sudo` quando precisa corrigir a propriedade ou criar um diretório sem acesso de escrita no pai. A pasta específica de cada ação fica com permissão `0700`.
 

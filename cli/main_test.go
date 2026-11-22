@@ -18,8 +18,10 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 		{"desktop-alan", "id_desktop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
 		{"LAPTOP-ALAN", "id_laptop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Laptop"},
 		{"homeprod-alan", "", "Ubuntu · by ReeseArch64 · HomeProd"},
-		{"homelab-alan", "", "Ubuntu · by ReeseArch64 · Homelab"},
+		{"homelab", "", "Ubuntu · by ReeseArch64 · Homelab"},
+		{"HOMELAB-ALAN", "", "Ubuntu · by ReeseArch64 · Homelab"},
 		{"desktop-laptop", "", "Sem suporte · by ReeseArch64"},
+		{"homelab-homeprod", "", "Sem suporte · by ReeseArch64"},
 		{"notebook", "", "Sem suporte · by ReeseArch64"},
 	}
 	for _, tt := range tests {

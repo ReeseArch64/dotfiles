@@ -4,22 +4,7 @@ Esta pasta arquiva a versão anterior da CLI. Consulte o [README atual](../READM
 
 Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
 
-A CLI identifica o ambiente pelo hostname, exibe o autor e abre um menu interativo com a opção **Sair**. Para `desktop` e `laptop`, exibe CachyOS · Niri · Noctalia Shell. Para `homeprod` e `homelab`, exibe Ubuntu. A comparação ignora maiúsculas e minúsculas e reconhece o identificador entre hífens, como em `desktop-alan`. Hostnames sem identificador reconhecido ou com perfis diferentes aparecem como **Sem suporte**.
-
-A identificação é feita apenas pelo nome da máquina. As ações de configuração e seus requisitos ficam descritos abaixo como referência para o desenvolvimento.
-
-## Instalação rápida
-
-Depois que a primeira release for publicada, instale o pacote Linux `amd64` com `curl`, `tar` e GNU coreutils.
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh
-dotfiles
-```
-
-Se `~/.local/bin` estiver fora do `PATH`, execute `~/.local/bin/dotfiles`. O instalador verifica o SHA-256 e grava o binário diretamente nessa pasta. Na primeira instalação, extrai `setup/` e `assets/` em `~/.dotfiles`. Se a pasta já existir, repetir o comando atualiza o binário e preserva os arquivos locais.
-
-O GitHub Actions testa e compila a CLI em pull requests e pushes na `main`. Uma tag `v*` publica o pacote e o checksum em GitHub Releases.
+As ações desta versão e seus requisitos ficam descritos abaixo como referência para a migração.
 
 ## Visão geral
 
@@ -44,7 +29,6 @@ Antes dos passos privilegiados, a CLI valida as credenciais do `sudo`. O cache p
 ## Conteúdo
 
 - [Requisitos](#requisitos)
-- [Instalação rápida](#instalação-rápida)
 - [Configurações dos perfis](#configurações-dos-perfis)
 - [Navegação](#navegação)
 - [Sistema](#sistema)
@@ -104,7 +88,7 @@ CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos b
 
 Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
-A base compartilhada em `setup/config/` contém `mise`, `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, os arquivos estáticos de Git e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri e o `git/.gitconfig`, que recebe a chave GPG específica do dispositivo.
+A base compartilhada em `setup/config/` contém `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, os arquivos estáticos de Git, o Mise e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri e o `git/.gitconfig`, que recebe a chave GPG específica do dispositivo.
 
 Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
@@ -534,7 +518,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
 1. Instala o `mise` via yay.
-2. Cria o link `~/.config/mise/config.toml` para `setup/config/mise/mise.toml` (ou para o arquivo específico do perfil, se existir).
+2. Copia `../cachyos/mise/mise.toml` para `~/.config/mise/config.toml`, com prioridade para o arquivo específico do perfil quando existir.
 3. Marca a configuração do Mise como confiável.
 4. Instala Fish, `rustup`, o toolkit `tk` para Python e as dependências de compilação do PHP via Pacman (`sudo pacman -S --needed`): `base-devel`, `autoconf`, `bison`, `re2c`, `pkgconf`, `libxml2`, `openssl`, `curl`, `libzip`, `sqlite`, `oniguruma`, `libpng`, `libjpeg-turbo`, `freetype2`, `icu`, `readline`, `gettext`, `libsodium` e `libxslt`.
 5. Instala todas as ferramentas declaradas no `mise.toml`, incluindo PHP na versão `latest`.
@@ -546,7 +530,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 11. Executa `bs auth init`.
 12. Executa `npm login`.
 
-O arquivo compartilhado `setup/config/mise/mise.toml` instala:
+O arquivo compartilhado `../cachyos/mise/mise.toml` instala:
 
 - AWS CLI
 - Google Cloud CLI
@@ -567,7 +551,6 @@ O arquivo compartilhado `setup/config/mise/mise.toml` instala:
 - Node.js e npm
 - Bun
 - pnpm
-- Deno
 - Ruby
 - PHP
 - Python

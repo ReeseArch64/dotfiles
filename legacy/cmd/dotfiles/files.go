@@ -48,7 +48,7 @@ func migratedConfigPath(setupDir, relative string) string {
 		return ""
 	}
 	switch relative {
-	case "cursor", "cursor/FrierenBLZ", "fastfetch", "git/.gitattributes", "git/.gitignore", "git/config", "niri/cfg/misc.kdl":
+	case "cursor", "cursor/FrierenBLZ", "fastfetch", "git/.gitattributes", "git/.gitignore", "git/config", "mise", "mise/mise.toml", "niri/cfg/misc.kdl":
 	case "fastfetch/config.json":
 		relative = "fastfetch/config.jsonc"
 	case "fish", "fish/config.fish":
