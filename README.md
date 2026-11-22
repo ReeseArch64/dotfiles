@@ -22,6 +22,8 @@ Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
 **Segurança → Firewall** valida o SSH antes de ativar o UFW. Bloqueia entrada por padrão, permite saída e limita novas conexões SSH à interface e à sub-rede IPv4 privada detectadas. Mantém as regras de outros serviços e recusa aplicar a configuração quando a sessão SSH atual está fora da LAN. Use o console local para a primeira configuração e teste uma nova conexão antes de encerrar a sessão atual.
 
+**Segurança → Proton Pass** instala `proton-pass-cli-bin` pelo yay e prepara o yay se precisar.
+
 HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop podem usar suas próprias chaves para acessá-los quando as públicas estiverem autorizadas nesses servidores.
 
 ## Sistema Operacional
@@ -29,6 +31,12 @@ HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop pode
 **Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica o `cachyos/niri/cfg/misc.kdl` do legado. A ação espera que o `config.kdl` do Niri inclua `cfg/misc.kdl` e valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups em `/mnt/backups/dotfiles/Niri`.
 
 **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 23 links e pede confirmação antes de mover dados. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
+
+**Sistema Operacional → Ferramentas Essenciais** instala `base-devel`, `curl`, `wget` e `rate-mirrors`.
+
+**Sistema Operacional → Ferramentas de Terminal** instala `bat`, `eza`, `btop`, `fzf`, `ripgrep`, `fd`, `jq`, `yq`, `zoxide`, `ncdu`, `tealdeer`, `wl-clipboard`, `atuin`, `starship`, `yazi`, `sshfs`, `glow` e `viddy`. A opção **Instalar yay** usa o `git` já disponível para clonar o pacote oficial do AUR em `~/.aur/yay`, inclusive quando `~/.aur` aponta para `/mnt/sdk/Aur`. Compila com `makepkg -si` como usuário normal. O instalador reutiliza o yay se ele já estiver disponível.
+
+**Sistema Operacional → Drivers** instala os headers correspondentes aos kernels instalados e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
 
 ## Navegador Web
 

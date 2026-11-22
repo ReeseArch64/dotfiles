@@ -45,13 +45,31 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				}
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
-				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{"Mouse personalizado", "Migrar pastas para /mnt/sdk"}) {
+				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers",
+				}) {
 					t.Fatalf("menu do sistema = %v", got)
+				}
+				for index, actions := range [][]string{{"essential-tools"}, {"install-yay", "terminal-tools"}, {"drivers"}} {
+					child, _ := osMenu.selectItem(osMenu.items()[index+2])
+					items := child.(model).items()
+					if len(items) != len(actions) {
+						t.Fatalf("submenu de ferramentas %d: %v", index, items)
+					}
+					for index, action := range actions {
+						command, err := actionCommand(items[index].action, items[index].title)
+						if err != nil || !slices.Equal(command.Args[1:], []string{"--packages", action}) {
+							t.Fatalf("ação de ferramentas %s: %v, %v", action, command, err)
+						}
+					}
 				}
 				security, _ := m.selectItem(m.items()[1])
 				securityMenu := security.(model)
-				if got := menuTitles(securityMenu.items()); !slices.Equal(got, []string{"SSH", "Firewall"}) {
+				if got := menuTitles(securityMenu.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Proton Pass"}) {
 					t.Fatalf("menu Segurança = %v", got)
+				}
+				if securityMenu.items()[2].action != "proton-pass" {
+					t.Fatal("ação do Proton Pass ausente")
 				}
 				submenu, _ := securityMenu.selectItem(securityMenu.items()[0])
 				ssh := submenu.(model)

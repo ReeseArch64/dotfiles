@@ -11,6 +11,9 @@ type screen int
 const (
 	screenMain screen = iota
 	screenSystem
+	screenEssentials
+	screenTerminalTools
+	screenDrivers
 	screenSecurity
 	screenSSH
 	screenSSHKeys
@@ -20,13 +23,16 @@ const (
 )
 
 var screenTitles = map[screen]string{
-	screenMain:       "Menu principal",
-	screenSystem:     "Sistema Operacional",
-	screenSecurity:   "Segurança",
-	screenSSH:        "SSH",
-	screenSSHKeys:    "Chaves autorizadas",
-	screenFirewall:   "Firewall",
-	screenWebBrowser: "Navegador Web",
+	screenMain:          "Menu principal",
+	screenSystem:        "Sistema Operacional",
+	screenEssentials:    "Ferramentas Essenciais",
+	screenTerminalTools: "Ferramentas de Terminal",
+	screenDrivers:       "Drivers",
+	screenSecurity:      "Segurança",
+	screenSSH:           "SSH",
+	screenSSHKeys:       "Chaves autorizadas",
+	screenFirewall:      "Firewall",
+	screenWebBrowser:    "Navegador Web",
 }
 
 type tickMsg time.Time
@@ -78,7 +84,19 @@ func (m model) items() []menuItem {
 		return []menuItem{
 			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
 			{title: "Migrar pastas para /mnt/sdk", desc: "Mover dados e criar os 23 links aprovados", action: "sdk-links"},
+			{title: "Ferramentas Essenciais", desc: "Instalar ferramentas básicas do sistema", goTo: screenEssentials},
+			{title: "Ferramentas de Terminal", desc: "Instalar yay e utilitários de linha de comando", goTo: screenTerminalTools},
+			{title: "Drivers", desc: "Instalar headers do kernel e utilitários gráficos", goTo: screenDrivers},
 		}
+	case screenEssentials:
+		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}
+	case screenTerminalTools:
+		return []menuItem{
+			{title: "Instalar yay", desc: "Compilar o pacote do AUR em ~/.aur/yay", action: "install-yay"},
+			{title: "Instalar ferramentas de terminal", desc: "Instalar utilitários como bat, eza e btop", action: "terminal-tools"},
+		}
+	case screenDrivers:
+		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}
 	case screenSecurity:
 		firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
 		if !m.status.sshReady {
@@ -87,6 +105,7 @@ func (m model) items() []menuItem {
 		return []menuItem{
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
 			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall, disabled: !m.status.sshReady},
+			{title: "Proton Pass", desc: "Instalar a CLI do Proton Pass", action: "proton-pass"},
 		}
 	case screenSSH:
 		return []menuItem{
@@ -112,8 +131,8 @@ func (m model) items() []menuItem {
 		return []menuItem{quit}
 	}
 	return []menuItem{
-		{title: "Sistema Operacional", desc: "Configurar o cursor e migrar pastas para /mnt/sdk", goTo: screenSystem},
-		{title: "Segurança", desc: "Configurar SSH e firewall", goTo: screenSecurity},
+		{title: "Sistema Operacional", desc: "Configurar o sistema e instalar ferramentas", goTo: screenSystem},
+		{title: "Segurança", desc: "Configurar SSH, firewall e Proton Pass", goTo: screenSecurity},
 		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
 		quit,
 	}
