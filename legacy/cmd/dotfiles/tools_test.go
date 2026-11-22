@@ -83,7 +83,7 @@ func TestTerminalToolsIncludeRequestedPackages(t *testing.T) {
 	if !slices.Equal(terminalToolAurPackages, wantAur) {
 		t.Fatalf("pacotes AUR inesperados: %v", terminalToolAurPackages)
 	}
-	wantPacman := []string{"yazi", "sshfs", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "btop", "chafa", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "ninja", "git-delta", "ventoy", "eza", "bat", "wget", "curl", "uv"}
+	wantPacman := []string{"yazi", "sshfs", "hurl", "glow", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "ncdu", "tealdeer", "hyperfine", "atuin", "zoxide", "starship", "chafa", "yq", "jq", "fd", "ripgrep", "fzf", "wl-clipboard", "just", "rate-mirrors", "cmake", "ninja", "git-delta", "ventoy", "eza", "bat", "wget", "curl", "uv"}
 	if !slices.Equal(terminalToolPacmanPackages, wantPacman) {
 		t.Fatalf("pacotes Pacman inesperados: %v", terminalToolPacmanPackages)
 	}
@@ -112,13 +112,12 @@ func TestTerminalToolsJobInstallsMissingLunarVim(t *testing.T) {
 	}
 }
 
-func TestTerminalToolsJobConfiguresFastfetchAndBtop(t *testing.T) {
+func TestTerminalToolsJobConfiguresFastfetch(t *testing.T) {
 	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "/home/user/.local/bin/lvim", nil
 	})
 	want := map[string]bool{
 		"Copiar configuração para ~/.config/fastfetch": false,
-		"Copiar configuração para ~/.config/btop":      false,
 	}
 	for _, current := range configured.steps {
 		if _, ok := want[current.label]; ok {

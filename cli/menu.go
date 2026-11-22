@@ -16,6 +16,7 @@ const (
 	screenDrivers
 	screenFish
 	screenFastfetch
+	screenTerminal
 	screenProgramming
 	screenGit
 	screenSecurity
@@ -34,6 +35,7 @@ var screenTitles = map[screen]string{
 	screenDrivers:       "Drivers",
 	screenFish:          "Fish",
 	screenFastfetch:     "Fastfetch",
+	screenTerminal:      "Terminal",
 	screenProgramming:   "Programação",
 	screenGit:           "Git",
 	screenSecurity:      "Segurança",
@@ -97,6 +99,7 @@ func (m model) items() []menuItem {
 			{title: "Drivers", desc: "Instalar headers do kernel e utilitários gráficos", goTo: screenDrivers},
 			{title: "Fish", desc: "Configurar o shell Fish", goTo: screenFish},
 			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
+			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
 		}
 	case screenEssentials:
 		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}
@@ -111,6 +114,8 @@ func (m model) items() []menuItem {
 		return []menuItem{{title: "Configurar Fish", desc: "Instalar as dependências e aplicar o config.fish", action: "setup-fish"}}
 	case screenFastfetch:
 		return []menuItem{{title: "Configurar Fastfetch", desc: "Instalar Fastfetch e Chafa e preparar a foto de perfil", action: "setup-fastfetch"}}
+	case screenTerminal:
+		return []menuItem{{title: "Instalar Kitty", desc: "Instalar o terminal pelo Pacman", action: "install-kitty"}}
 	case screenProgramming:
 		return []menuItem{{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit}}
 	case screenGit:

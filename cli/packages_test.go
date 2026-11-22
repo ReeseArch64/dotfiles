@@ -52,6 +52,7 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 		want   []string
 	}{
 		{"essential-tools", []string{"sudo pacman -S --needed -- base-devel curl wget rate-mirrors"}},
+		{"install-kitty", []string{"sudo pacman -S --needed -- kitty"}},
 		{"terminal-tools", []string{
 			"sudo pacman -S --needed -- bat eza btop fzf ripgrep fd jq yq zoxide ncdu tealdeer wl-clipboard atuin starship yazi sshfs glow",
 			"yay -S --needed -- viddy",

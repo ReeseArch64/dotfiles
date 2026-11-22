@@ -56,12 +56,21 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
 				if height := lipgloss.Height(osMenu.View()); height != osMenu.height {
 					t.Fatalf("menu do sistema ocupa %d linhas em terminal com %d", height, osMenu.height)
+				}
+				terminal, _ := osMenu.handleKey("8")
+				terminalItems := terminal.(model).items()
+				if got := menuTitles(terminalItems); !slices.Equal(got, []string{"Instalar Kitty"}) {
+					t.Fatalf("submenu Terminal = %v", got)
+				}
+				command, err := actionCommand(terminalItems[0].action, terminalItems[0].title)
+				if err != nil || !slices.Equal(command.Args[1:], []string{"--packages", "install-kitty"}) {
+					t.Fatalf("ação de instalação do Kitty: %v, %v", command, err)
 				}
 				for index, app := range []string{"fish", "fastfetch"} {
 					child, _ := osMenu.selectItem(osMenu.items()[index+5])

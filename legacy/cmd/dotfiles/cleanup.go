@@ -21,9 +21,9 @@ if [ "${#packages[@]}" -eq 0 ]; then
 fi
 sudo pacman -Rns "${packages[@]}"`
 
-func validateGhosttyInstalled(missing []string) error {
+func validateKittyInstalled(missing []string) error {
 	if len(missing) != 0 {
-		return errors.New("instale e configure o Ghostty antes de remover o Alacritty")
+		return errors.New("instale o Kitty antes de remover o Alacritty")
 	}
 	return nil
 }
@@ -49,8 +49,8 @@ func removePreinstalledApplicationDirectories(home string) error {
 
 func cleanupJobFor(home string, missing func(...string) []string) job {
 	steps := []step{
-		nativeStep("Verificar instalação do Ghostty", func() error {
-			return validateGhosttyInstalled(missing("ghostty"))
+		nativeStep("Verificar instalação do Kitty", func() error {
+			return validateKittyInstalled(missing("kitty"))
 		}),
 		pacmanSyncStep(),
 		terminalStep(

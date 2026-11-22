@@ -58,6 +58,8 @@ func (installer packageInstaller) run(action, modules string) error {
 	case "terminal-tools":
 		official = terminalPackages
 		aur = "viddy"
+	case "install-kitty":
+		official = []string{"kitty"}
 	case "drivers":
 		headers, err := installer.kernelHeaders(modules)
 		if err != nil {

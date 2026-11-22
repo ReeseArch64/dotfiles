@@ -8,22 +8,22 @@ import (
 	"testing"
 )
 
-func TestCleanupJobRequiresGhosttyBeforeRemovingAlacritty(t *testing.T) {
-	configured := cleanupJobFor(t.TempDir(), func(...string) []string { return []string{"ghostty"} })
-	if _, err := configured.steps[0].run(); err == nil || !strings.Contains(err.Error(), "Ghostty") {
+func TestCleanupJobRequiresKittyBeforeRemovingAlacritty(t *testing.T) {
+	configured := cleanupJobFor(t.TempDir(), func(...string) []string { return []string{"kitty"} })
+	if _, err := configured.steps[0].run(); err == nil || !strings.Contains(err.Error(), "Kitty") {
 		t.Fatalf("validação inesperada: %v", err)
 	}
 
 	configured = cleanupJobFor(t.TempDir(), func(...string) []string { return nil })
 	if _, err := configured.steps[0].run(); err != nil {
-		t.Fatalf("Ghostty instalado foi rejeitado: %v", err)
+		t.Fatalf("Kitty instalado foi rejeitado: %v", err)
 	}
 }
 
 func TestCleanupJobRefreshesPacmanBeforeRemoval(t *testing.T) {
 	configured := cleanupJobFor(t.TempDir(), func(...string) []string { return nil })
 	if got := jobStepLabels(configured); !slices.Equal(got, []string{
-		"Verificar instalação do Ghostty",
+		"Verificar instalação do Kitty",
 		"Atualizar bases do Pacman",
 		"Desinstalar alacritty, meld, shelly",
 		"Remover dados dos aplicativos",
@@ -77,7 +77,7 @@ func TestRemovePreinstalledApplicationDirectories(t *testing.T) {
 	keptDirectories := []string{
 		filepath.Join(home, ".mozilla"),
 		filepath.Join(home, ".cache", "mozilla"),
-		filepath.Join(home, ".config", "ghostty"),
+		filepath.Join(home, ".config", "kitty"),
 		filepath.Join(home, ".config", "micro"),
 		filepath.Join(home, ".cache", "micro"),
 	}

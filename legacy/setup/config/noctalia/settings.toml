@@ -197,7 +197,7 @@ screen_time_enabled = true
 builtin = "Dracula"
 
     [theme.templates]
-    builtin_ids = [ "alacritty", "btop", "gtk3", "gtk4", "ghostty", "kcolorscheme", "kitty", "niri", "qt" ]
+    builtin_ids = [ "alacritty", "gtk3", "gtk4", "kcolorscheme", "kitty", "niri", "qt" ]
     community_ids = [
         "antigravity",
         "claude-code",

@@ -55,7 +55,6 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 					"git/.gitignore":     profile.String(),
 					"git/config":         profile.String(),
 					"niri/config.kdl":    profile.String(),
-					"ghostty/config":     profile.String(),
 					"mise/mise.toml":     "[tools]\n",
 				} {
 					path := configPath(setupDir, filepath.FromSlash(name))
@@ -73,7 +72,6 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 			}{
 				{screenGit, "Configurar Git", "Copiar ~/.gitconfig"},
 				{screenDesktop, "Niri", "Copiar configuração para ~/.config/niri"},
-				{screenDesktop, "Ghostty", "Copiar configuração para ~/.config/ghostty"},
 			} {
 				m.screen = action.screen
 				found := false
@@ -94,7 +92,7 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 					t.Fatalf("ação ausente: %s / %s", action.title, action.label)
 				}
 			}
-			for _, path := range []string{".gitconfig", ".config/niri/config.kdl", ".config/ghostty/config"} {
+			for _, path := range []string{".gitconfig", ".config/niri/config.kdl"} {
 				content, err := os.ReadFile(filepath.Join(home, filepath.FromSlash(path)))
 				if err != nil || !strings.Contains(string(content), device.String()) {
 					t.Fatalf("perfil incorreto em %s: %s, %v", path, content, err)
@@ -141,7 +139,7 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 				t.Fatalf("configuração exclusiva %s não deve existir no laptop: %v", name, err)
 			}
 		}
-		for _, name := range []string{"btop", "cursor", "fastfetch", "fish", "ghostty", "git", "mise", "niri", "noctalia", "pi", "ssh"} {
+		for _, name := range []string{"cursor", "fastfetch", "fish", "git", "mise", "niri", "noctalia", "pi", "ssh"} {
 			if info, err := os.Stat(configPath(setupDir, name)); err != nil || !info.IsDir() {
 				t.Fatalf("configuração %s ausente em %s: %v", name, setupDir, err)
 			}

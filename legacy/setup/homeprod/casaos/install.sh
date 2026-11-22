@@ -35,7 +35,7 @@ bash -n "$work/uninstall.sh"
 stage='preparação da cópia local do instalador'
 sed "s|^${expected}$|readonly CASA_UNINSTALL_URL=\"file://$work/uninstall.sh\"|" "$work/install.original.sh" > "$work/install.sh"
 bash -n "$work/install.sh"
-# Ghostty terminfo is not necessarily installed on a fresh VPS.
+# Use a basic terminal type when the client terminfo entry is unavailable.
 if ! infocmp "${TERM:-dumb}" >/dev/null 2>&1; then
   export TERM=xterm
 fi

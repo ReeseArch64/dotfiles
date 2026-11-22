@@ -61,7 +61,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	categories := map[screen][]string{
 		screenSystem:      {"SSH", "Firewall", "Docker", "Drivers", "Aplicativos pré-instalados"},
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Linear CLI", "Android CLI", "Ferramentas de terminal"},
-		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Ghostty", "Mozilla Firefox", "Thunderbird", "Discord", "Obsidian", "Turing Smart Screen", "Wallpapers", "Foto de perfil"},
+		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Mozilla Firefox", "Thunderbird", "Discord", "Obsidian", "Turing Smart Screen", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent", "Ollama"},
 		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
 		screenCleanup:     {"Remover aplicativos"},
@@ -79,7 +79,7 @@ func TestNotebookMenuContainsOnlySelectedActions(t *testing.T) {
 	categories := map[screen][]string{
 		screenSystem:      {"SSH", "Firewall", "Docker", "Aplicativos pré-instalados"},
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Linear CLI", "Android CLI", "Ferramentas de terminal"},
-		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Ghostty", "Mozilla Firefox", "Wallpapers", "Foto de perfil"},
+		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Mozilla Firefox", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent"},
 		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
 	}

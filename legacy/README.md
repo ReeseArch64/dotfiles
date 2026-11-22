@@ -29,7 +29,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | --- | --- |
 | Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
 | Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Ghostty, Mozilla Firefox, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
+| Desktop | Niri, Noctalia, Mozilla Firefox, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent e Ollama com GPU AMD |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
 
@@ -104,7 +104,7 @@ CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos b
 
 Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
-A base compartilhada em `setup/config/` contém `btop`, `ghostty`, `mise`, `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, os arquivos estáticos de Git e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri e o `git/.gitconfig`, que recebe a chave GPG específica do dispositivo.
+A base compartilhada em `setup/config/` contém `mise`, `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, os arquivos estáticos de Git e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri e o `git/.gitconfig`, que recebe a chave GPG específica do dispositivo.
 
 Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
@@ -180,7 +180,7 @@ O Notebook recebe:
 
 - Sistema: SSH, Firewall, Docker e remoção de aplicativos pré-instalados;
 - Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI, Android CLI e ferramentas de terminal;
-- Desktop: Niri, Noctalia, Ghostty, Mozilla Firefox, wallpapers e foto de perfil;
+- Desktop: Niri, Noctalia, Mozilla Firefox, wallpapers e foto de perfil;
 - Agentes de IA: somente Pi Agent;
 - Backup: todas as ações disponíveis.
 
@@ -402,7 +402,7 @@ O pacote `mesa-utils` fornece o comando `glxinfo`.
 - `meld`
 - `shelly`
 
-A ação exige que o pacote `ghostty` esteja instalado antes de remover o Alacritty. Configure o Ghostty no menu `Desktop` primeiro.
+A ação exige que o pacote `kitty` esteja instalado antes de remover o Alacritty. O submenu **Sistema Operacional → Terminal → Instalar Kitty** da CLI atual instala esse pacote.
 
 A CLI atualiza as bases e executa `pacman -Rns` somente com os pacotes da lista que ainda estão instalados. Confirme a lista apresentada pelo Pacman antes de continuar.
 
@@ -668,7 +668,6 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 - atuin
 - zoxide
 - starship
-- btop
 - Chafa, usado pelo Fastfetch para renderizar o logo PNG
 - yq
 - jq
@@ -692,8 +691,6 @@ Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/ne
 
 A ação copia `../cachyos/fastfetch/config.jsonc` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório, priorizando um arquivo específico do perfil caso exista.
 
-Ela também copia `setup/config/btop/`, com eventuais arquivos específicos do perfil por cima, para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
-
 ## Desktop
 
 ### Login automático
@@ -705,6 +702,8 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 ### Niri
 
 `Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O `misc.kdl` vem de `../cachyos/niri/cfg/misc.kdl` quando não há configuração específica. O cursor de `../cachyos/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`, também permitindo arquivos específicos do perfil.
+
+O atalho `Mod+Enter` dessa configuração abre o Kitty.
 
 Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do notebook contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
 
@@ -728,10 +727,6 @@ A CLI procura os plugins neste diretório:
 ```
 
 A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `state.toml` para o estado do Noctalia.
-
-### Ghostty
-
-`Desktop > Ghostty` instala `ghostty` via yay e copia `setup/config/ghostty/`, com eventuais arquivos específicos do perfil por cima, para `~/.config/ghostty`.
 
 ### Mozilla Firefox
 
@@ -804,7 +799,7 @@ A ação substitui o destino existente. Faça uma cópia manual quando quiser pr
 
 ### Backups de diretórios
 
-Niri, o cursor FrierenBLZ, Ghostty, Obsidian, wallpapers e btop usam cópias regulares.
+Niri, o cursor FrierenBLZ, Obsidian e os wallpapers usam cópias regulares.
 
 Quando o destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`, com identificação da origem e da data e sem sobrescrever backups anteriores. Conteúdo idêntico não gera outro backup. O backup é concluído antes da substituição, inclusive quando o destino fica em outro disco.
 

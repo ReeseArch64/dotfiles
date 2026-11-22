@@ -181,7 +181,7 @@ func (m model) items() []item {
 		if m.device == deviceDesktop {
 			items = append(items, item{title: "Drivers", desc: "Instalar base-devel, Vulkan, glxinfo e headers do Linux", job: driversJob})
 		}
-		return append(items, item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Ghostty", goTo: screenCleanup})
+		return append(items, item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup})
 	case screenDevelopment:
 		items := []item{
 			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
@@ -204,7 +204,6 @@ func (m model) items() []item {
 			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
 			{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
 			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-			{title: "Ghostty", desc: "Instalar o terminal e copiar sua configuração", job: func() job { return ghosttyJob(m.setupDir) }},
 			{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
 		}
 		if m.device == deviceDesktop {
