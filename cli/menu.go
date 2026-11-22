@@ -117,6 +117,9 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return workstation || homelab
 	case item.action == "sdk-links":
 		return len(sdkMappingsForProfile(m.profile)) > 0
+	case item.goTo == screenFish || item.goTo == screenFastfetch || item.goTo == screenTerminalTools ||
+		item.action == "setup-fish" || item.action == "setup-fastfetch" || item.action == "terminal-tools":
+		return workstation || homelab
 	case item.goTo == screenServer || item.action == "homelab-dns" || item.action == "homelab-swap":
 		return homelab
 	case item.goTo == screenSecurity || item.goTo == screenSSH || item.action == "configure":
@@ -135,7 +138,7 @@ func screenItems(page screen) []menuItem {
 			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
 			{title: "Migrar pastas para /mnt/sdk", desc: "Mover dados e criar os links previstos para este perfil", action: "sdk-links"},
 			{title: "Ferramentas Essenciais", desc: "Instalar ferramentas básicas do sistema", goTo: screenEssentials},
-			{title: "Ferramentas de Terminal", desc: "Instalar yay e utilitários de linha de comando", goTo: screenTerminalTools},
+			{title: "Ferramentas de Terminal", desc: "Instalar utilitários de linha de comando", goTo: screenTerminalTools},
 			{title: "Drivers", desc: "Instalar headers do kernel e utilitários gráficos", goTo: screenDrivers},
 			{title: "Fish", desc: "Configurar o shell Fish", goTo: screenFish},
 			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
@@ -147,7 +150,7 @@ func screenItems(page screen) []menuItem {
 	case screenTerminalTools:
 		return []menuItem{
 			{title: "Instalar yay", desc: "Compilar o pacote do AUR em ~/.aur/yay", action: "install-yay"},
-			{title: "Instalar ferramentas de terminal", desc: "Instalar utilitários como bat, eza e btop", action: "terminal-tools"},
+			{title: "Instalar ferramentas de terminal", desc: "Instalar utilitários como bat, jq e ripgrep", action: "terminal-tools"},
 		}
 	case screenDrivers:
 		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}

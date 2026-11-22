@@ -29,9 +29,13 @@ main() {
 
     if [ -d "$dotfiles_dir" ]; then
         printf 'Mantendo os arquivos existentes em %s.\n' "$dotfiles_dir"
+        for environment in cachyos ubuntu; do
+            if [ -d "package/$environment" ]; then
+                mkdir -p "$dotfiles_dir/$environment"
+                cp -Rn -- "package/$environment/." "$dotfiles_dir/$environment/"
+            fi
+        done
         if [ -d package/cachyos ]; then
-            mkdir -p "$dotfiles_dir/cachyos"
-            cp -Rn -- package/cachyos/. "$dotfiles_dir/cachyos/"
             fish_template=$dotfiles_dir/cachyos/fish/config.fish
             # The 1.7.x template predates the dependency checks in fish_greeting.
             if [ -f package/cachyos/fish/config.fish ] && [ -f "$fish_template" ] &&

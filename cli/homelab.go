@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
@@ -62,6 +63,10 @@ func runHomelabAction(device profile, args []string) error {
 		err = configureHomelabSystem(&console, "DNS", "apply-dns", "Desativar o stub DNS do systemd-resolved e preservar os servidores DNS.")
 	case "swap":
 		err = configureHomelabSystem(&console, "Swap", "apply-swap", "Ativar 2 GiB de swap em /swapfile-homelab e registrar no /etc/fstab.")
+	case "fish", "fastfetch":
+		err = configureHomelabTerminal(&console, account.Username, args[0] == "fish")
+	case "tools":
+		err = installHomelabTools(&console, exec.LookPath)
 	default:
 		return errors.New("ação Homelab inválida")
 	}

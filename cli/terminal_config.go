@@ -68,7 +68,11 @@ func runTerminalConfig(p profile, app string) error {
 }
 
 func cachyosAsset(home, app, name string) string {
-	asset := filepath.Join("cachyos", app, name)
+	return dotfilesAsset(home, "cachyos", app, name)
+}
+
+func dotfilesAsset(home string, parts ...string) string {
+	asset := filepath.Join(parts...)
 	if binary, err := os.Executable(); err == nil {
 		local := filepath.Join(filepath.Dir(filepath.Dir(binary)), asset)
 		if _, err := os.Stat(local); err == nil {

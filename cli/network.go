@@ -284,6 +284,12 @@ func (p profile) menuAction(action string) string {
 			return "homelab-ssh"
 		case "firewall":
 			return "homelab-firewall"
+		case "setup-fish":
+			return "homelab-fish"
+		case "setup-fastfetch":
+			return "homelab-fastfetch"
+		case "terminal-tools":
+			return "homelab-tools"
 		}
 	}
 	return action
@@ -296,7 +302,7 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 	}
 	args := []string{"--network", action}
 	switch action {
-	case "homelab-ssh", "homelab-firewall", "homelab-casaos", "homelab-dns", "homelab-swap":
+	case "homelab-ssh", "homelab-firewall", "homelab-casaos", "homelab-dns", "homelab-swap", "homelab-fish", "homelab-fastfetch", "homelab-tools":
 		args = []string{"--homelab", strings.TrimPrefix(action, "homelab-")}
 	case "cursor":
 		args = []string{"--cursor"}
