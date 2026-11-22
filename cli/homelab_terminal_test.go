@@ -14,12 +14,27 @@ import (
 )
 
 func TestHomelabTerminalAppliesServerConfiguration(t *testing.T) {
-	for _, fish := range []bool{false, true} {
-		t.Run(fmt.Sprint(fish), func(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		fish        bool
+		noFastfetch bool
+		chshNoOp    bool
+		alreadyFish bool
+	}{
+		{name: "Fastfetch only"},
+		{name: "Fish and Fastfetch", fish: true},
+		{name: "Fish already default", fish: true, alreadyFish: true},
+		{name: "Fastfetch failure preserves Fish login", fish: true, noFastfetch: true},
+		{name: "Unchanged login shell is an error", fish: true, chshNoOp: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()
 			config := filepath.Join(home, "xdg")
 			t.Setenv("XDG_CONFIG_HOME", config)
 			for _, asset := range []string{"ubuntu/homelab/fastfetch/config.jsonc", "ubuntu/homelab/fish/config.fish", "cachyos/fastfetch/face.jpg"} {
+				if tc.noFastfetch && asset == "ubuntu/homelab/fastfetch/config.jsonc" {
+					continue
+				}
 				data, err := os.ReadFile(filepath.Join("..", asset))
 				if err != nil {
 					t.Fatal(err)
@@ -30,32 +45,69 @@ func TestHomelabTerminalAppliesServerConfiguration(t *testing.T) {
 			sdkTestFile(t, filepath.Join(home, ".face"), "foto original")
 			var installed []string
 			var changedShell bool
-			c := sshConsole{home: home, input: bufio.NewReader(strings.NewReader("CONFIRMO\n")), output: &bytes.Buffer{}, commands: sshCommands{
+			shell := "/bin/bash"
+			if tc.alreadyFish {
+				shell = homelabFishShell
+			}
+			var output bytes.Buffer
+			c := sshConsole{home: home, input: bufio.NewReader(strings.NewReader("CONFIRMO\n")), output: &output, commands: sshCommands{
 				capture: func(_ string, args ...string) (string, error) {
-					if args[0] == "dpkg-query" {
+					switch args[0] {
+					case "dpkg-query":
 						installed = append(installed, args[len(args)-1])
+						return "install ok installed", nil
+					case "getent":
+						if !tc.fish || !slices.Equal(args, []string{"getent", "--", "passwd", "alan"}) {
+							t.Fatalf("consulta inesperada: %v", args)
+						}
+						return "alan:x:1000:1000::" + home + ":" + shell + "\n", nil
+					case homelabFishShell, "fastfetch":
+						return "versão de teste", nil
+					default:
+						t.Fatalf("consulta inesperada: %v", args)
+						return "", nil
 					}
-					return "install ok installed", nil
 				},
 				interactive: func(args ...string) error {
 					if !slices.Equal(args, []string{"sudo", "chsh", "-s", "/usr/bin/fish", "--", "alan"}) {
 						t.Fatalf("comando inesperado: %v", args)
 					}
 					changedShell = true
+					if !tc.chshNoOp {
+						shell = homelabFishShell
+					}
 					return nil
 				},
 			}}
-			if err := configureHomelabTerminal(&c, "alan", fish); err != nil {
+			err := configureHomelabTerminal(&c, "alan", tc.fish)
+			if tc.chshNoOp {
+				if err == nil || !strings.Contains(err.Error(), "ficou registrado") {
+					t.Fatalf("erro de shell não detectado: %v", err)
+				}
+			} else if tc.noFastfetch {
+				if err == nil || !strings.Contains(err.Error(), "ler configuração do Fastfetch") {
+					t.Fatalf("erro do Fastfetch não detectado: %v", err)
+				}
+			} else if err != nil {
 				t.Fatal(err)
 			}
-			want := []string{"chafa"}
-			files := []string{"fastfetch/config.jsonc"}
-			if fish {
-				want = append(want, "fish", "bat", "bsdextrautils")
+			var want, files []string
+			if tc.fish {
+				want = append(want, "fish")
 				files = append(files, "fish/config.fish")
 			}
-			if !slices.Equal(installed, want) || changedShell != fish {
+			if err == nil {
+				want = append(want, "chafa")
+				files = append(files, "fastfetch/config.jsonc")
+				if tc.fish {
+					want = append(want, "bat", "bsdextrautils")
+				}
+			}
+			if !slices.Equal(installed, want) || changedShell != (tc.fish && !tc.alreadyFish) {
 				t.Fatalf("pacotes=%v, shell alterado=%t", installed, changedShell)
+			}
+			if wantFish := tc.fish && !tc.chshNoOp; (shell == homelabFishShell) != wantFish || strings.Contains(output.String(), "confirmado como /usr/bin/fish") != wantFish {
+				t.Fatalf("shell=%s, saída=%q", shell, output.String())
 			}
 			for _, file := range files {
 				data, err := os.ReadFile(filepath.Join(home, ".dotfiles", "ubuntu", "homelab", file))
@@ -64,8 +116,8 @@ func TestHomelabTerminalAppliesServerConfiguration(t *testing.T) {
 				}
 				sdkTestContent(t, filepath.Join(config, file), string(data))
 			}
-			if _, err := os.Stat(filepath.Join(home, ".hushlogin")); (err == nil) != fish {
-				t.Fatalf(".hushlogin: %v", err)
+			if _, statErr := os.Stat(filepath.Join(home, ".hushlogin")); (statErr == nil) != (tc.fish && err == nil) {
+				t.Fatalf(".hushlogin: %v", statErr)
 			}
 			sdkTestContent(t, filepath.Join(home, ".bashrc"), "bash original")
 			sdkTestContent(t, filepath.Join(home, ".face"), "foto original")

@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+const homelabFishShell = "/usr/bin/fish"
 
 func configureHomelabTerminal(c *sshConsole, username string, fish bool) error {
 	if fish {
@@ -23,19 +26,41 @@ func configureHomelabTerminal(c *sshConsole, username string, fish bool) error {
 	if !filepath.IsAbs(config) {
 		config = filepath.Join(c.home, ".config")
 	}
-	fastfetchSource := dotfilesAsset(c.home, "ubuntu", "homelab", "fastfetch", "config.jsonc")
-	fishSource := dotfilesAsset(c.home, "ubuntu", "homelab", "fish", "config.fish")
-	if err := sshRegular(fastfetchSource, false); err != nil {
-		return fmt.Errorf("ler configuração do Fastfetch: %w", err)
-	}
-	packages := []string{"chafa"}
 	if fish {
+		fishSource := dotfilesAsset(c.home, "ubuntu", "homelab", "fish", "config.fish")
 		if err := sshRegular(fishSource, false); err != nil {
 			return fmt.Errorf("ler configuração do Fish: %w", err)
 		}
-		packages = append(packages, "fish", "bat", "bsdextrautils")
+		if err := c.ensureUbuntuPackages("fish"); err != nil {
+			return err
+		}
+		if err := applyHomelabTerminalConfig(c, "Fish", "fish", fishSource, filepath.Join(config, "fish", "config.fish")); err != nil {
+			return err
+		}
+		if err := setHomelabFishLogin(c, username); err != nil {
+			return err
+		}
+		fmt.Fprintf(c.output, "Shell de login de %s confirmado como %s. Abra uma nova sessão SSH.\n", username, homelabFishShell)
 	}
-	if err := c.ensureUbuntuPackages(packages...); err != nil {
+	if err := configureHomelabFastfetch(c, config); err != nil {
+		return err
+	}
+	if !fish {
+		fmt.Fprintln(c.output, "Fastfetch e foto de perfil configurados.")
+		return nil
+	}
+	if err := c.ensureUbuntuPackages("bat", "bsdextrautils"); err != nil {
+		return err
+	}
+	return ensureHomelabHushLogin(c.home)
+}
+
+func configureHomelabFastfetch(c *sshConsole, config string) error {
+	source := dotfilesAsset(c.home, "ubuntu", "homelab", "fastfetch", "config.jsonc")
+	if err := sshRegular(source, false); err != nil {
+		return fmt.Errorf("ler configuração do Fastfetch: %w", err)
+	}
+	if err := c.ensureUbuntuPackages("chafa"); err != nil {
 		return err
 	}
 	if err := installHomelabFastfetch(c); err != nil {
@@ -45,21 +70,7 @@ func configureHomelabTerminal(c *sshConsole, username string, fish bool) error {
 	if err := ensureProfilePhoto(cachyosAsset(c.home, "fastfetch", "face.jpg"), filepath.Join(c.home, ".face"), lock); err != nil {
 		return err
 	}
-	if err := applyHomelabTerminalConfig(c, "Fastfetch", "fastfetch", fastfetchSource, filepath.Join(config, "fastfetch", "config.jsonc")); err != nil {
-		return err
-	}
-	if !fish {
-		fmt.Fprintln(c.output, "Fastfetch e foto de perfil configurados.")
-		return nil
-	}
-	if err := applyHomelabTerminalConfig(c, "Fish", "fish", fishSource, filepath.Join(config, "fish", "config.fish")); err != nil {
-		return err
-	}
-	if err := setHomelabFishLogin(c, username); err != nil {
-		return err
-	}
-	fmt.Fprintln(c.output, "Fish configurado como shell de login. Abra uma nova sessão SSH para usar a configuração.")
-	return nil
+	return applyHomelabTerminalConfig(c, "Fastfetch", "fastfetch", source, filepath.Join(config, "fastfetch", "config.jsonc"))
 }
 
 func applyHomelabTerminalConfig(c *sshConsole, category, app, source, destination string) error {
@@ -71,7 +82,39 @@ func applyHomelabTerminalConfig(c *sshConsole, category, app, source, destinatio
 }
 
 func setHomelabFishLogin(c *sshConsole, username string) error {
-	path := filepath.Join(c.home, ".hushlogin")
+	if _, err := c.commands.capture("", homelabFishShell, "--version"); err != nil {
+		return fmt.Errorf("executar %s: %w", homelabFishShell, err)
+	}
+	readShell := func() (string, error) {
+		entry, err := c.commands.capture("", "getent", "--", "passwd", username)
+		if err != nil {
+			return "", fmt.Errorf("consultar o shell de login de %s: %w", username, err)
+		}
+		fields := strings.Split(strings.TrimRight(entry, "\r\n"), ":")
+		if len(fields) != 7 || fields[0] != username {
+			return "", fmt.Errorf("registro de conta inválido para %s", username)
+		}
+		return fields[6], nil
+	}
+	shell, err := readShell()
+	if err != nil || shell == homelabFishShell {
+		return err
+	}
+	if err := c.commands.interactive("sudo", "chsh", "-s", homelabFishShell, "--", username); err != nil {
+		return fmt.Errorf("definir o Fish como shell de login de %s: %w", username, err)
+	}
+	shell, err = readShell()
+	if err != nil {
+		return err
+	}
+	if shell != homelabFishShell {
+		return fmt.Errorf("o shell de login de %s ficou registrado como %q. O esperado era %s", username, shell, homelabFishShell)
+	}
+	return nil
+}
+
+func ensureHomelabHushLogin(home string) error {
+	path := filepath.Join(home, ".hushlogin")
 	if err := sshRegular(path, true); err != nil {
 		return err
 	}
@@ -83,12 +126,6 @@ func setHomelabFishLogin(c *sshConsole, username string) error {
 		if err := marker.Close(); err != nil {
 			return errors.Join(err, os.Remove(path))
 		}
-	}
-	if err := c.commands.interactive("sudo", "chsh", "-s", "/usr/bin/fish", "--", username); err != nil {
-		if marker != nil {
-			err = errors.Join(err, os.Remove(path))
-		}
-		return fmt.Errorf("definir o Fish como shell de login: %w", err)
 	}
 	return nil
 }
