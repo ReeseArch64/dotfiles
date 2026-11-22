@@ -241,7 +241,7 @@ func ufwManagedRules(output string) (rules [][]string, labels []string) {
 	return rules, labels
 }
 
-func (f firewall) apply(lan localNetwork, port string) (result error) {
+func (f firewall) apply(lan localNetwork, port string) error {
 	files, err := f.snapshot()
 	if err != nil {
 		return err
@@ -255,6 +255,51 @@ func (f firewall) apply(lan localNetwork, port string) (result error) {
 		return err
 	}
 	rules, _ := ufwManagedRules(previous)
+	return f.applyWithRollback(files, func() error {
+		for _, command := range [][]string{
+			{"ufw", "default", "deny", "incoming"},
+			{"ufw", "default", "allow", "outgoing"},
+		} {
+			if _, err := run(command...); err != nil {
+				return err
+			}
+		}
+		for _, rule := range rules {
+			if _, err := run(append([]string{"ufw", "--force", "delete"}, rule...)...); err != nil {
+				return err
+			}
+		}
+		for _, command := range [][]string{
+			{"ufw", "--force", "delete", "allow", port + "/tcp"},
+			{"ufw", "prepend", "deny", port + "/tcp", "comment", ufwSSHDeny},
+			{"ufw", "prepend", "allow", "in", "on", lan.device, "proto", "tcp", "from", lan.subnet.String(), "to", "any", "port", port, "comment", ufwSSHAllow},
+		} {
+			if _, err := run(command...); err != nil {
+				return err
+			}
+		}
+		added, err := run("ufw", "show", "added")
+		if err != nil {
+			return err
+		}
+		_, labels := ufwManagedRules(added)
+		if len(labels) < 2 || labels[0] != ufwSSHAllow || labels[1] != ufwSSHDeny {
+			return errors.New("não foi possível colocar as regras SSH antes das regras existentes no UFW")
+		}
+		for _, command := range [][]string{
+			{"ufw", "--force", "enable"},
+			{"systemctl", "enable", "--now", "ufw.service"},
+			{"systemctl", "is-active", "--quiet", "ufw.service"},
+		} {
+			if _, err := run(command...); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (f firewall) applyWithRollback(files []ufwFile, apply func() error) (result error) {
 	wasEnabled := isEnabled("ufw.service", f.commands)
 	wasActive := isActive("ufw.service", f.commands)
 	ufwWasOn := ufwSetting(files[1].data, "ENABLED") == "yes"
@@ -291,47 +336,7 @@ func (f firewall) apply(lan localNetwork, port string) (result error) {
 			result = errors.Join(result, fmt.Errorf("erro ao restaurar o UFW: %w", rollbackErr))
 		}
 	}()
-
-	for _, command := range [][]string{
-		{"ufw", "default", "deny", "incoming"},
-		{"ufw", "default", "allow", "outgoing"},
-	} {
-		if _, err := run(command...); err != nil {
-			return err
-		}
-	}
-	for _, rule := range rules {
-		if _, err := run(append([]string{"ufw", "--force", "delete"}, rule...)...); err != nil {
-			return err
-		}
-	}
-	for _, command := range [][]string{
-		{"ufw", "--force", "delete", "allow", port + "/tcp"},
-		{"ufw", "prepend", "deny", port + "/tcp", "comment", ufwSSHDeny},
-		{"ufw", "prepend", "allow", "in", "on", lan.device, "proto", "tcp", "from", lan.subnet.String(), "to", "any", "port", port, "comment", ufwSSHAllow},
-	} {
-		if _, err := run(command...); err != nil {
-			return err
-		}
-	}
-	added, err := run("ufw", "show", "added")
-	if err != nil {
-		return err
-	}
-	_, labels := ufwManagedRules(added)
-	if len(labels) < 2 || labels[0] != ufwSSHAllow || labels[1] != ufwSSHDeny {
-		return errors.New("não foi possível colocar as regras SSH antes das regras existentes no UFW")
-	}
-	for _, command := range [][]string{
-		{"ufw", "--force", "enable"},
-		{"systemctl", "enable", "--now", "ufw.service"},
-		{"systemctl", "is-active", "--quiet", "ufw.service"},
-	} {
-		if _, err := run(command...); err != nil {
-			return err
-		}
-	}
-	return nil
+	return apply()
 }
 
 func applyFirewall(connection string) error {

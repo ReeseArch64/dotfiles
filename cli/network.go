@@ -284,6 +284,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 	}
 	args := []string{"--network", action}
 	switch action {
+	case "homelab-ssh", "homelab-firewall", "homelab-casaos":
+		args = []string{"--homelab", strings.TrimPrefix(action, "homelab-")}
 	case "cursor":
 		args = []string{"--cursor"}
 	case "firefox-backup":

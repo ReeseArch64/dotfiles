@@ -38,6 +38,9 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if tt.keyName != "" {
 				want = []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}
 			}
+			if m.profile.prefix == "homelab" {
+				want = []string{"Segurança", "CasaOS", "Sair"}
+			}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}

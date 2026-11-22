@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.10.2"
+const version = "1.11.0"
 
 type profile struct {
 	prefix      string
@@ -50,6 +50,13 @@ func (p profile) sshKeyName() string {
 
 func main() {
 	hostname, _ := os.Hostname()
+	if len(os.Args) > 1 && os.Args[1] == "--homelab" {
+		if err := runHomelabAction(identifyProfile(hostname), os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--network" {
 		if err := runNetworkAction(identifyProfile(hostname), os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)

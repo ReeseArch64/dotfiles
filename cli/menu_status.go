@@ -40,6 +40,7 @@ type networkStatus struct {
 	loaded, sshReady          bool
 	sshInstalled, sshActive   bool
 	sshEnabled, socketActive  bool
+	homelab, socketEnabled    bool
 	ufwInstalled, ufwEnabled  bool
 	ufwActive                 bool
 	port, password, root      string
@@ -58,6 +59,7 @@ func readNetworkStatus(p profile) networkStatus {
 	_, ufwErr := exec.LookPath("ufw")
 	s := networkStatus{
 		loaded:       true,
+		homelab:      p.prefix == "homelab",
 		sshInstalled: sshErr == nil,
 		ufwInstalled: ufwErr == nil,
 		address:      "nenhuma interface de rede ativa",
@@ -78,9 +80,11 @@ func readNetworkStatus(p profile) networkStatus {
 		}
 	}
 	if s.sshInstalled {
-		s.sshActive = isActive("sshd.service", commands)
-		s.sshEnabled = isEnabled("sshd.service", commands)
-		s.socketActive = isActive("sshd.socket", commands)
+		service, socket := s.sshUnits()
+		s.sshActive = isActive(service, commands)
+		s.sshEnabled = isEnabled(service, commands)
+		s.socketActive = isActive(socket, commands)
+		s.socketEnabled = isEnabled(socket, commands)
 		if data, err := os.ReadFile("/etc/ssh/sshd_config"); err == nil {
 			s.port, _ = configuredSSHPort("/etc/ssh/sshd_config")
 			var cfg = make(map[string]string)
@@ -98,8 +102,8 @@ func readNetworkStatus(p profile) networkStatus {
 				directory := filepath.Join(account.HomeDir, ".ssh")
 				if authorized, err := readAuthorizedKeys(filepath.Join(directory, "authorized_keys"), commands); err == nil {
 					s.keys = len(authorized.indices)
-					s.sshReady = s.sshActive && s.sshEnabled && !s.socketActive &&
-						!isEnabled("sshd.socket", commands) && s.port != "" &&
+					s.sshReady = !s.homelab && s.sshActive && s.sshEnabled && !s.socketActive &&
+						!s.socketEnabled && s.port != "" &&
 						verifySSHPolicy(string(data), account.Username) == nil &&
 						clientReady(directory, p.sshKeyName()) && probeSSHPort(s.port) == nil
 				}
@@ -116,6 +120,13 @@ func readNetworkStatus(p profile) networkStatus {
 		s.rules, s.rulesErr = readUFWRules()
 	}
 	return s
+}
+
+func (s networkStatus) sshUnits() (service, socket string) {
+	if s.homelab {
+		return "ssh.service", "ssh.socket"
+	}
+	return "sshd.service", "sshd.socket"
 }
 
 func clientReady(directory, keyName string) bool {
@@ -140,19 +151,26 @@ func (s networkStatus) card(page screen, width int, compact bool) string {
 
 func (s networkStatus) sshRows() []cardRow {
 	var rows []cardRow
+	service, socket := s.sshUnits()
 	if !s.sshInstalled {
-		rows = append(rows, cardRow{colErr, "Pacote", "openssh não instalado"})
+		name := "openssh"
+		if s.homelab {
+			name = "openssh-server"
+		}
+		rows = append(rows, cardRow{colErr, "Pacote", name + " não instalado"})
 	}
 	switch {
 	case s.sshActive:
-		rows = append(rows, cardRow{colOK, "Servidor", "rodando (sshd.service)"})
+		rows = append(rows, cardRow{colOK, "Servidor", "rodando (" + service + ")"})
 	case s.socketActive:
-		rows = append(rows, cardRow{colWarn, "Servidor", "escutando via sshd.socket"})
+		rows = append(rows, cardRow{colWarn, "Servidor", "escutando via " + socket})
 	default:
 		rows = append(rows, cardRow{colDim, "Servidor", "parado"})
 	}
 	if s.sshEnabled {
-		rows = append(rows, cardRow{colOK, "Boot", "sshd.service habilitado"})
+		rows = append(rows, cardRow{colOK, "Boot", service + " habilitado"})
+	} else if s.homelab && s.socketEnabled {
+		rows = append(rows, cardRow{colOK, "Boot", socket + " habilitado"})
 	} else {
 		rows = append(rows, cardRow{colDim, "Boot", "não inicia no boot"})
 	}

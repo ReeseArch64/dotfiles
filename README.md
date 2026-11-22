@@ -6,7 +6,8 @@ A CLI identifica a máquina pelo hostname e mostra o ambiente e o autor no menu.
 | --- | --- | --- |
 | `desktop` | CachyOS · Niri · Noctalia Shell | `~/.ssh/id_desktop` |
 | `laptop` | CachyOS · Niri · Noctalia Shell | `~/.ssh/id_laptop` |
-| `homeprod`, `homelab` | Ubuntu | |
+| `homelab` | Ubuntu | |
+| `homeprod` | Ubuntu | |
 
 O identificador pode aparecer como parte do hostname separada por hífen, como em `desktop-alan`. A CLI ignora maiúsculas e minúsculas. Nomes sem identificador ou com mais de um perfil aparecem como **Sem suporte**.
 
@@ -24,9 +25,17 @@ Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
 **Segurança → Proton Pass** exige que o Firefox já esteja instalado e que exista o diretório `~/.config/mozilla`. Instala `proton-pass-cli-bin` pelo yay, prepara o yay se precisar e executa `pass-cli login` no terminal. Se o pacote já estiver instalado, a ação inicia o login novamente.
 
-Os perfis Homelab e HomeProd são identificados como Ubuntu e oferecem apenas **Sair**. Desktop e Laptop podem usar suas próprias chaves para acessá-los quando as públicas estiverem autorizadas nesses servidores.
+O perfil HomeProd é identificado como Ubuntu e oferece apenas **Sair**. Desktop e Laptop podem acessar os servidores quando suas chaves públicas estiverem autorizadas.
 
 Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/backups` e aos subdiretórios usados pela ação. Usa `sudo` quando precisa corrigir a propriedade ou criar um diretório sem acesso de escrita no pai. A pasta específica de cada ação fica com permissão `0700`.
+
+## Homelab
+
+As ações são disponibilizadas pelo hostname `homelab` e executadas no Ubuntu por um administrador com `sudo`.
+
+- **Segurança → SSH → Configurar SSH** instala OpenSSH pelo APT e reaproveita `ssh.socket` quando habilitado. Cole a chave pública Ed25519 e teste uma segunda conexão com a chave correspondente e `sudo -v`. Após a segunda confirmação, a ação mantém a chave testada, exige autenticação por chave e bloqueia login como root. Ela valida a configuração antes de recarregar o serviço e guarda os arquivos anteriores em `/mnt/backups/dotfiles/SSH` e `/mnt/backups/dotfiles/SSHD`.
+- **Segurança → Firewall → Configurar Firewall** instala e ativa o UFW. Permite todas as portas e protocolos de entrada pela interface da LAN IPv4 privada detectada, preserva as regras existentes e libera o IP e a porta da sessão SSH atual. Aplica a política padrão de negar entrada e permitir saída e restaura a configuração anterior se uma etapa falhar.
+- **CasaOS → Instalar CasaOS** baixa o instalador oficial por HTTPS e, após validar o script, executa-o com `sudo`. A ação adiciona o administrador atual ao grupo `docker`. Abra uma nova sessão para que a associação ao grupo tenha efeito. [Instalação oficial do CasaOS](https://wiki.casaos.io/en/get-started)
 
 ## Sistema Operacional
 

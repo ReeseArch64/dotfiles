@@ -24,6 +24,7 @@ const (
 	screenSSH
 	screenSSHKeys
 	screenFirewall
+	screenCasaOS
 	screenWebBrowser
 	screenJob
 )
@@ -44,6 +45,7 @@ var screenTitles = map[screen]string{
 	screenSSH:           "SSH",
 	screenSSHKeys:       "Chaves autorizadas",
 	screenFirewall:      "Firewall",
+	screenCasaOS:        "CasaOS",
 	screenWebBrowser:    "Navegador Web",
 }
 
@@ -76,7 +78,7 @@ func tick() tea.Cmd {
 }
 
 func (m model) Init() tea.Cmd {
-	if m.profile.sshKeyName() == "" {
+	if m.profile.sshKeyName() == "" && m.profile.prefix != "homelab" {
 		return tick()
 	}
 	return tea.Batch(tick(), m.loadStatus())
@@ -91,6 +93,9 @@ type menuItem struct {
 }
 
 func (m model) items() []menuItem {
+	if m.profile.prefix == "homelab" {
+		return homelabItems(m.screen)
+	}
 	switch m.screen {
 	case screenSystem:
 		return []menuItem{
@@ -176,7 +181,7 @@ func (m model) loadStatus() tea.Cmd {
 }
 
 func (m model) refresh() (model, tea.Cmd) {
-	if m.profile.sshKeyName() != "" {
+	if m.profile.sshKeyName() != "" || m.profile.prefix == "homelab" {
 		m.statusRequest++
 		return m, m.loadStatus()
 	}

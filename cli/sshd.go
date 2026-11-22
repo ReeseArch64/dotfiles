@@ -290,8 +290,8 @@ func backupSSHDAsUser(ctx context.Context, account *user.User, contents []byte) 
 }
 
 func writeSSHDBackup(p profile) error {
-	if p.sshKeyName() == "" || os.Geteuid() == 0 {
-		return errors.New("execute o backup do SSHD como usuário normal em Desktop ou Laptop")
+	if (p.sshKeyName() == "" && p.prefix != "homelab") || os.Geteuid() == 0 {
+		return errors.New("execute o backup do SSHD pelo menu como usuário normal")
 	}
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
