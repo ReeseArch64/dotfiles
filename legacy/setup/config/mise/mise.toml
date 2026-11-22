@@ -21,7 +21,6 @@ node = { version = "latest" }
 wrangler = { version = "latest" }
 bun = { version = "latest" }
 pnpm = { version = "latest" }
-deno = { version = "latest" }
 
 ruby = { version = "latest" }
 php = { version = "latest" }
