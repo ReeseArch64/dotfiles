@@ -6,11 +6,44 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 )
 
+func TestCursorThemeRollbackWithBackupOnAnotherFilesystem(t *testing.T) {
+	home := t.TempDir()
+	central, err := os.MkdirTemp("/dev/shm", "dotfiles-theme-test-")
+	if err != nil {
+		t.Skip(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(central) })
+	var localInfo, centralInfo syscall.Stat_t
+	if syscall.Stat(home, &localInfo) != nil || syscall.Stat(central, &centralInfo) != nil || localInfo.Dev == centralInfo.Dev {
+		t.Skip("segundo sistema de arquivos indisponível")
+	}
+	source, target := filepath.Join(home, "source"), filepath.Join(home, "target")
+	for path, content := range map[string]string{
+		filepath.Join(source, "index.theme"):        "new theme",
+		filepath.Join(source, "cursors", "default"): "new cursor",
+		filepath.Join(target, "index.theme"):        "old theme",
+	} {
+		sdkTestFile(t, path, content)
+	}
+	backup, finish, err := installCursorTheme(source, target, backupLocation{path: central})
+	if err != nil || !pathInside(central, backup) {
+		t.Fatalf("backup do tema: %s, %v", backup, err)
+	}
+	sdkTestContent(t, filepath.Join(target, "index.theme"), "new theme")
+	if err := finish(true); err != nil {
+		t.Fatal(err)
+	}
+	sdkTestContent(t, filepath.Join(target, "index.theme"), "old theme")
+	sdkTestContent(t, filepath.Join(backup, "index.theme"), "old theme")
+}
+
 func TestInstallCursorValidatesAndPreservesBackups(t *testing.T) {
 	home := t.TempDir()
+	location := backupLocation{path: filepath.Join(t.TempDir(), "Niri")}
 	assets := filepath.Join(home, ".dotfiles", "cachyos")
 	niri := filepath.Join(home, ".config", "niri")
 	config := filepath.Join(niri, "config.kdl")
@@ -42,7 +75,7 @@ func TestInstallCursorValidatesAndPreservesBackups(t *testing.T) {
 	}
 
 	invalid := errors.New("validation failed")
-	if _, err := installCursor(assets, config, home, func(string) error { return invalid }); !errors.Is(err, invalid) {
+	if _, err := installCursor(assets, config, home, location, func(string) error { return invalid }); !errors.Is(err, invalid) {
 		t.Fatalf("resultado de validação inválida: %v", err)
 	}
 	checkFile(misc, "old settings")
@@ -59,9 +92,14 @@ func TestInstallCursorValidatesAndPreservesBackups(t *testing.T) {
 		}
 		return nil
 	}
-	backups, err := installCursor(assets, config, home, validate)
+	backups, err := installCursor(assets, config, home, location, validate)
 	if err != nil || len(backups) != 2 {
 		t.Fatalf("instalação: backups %v, erro %v", backups, err)
+	}
+	for _, backup := range backups {
+		if !pathInside(location.path, backup) {
+			t.Fatalf("backup fora da pasta central: %s", backup)
+		}
 	}
 	checkFile(filepath.Join(backups[0], "index.theme"), "old theme")
 	checkFile(backups[1], "old settings")
@@ -70,7 +108,7 @@ func TestInstallCursorValidatesAndPreservesBackups(t *testing.T) {
 	checkFile(misc, "new settings")
 	checkFile(filepath.Join(theme, "cursors", "default"), "new cursor")
 
-	if backups, err := installCursor(assets, config, home, validate); err != nil || len(backups) != 0 {
+	if backups, err := installCursor(assets, config, home, location, validate); err != nil || len(backups) != 0 {
 		t.Fatalf("reaplicação: backups %v, erro %v", backups, err)
 	}
 }

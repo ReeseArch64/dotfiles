@@ -16,7 +16,7 @@ import (
 
 const (
 	sdkRoot       = "/mnt/sdk"
-	sdkBackupRoot = "/mnt/backups/SDK"
+	sdkBackupRoot = backupRoot + "/SDK"
 )
 
 func runSDKMigration(p profile) error {
@@ -57,7 +57,7 @@ func migrateSDK(ctx context.Context, home string, run func(...string) error) err
 		return err
 	}
 	for _, root := range []string{sdkRoot, sdkBackupRoot} {
-		if err := validateSDKBackupPath(root); err != nil {
+		if err := validateBackupPath(root); err != nil {
 			return err
 		}
 	}
@@ -71,7 +71,7 @@ func migrateSDK(ctx context.Context, home string, run func(...string) error) err
 	if err := ensureSDKRoot(sdkRoot, 0755, run); err != nil {
 		return err
 	}
-	if err := ensureSDKRoot(sdkBackupRoot, 0700, run); err != nil {
+	if err := (backupLocation{path: sdkBackupRoot, sudo: run}).prepare(); err != nil {
 		return err
 	}
 

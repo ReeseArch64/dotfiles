@@ -14,7 +14,7 @@ O identificador pode aparecer como parte do hostname separada por hífen, como e
 
 Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
-- **Configurar SSH** cria ou reaproveita a identidade Ed25519 do dispositivo. Instala um `~/.ssh/config` com a identidade única para qualquer destino. Guarda a configuração anterior em `~/.ssh/config.backup-*`, sem transportar aliases por IP ou chaves diferentes por destino. Valida e habilita o servidor OpenSSH para o usuário atual, somente por chave pública e sem login como root. O servidor mantém a porta já configurada e guarda o `sshd_config` anterior em `/etc/ssh/dotfiles-ssh-backup.*`.
+- **Configurar SSH** cria ou reaproveita a identidade Ed25519 do dispositivo. Instala um `~/.ssh/config` com a identidade única para qualquer destino. Guarda a configuração anterior em `/mnt/backups/dotfiles/SSH/config.backup-*`, sem transportar aliases por IP ou chaves diferentes por destino. Valida e habilita o servidor OpenSSH para o usuário atual, somente por chave pública e sem login como root. O servidor mantém a porta já configurada e guarda o `sshd_config` anterior em `/mnt/backups/dotfiles/SSHD/sshd-*/sshd_config`.
 - **Criar chave SSH** gera somente o par local. A passphrase é informada ao OpenSSH no terminal. Arquivos existentes são preservados.
 - **Chaves autorizadas** reúne as ações de adicionar, visualizar e remover chaves públicas em `~/.ssh/authorized_keys`. Para autorizar um dispositivo, cole sua chave pública e confira o fingerprint. O IP de origem não é vinculado à chave.
 
@@ -26,9 +26,9 @@ HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop pode
 
 ## Sistema Operacional
 
-**Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica o `cachyos/niri/cfg/misc.kdl` do legado. A ação espera que o `config.kdl` do Niri inclua `cfg/misc.kdl` e valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups.
+**Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica o `cachyos/niri/cfg/misc.kdl` do legado. A ação espera que o `config.kdl` do Niri inclua `cfg/misc.kdl` e valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups em `/mnt/backups/dotfiles/Niri`.
 
-**Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 23 links e pede confirmação antes de mover dados. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
+**Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 23 links e pede confirmação antes de mover dados. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
 ## Navegador Web
 

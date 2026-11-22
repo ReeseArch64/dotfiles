@@ -111,13 +111,17 @@ func TestSSHServerApplyAndRollback(t *testing.T) {
 				}
 				return "", errors.New("unexpected command")
 			}
-			server := sshServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), commands: sshCommands{capture: capture}, probe: func(string) error {
+			backups := backupLocation{path: filepath.Join(t.TempDir(), "SSHD")}
+			server := sshServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), backups: backups, commands: sshCommands{capture: capture}, probe: func(string) error {
 				if failure == "port" {
 					return errors.New("porta fechada")
 				}
 				return nil
 			}}
 			backup, err := server.apply()
+			if filepath.Dir(backup) != backups.path {
+				t.Fatalf("backup fora da pasta central: %s, %v", backup, err)
+			}
 			after, _ := os.ReadFile(config)
 			if failure == "" || failure == "empty" || failure == "inactive" || failure == "dump-T-empty" || failure == "dump-empty" {
 				if err != nil {

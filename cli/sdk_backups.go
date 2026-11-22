@@ -11,46 +11,6 @@ import (
 	"time"
 )
 
-func validateSDKBackupPath(path string) error {
-	if !filepath.IsAbs(path) {
-		return fmt.Errorf("diretório de backup deve ser absoluto: %q", path)
-	}
-	for ancestor := path; ; ancestor = filepath.Dir(ancestor) {
-		info, err := os.Lstat(ancestor)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		if err == nil && !info.IsDir() {
-			return fmt.Errorf("backup requer diretório real: %s", ancestor)
-		}
-		if filepath.Dir(ancestor) == ancestor {
-			break
-		}
-	}
-	return nil
-}
-
-func privateSDKBackupDirectory(path string) error {
-	if err := validateSDKBackupPath(path); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(path, 0700); err != nil {
-		return err
-	}
-	if err := sdkRealDirectoryPath(path); err != nil {
-		return err
-	}
-	info, err := os.Lstat(path)
-	if err != nil {
-		return err
-	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || int(stat.Uid) != os.Geteuid() || info.Mode().Perm() != 0700 {
-		return fmt.Errorf("backup requer diretório privado 0700 do usuário atual: %s", path)
-	}
-	return nil
-}
-
 func reserveSDKBackup(root, origin string, at time.Time) (string, error) {
 	if !filepath.IsAbs(root) {
 		return "", fmt.Errorf("diretório de backup deve ser absoluto: %q", root)
@@ -71,7 +31,7 @@ func reserveSDKBackup(root, origin string, at time.Time) (string, error) {
 	parent := root
 	for _, component := range []string{"", fmt.Sprintf("%x", sha256.Sum256([]byte(origin)))} {
 		parent = filepath.Join(parent, component)
-		if err := privateSDKBackupDirectory(parent); err != nil {
+		if err := privateBackupDirectory(parent); err != nil {
 			return "", fmt.Errorf("preparar backup: %w", err)
 		}
 	}
@@ -110,7 +70,7 @@ func moveToBackup(source, backup string, ops sdkMigrationOps) (string, error) {
 		_ = forceRemoveAll(backup)
 		return "", fmt.Errorf("copiar backup (origem intacta em %s): %w", source, err)
 	}
-	container, err := os.MkdirTemp(filepath.Dir(source), ".sdk-original-*")
+	container, err := os.MkdirTemp(filepath.Dir(source), ".dotfiles-original-*")
 	if err != nil {
 		return "", err
 	}

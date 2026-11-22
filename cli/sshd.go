@@ -96,6 +96,7 @@ func writeConfigAtomic(path string, contents []byte, mode os.FileMode) error {
 type sshServer struct {
 	username, home, config, lockPath string
 	connection                       string
+	backups                          backupLocation
 	commands                         sshCommands
 	recoveryCommands                 sshCommands
 	probe                            func(string) error
@@ -161,15 +162,23 @@ func (s sshServer) apply() (backupPath string, result error) {
 	if enabledErr != nil {
 		enabledState = "disabled"
 	}
-	backup, err := os.MkdirTemp(filepath.Dir(s.config), "dotfiles-ssh-backup.*")
+	if err := s.backups.prepare(); err != nil {
+		return "", err
+	}
+	backup, err := os.MkdirTemp(s.backups.path, "sshd-*")
 	if err != nil {
 		return "", err
 	}
 	backupPath = backup
-	if err := os.WriteFile(filepath.Join(backup, "sshd_config"), original, 0600); err != nil {
+	if err := writeConfigAtomic(filepath.Join(backup, "sshd_config"), original, 0600); err != nil {
+		return "", errors.Join(err, os.Remove(backup))
+	}
+	staging, err := os.MkdirTemp(filepath.Dir(s.config), ".dotfiles-sshd-*")
+	if err != nil {
 		return backup, err
 	}
-	candidate := filepath.Join(backup, "candidate")
+	defer os.RemoveAll(staging)
+	candidate := filepath.Join(staging, "candidate")
 	policy := []byte(sshPolicy(s.username, port))
 	if err := os.WriteFile(candidate, policy, 0600); err != nil {
 		return backup, err
@@ -246,7 +255,7 @@ func applySSHServer(connection string) error {
 	username := account.Username
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
-	server := sshServer{username: username, home: account.HomeDir, connection: connection, config: "/etc/ssh/sshd_config", lockPath: "/run/dotfiles-ssh.lock", commands: sshCommandsWithContext(ctx), recoveryCommands: systemSSHCommands()}
+	server := sshServer{username: username, home: account.HomeDir, connection: connection, config: "/etc/ssh/sshd_config", lockPath: "/run/dotfiles-ssh.lock", backups: managedBackup("SSHD", nil), commands: sshCommandsWithContext(ctx), recoveryCommands: systemSSHCommands()}
 	if _, err := server.commands.capture("", "ssh-keygen", "-A"); err != nil {
 		return err
 	}

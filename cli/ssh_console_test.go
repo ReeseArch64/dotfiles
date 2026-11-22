@@ -79,6 +79,7 @@ func TestConfigureSSHClientUsesOneIdentityAndBacksUpLegacy(t *testing.T) {
 		t.Skip("ssh necessário")
 	}
 	c.keyName = "id_desktop"
+	location := backupLocation{path: filepath.Join(t.TempDir(), "SSH")}
 	path := filepath.Join(c.home, ".ssh", "config")
 	old := "Host peer\n    HostName 192.168.1.90\n    IdentityFile ~/.ssh/id_legacy\n"
 	if err := os.WriteFile(path, []byte(old), 0600); err != nil {
@@ -91,7 +92,7 @@ func TestConfigureSSHClientUsesOneIdentityAndBacksUpLegacy(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer client.cleanup()
-		if err := client.install(); err != nil {
+		if _, err := client.install(location); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -113,7 +114,7 @@ func TestConfigureSSHClientUsesOneIdentityAndBacksUpLegacy(t *testing.T) {
 		!slices.Contains(strings.Split(effective, "\n"), "addkeystoagent 28800") {
 		t.Fatal("o cliente deve usar o agente do usuário e guardar a chave por oito horas")
 	}
-	backups, err := filepath.Glob(path + ".backup-*")
+	backups, err := filepath.Glob(filepath.Join(location.path, "config.backup-*"))
 	if err != nil || len(backups) != 1 {
 		t.Fatalf("backups: %v, %v", backups, err)
 	}

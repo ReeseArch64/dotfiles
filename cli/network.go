@@ -165,7 +165,11 @@ func (c *sshConsole) configure() error {
 	if err := c.privileged("apply-server"); err != nil {
 		return err
 	}
-	return applyClient.install()
+	backup, err := applyClient.install(managedBackup("SSH", c.commands.interactive))
+	if backup != "" {
+		fmt.Fprintln(c.output, "Backup do cliente SSH:", backup)
+	}
+	return err
 }
 
 func (c *sshConsole) ensureIdentity(directory string) error {
@@ -212,34 +216,28 @@ func (c *sshConsole) prepareClient(path string) (preparedClient, error) {
 
 func (p preparedClient) cleanup() { _ = os.RemoveAll(p.directory) }
 
-func (p preparedClient) install() error {
+func (p preparedClient) install(location backupLocation) (string, error) {
 	if err := sshRegular(p.target, true); err != nil {
-		return err
+		return "", err
 	}
+	var backup string
 	original, err := os.ReadFile(p.target)
 	if err == nil {
 		candidate, err := os.ReadFile(p.candidate)
+		if err != nil || string(original) == string(candidate) {
+			return "", err
+		}
+		backup, err = location.saveFile("config.backup-*", original)
 		if err != nil {
-			return err
-		}
-		if string(original) == string(candidate) {
-			return nil
-		}
-		backup, err := os.CreateTemp(filepath.Dir(p.target), "config.backup-*")
-		if err != nil {
-			return err
-		}
-		_, writeErr := backup.Write(original)
-		if err := errors.Join(writeErr, backup.Close()); err != nil {
-			return err
+			return "", err
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return err
+		return "", err
 	}
 	if err := sshRegular(p.target, true); err != nil {
-		return err
+		return backup, err
 	}
-	return os.Rename(p.candidate, p.target)
+	return backup, os.Rename(p.candidate, p.target)
 }
 
 func (c *sshConsole) firewall() error {

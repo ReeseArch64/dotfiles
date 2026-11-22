@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.4.0"
+const version = "1.4.1"
 
 type profile struct {
 	prefix      string

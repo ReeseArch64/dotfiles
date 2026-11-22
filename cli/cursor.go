@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -47,7 +48,7 @@ func runCursorAction(p profile) error {
 
 	printActionHeader()
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	result, err := installCursor(assets, config, home, func(candidate string) error {
+	result, err := installCursor(assets, config, home, managedBackup("Niri", console.commands.interactive), func(candidate string) error {
 		_, err := console.commands.capture("", "niri", "validate", "--config", candidate)
 		return err
 	})
@@ -63,7 +64,7 @@ func runCursorAction(p profile) error {
 	return err
 }
 
-func installCursor(assets, config, home string, validate func(string) error) (backups []string, result error) {
+func installCursor(assets, config, home string, location backupLocation, validate func(string) error) (backups []string, result error) {
 	// Hold the lock through validation and the replacement of both assets.
 	configDir := filepath.Dir(config)
 	unlock, err := lockOperation(filepath.Join(configDir, ".dotfiles-cursor.lock"), "cursor")
@@ -114,18 +115,16 @@ func installCursor(assets, config, home string, validate func(string) error) (ba
 
 	themeSource := filepath.Join(assets, "cursor", cursorTheme)
 	themeDestination := filepath.Join(home, ".icons", cursorTheme)
-	themeBackup, undo, err := installCursorTheme(themeSource, themeDestination)
+	themeBackup, finish, err := installCursorTheme(themeSource, themeDestination, location)
 	if err != nil {
 		return nil, err
 	}
 	if themeBackup != "" {
 		backups = append(backups, themeBackup)
 	}
-	if undo != nil {
+	if finish != nil {
 		defer func() {
-			if result != nil {
-				result = errors.Join(result, undo())
-			}
+			result = errors.Join(result, finish(result != nil))
 		}()
 	}
 	if existed && bytes.Equal(original, misc) {
@@ -141,20 +140,16 @@ func installCursor(assets, config, home string, validate func(string) error) (ba
 			return nil, err
 		}
 		mode = info.Mode().Perm()
-		backup, err := os.CreateTemp(filepath.Dir(destination), "misc.kdl.backup-*")
+		backup, err := location.saveFile("misc.kdl.backup-*", original)
 		if err != nil {
 			return nil, err
 		}
-		_, writeErr := backup.Write(original)
-		if err := errors.Join(writeErr, backup.Close()); err != nil {
-			return nil, err
-		}
-		backups = append(backups, backup.Name())
+		backups = append(backups, backup)
 	}
 	return backups, writeConfigAtomic(destination, misc, mode)
 }
 
-func installCursorTheme(source, target string) (string, func() error, error) {
+func installCursorTheme(source, target string, location backupLocation) (string, func(bool) error, error) {
 	for _, file := range []string{"index.theme", "cursors/default"} {
 		if err := sshRegular(filepath.Join(source, file), false); err != nil {
 			return "", nil, fmt.Errorf("tema %s incompleto: %w", cursorTheme, err)
@@ -181,31 +176,39 @@ func installCursorTheme(source, target string) (string, func() error, error) {
 	if err := os.CopyFS(candidate, os.DirFS(source)); err != nil {
 		return "", nil, err
 	}
-	var backup, backupDir string
+	var backup, retired string
+	ops := systemSDKOps(context.Background(), location.path)
 	if existed {
-		backupDir, err = os.MkdirTemp(parent, cursorTheme+".backup-*")
+		if err := location.prepare(); err != nil {
+			return "", nil, err
+		}
+		backupDir, err := os.MkdirTemp(location.path, cursorTheme+".backup-*")
 		if err != nil {
 			return "", nil, err
 		}
 		backup = filepath.Join(backupDir, cursorTheme)
-		if err := os.Rename(target, backup); err != nil {
+		retired, err = moveToBackup(target, backup, ops)
+		if err != nil {
 			_ = os.Remove(backupDir)
 			return "", nil, err
 		}
 	}
 	restore := func() error {
 		if backup != "" {
-			if err := os.Rename(backup, target); err != nil {
-				return err
-			}
-			return os.Remove(backupDir)
+			return restoreSDKOriginal(backup, retired, target, ops)
 		}
 		return nil
 	}
-	if err := os.Rename(candidate, target); err != nil {
+	if err := ops.rename(candidate, target); err != nil {
 		return "", nil, errors.Join(err, restore())
 	}
-	return backup, func() error {
+	return backup, func(rollback bool) error {
+		if !rollback {
+			if retired != "" {
+				return forceRemoveAll(filepath.Dir(retired))
+			}
+			return nil
+		}
 		if err := os.RemoveAll(target); err != nil {
 			return err
 		}
