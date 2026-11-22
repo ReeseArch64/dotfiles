@@ -14,15 +14,17 @@ const (
 	screenSSH
 	screenSSHKeys
 	screenFirewall
+	screenWebBrowser
 	screenJob
 )
 
 var screenTitles = map[screen]string{
-	screenMain:     "Menu principal",
-	screenSystem:   "Sistema Operacional",
-	screenSSH:      "SSH",
-	screenSSHKeys:  "Chaves autorizadas",
-	screenFirewall: "Firewall",
+	screenMain:       "Menu principal",
+	screenSystem:     "Sistema Operacional",
+	screenSSH:        "SSH",
+	screenSSHKeys:    "Chaves autorizadas",
+	screenFirewall:   "Firewall",
+	screenWebBrowser: "Navegador Web",
 }
 
 type tickMsg time.Time
@@ -94,6 +96,8 @@ func (m model) items() []menuItem {
 		}
 	case screenFirewall:
 		return []menuItem{{title: "Configurar Firewall", desc: "Ativar UFW e permitir SSH somente na LAN", action: "firewall", disabled: !m.status.sshReady}}
+	case screenWebBrowser:
+		return []menuItem{{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"}}
 	case screenJob:
 		return nil
 	}
@@ -103,6 +107,7 @@ func (m model) items() []menuItem {
 	}
 	return []menuItem{
 		{title: "Sistema Operacional", desc: "Configurar SSH, firewall e cursor", goTo: screenSystem},
+		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
 		quit,
 	}
 }

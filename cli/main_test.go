@@ -33,12 +33,16 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			}
 			want := []string{"Sair"}
 			if tt.keyName != "" {
-				want = []string{"Sistema Operacional", "Sair"}
+				want = []string{"Sistema Operacional", "Navegador Web", "Sair"}
 			}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}
 			if tt.keyName != "" {
+				browser, _ := m.selectItem(m.items()[1])
+				if got := menuTitles(browser.(model).items()); !slices.Equal(got, []string{"Backup Completo"}) {
+					t.Fatalf("menu de navegador = %v", got)
+				}
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Mouse personalizado"}) {

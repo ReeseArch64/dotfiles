@@ -279,8 +279,11 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		return nil, err
 	}
 	args := []string{"--network", action}
-	if action == "cursor" {
+	switch action {
+	case "cursor":
 		args = []string{"--cursor"}
+	case "firefox-backup":
+		args = []string{"--firefox-backup"}
 	}
 	command := exec.Command(executable, args...)
 	command.Env = append(command.Environ(), "DOTFILES_ACTION_TITLE="+title)

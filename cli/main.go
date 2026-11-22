@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.2.0"
+const version = "1.3.0"
 
 type profile struct {
 	prefix      string
@@ -57,12 +57,21 @@ func main() {
 		}
 		return
 	}
-	if len(os.Args) == 2 && os.Args[1] == "--cursor" {
-		if err := runCursorAction(identifyProfile(hostname)); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+	if len(os.Args) == 2 {
+		var action func(profile) error
+		switch os.Args[1] {
+		case "--cursor":
+			action = runCursorAction
+		case "--firefox-backup":
+			action = runFirefoxBackup
 		}
-		return
+		if action != nil {
+			if err := action(identifyProfile(hostname)); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+		}
 	}
 	if _, err := tea.NewProgram(newMenu(hostname), tea.WithAltScreen()).Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
