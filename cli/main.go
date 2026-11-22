@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.7.0"
+const version = "1.7.1"
 
 type profile struct {
 	prefix      string
@@ -82,6 +82,8 @@ func main() {
 			action = runSDKMigration
 		case "--setup-git":
 			action = runGitSetup
+		case "--sshd-backup":
+			action = writeSSHDBackup
 		}
 		if action != nil {
 			if err := action(identifyProfile(hostname)); err != nil {

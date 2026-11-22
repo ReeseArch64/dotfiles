@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -48,24 +46,16 @@ func TestCompleteFirefoxBackup(t *testing.T) {
 	firefoxFixtureFile(t, filepath.Join(home, ".local", "share", "keyrings", "private.keyring"), "unrelated desktop credentials")
 
 	dest := filepath.Join(t.TempDir(), "Firefox")
+	location := backupLocation{path: dest}
 	now := time.Date(2026, 11, 21, 14, 32, 15, 0, time.Local)
-	calls := 0
-	sudo := func(command ...string) error {
-		calls++
-		want := []string{"sudo", "install", "-d", "-m", "0700", "-o", strconv.Itoa(os.Getuid()), "-g", strconv.Itoa(os.Getgid()), "--", dest}
-		if !slices.Equal(command, want) {
-			t.Fatalf("comando de criação incorreto: %v", command)
-		}
-		return os.Mkdir(dest, 0700)
-	}
 	checkClosed := func() error { return nil }
 
-	backup, err := backupFirefox(context.Background(), home, config, dest, now, checkClosed, sudo)
+	backup, err := backupFirefox(context.Background(), home, config, location, now, checkClosed)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup != filepath.Join(dest, "firefox-2026-11-21-14-32-15.tar") || calls != 1 {
-		t.Fatalf("destino inesperado: %s, chamadas sudo: %d", backup, calls)
+	if backup != filepath.Join(dest, "firefox-2026-11-21-14-32-15.tar") {
+		t.Fatalf("destino inesperado: %s", backup)
 	}
 	if info, err := os.Stat(backup); err != nil || info.Mode().Perm() != 0600 {
 		t.Fatalf("permissões incorretas no arquivo: %v, %v", info, err)
@@ -105,11 +95,11 @@ func TestCompleteFirefoxBackup(t *testing.T) {
 		}
 	}
 
-	if _, err := backupFirefox(context.Background(), home, config, dest, now, checkClosed, sudo); !errors.Is(err, os.ErrExist) {
+	if _, err := backupFirefox(context.Background(), home, config, location, now, checkClosed); !errors.Is(err, os.ErrExist) {
 		t.Fatalf("a segunda execução deveria preservar o tar existente: %v", err)
 	}
 	entries, err := os.ReadDir(dest)
-	if err != nil || len(entries) != 1 || calls != 1 {
+	if err != nil || len(entries) != 1 {
 		t.Fatalf("arquivos inesperados depois da segunda execução: %v, %v", entries, err)
 	}
 }
@@ -119,14 +109,12 @@ func TestFirefoxMustStayClosed(t *testing.T) {
 	config := filepath.Join(home, ".config")
 	firefoxFixtureFile(t, filepath.Join(config, "mozilla", "firefox", "profile", "key4.db"), "fixture")
 	dest := filepath.Join(t.TempDir(), "Firefox")
+	location := backupLocation{path: dest}
 	var checks atomic.Int32
-	sudo := func(...string) error {
-		return os.Mkdir(dest, 0700)
-	}
 
-	_, err := backupFirefox(context.Background(), home, config, dest, time.Now(), func() error {
+	_, err := backupFirefox(context.Background(), home, config, location, time.Now(), func() error {
 		return errFirefoxOpen
-	}, sudo)
+	})
 	if !errors.Is(err, errFirefoxOpen) {
 		t.Fatalf("a abertura do Firefox deveria bloquear a ação: %v", err)
 	}
@@ -134,12 +122,12 @@ func TestFirefoxMustStayClosed(t *testing.T) {
 		t.Fatalf("destino criado com o Firefox aberto: %v", err)
 	}
 
-	_, err = backupFirefox(context.Background(), home, config, dest, time.Now(), func() error {
+	_, err = backupFirefox(context.Background(), home, config, location, time.Now(), func() error {
 		if checks.Add(1) >= 3 {
 			return errFirefoxOpen
 		}
 		return nil
-	}, sudo)
+	})
 	if !errors.Is(err, errFirefoxOpen) {
 		t.Fatalf("a reabertura do Firefox deveria cancelar o backup: %v", err)
 	}

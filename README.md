@@ -26,6 +26,8 @@ Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
 HomeProd e Homelab continuam apenas identificados no menu. Desktop e Laptop podem usar suas próprias chaves para acessá-los quando as públicas estiverem autorizadas nesses servidores.
 
+Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/backups` e aos subdiretórios usados pela ação. Usa `sudo` quando precisa corrigir a propriedade ou criar um diretório sem acesso de escrita no pai. A pasta específica de cada ação fica com permissão `0700`.
+
 ## Sistema Operacional
 
 **Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica o `cachyos/niri/cfg/misc.kdl` do legado. A ação espera que o `config.kdl` do Niri inclua `cfg/misc.kdl` e valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups em `/mnt/backups/dotfiles/Niri`.
@@ -54,7 +56,7 @@ O `~/.gitconfig` recebe o fingerprint local em `user.signingkey` e habilita GPG 
 
 **Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.
 
-A ação usa `sudo` para criar o destino quando necessário, com acesso exclusivo ao usuário. O tar é privado e contém dados sensíveis. A senha principal do Firefox, quando configurada, continua necessária para abrir os logins salvos. Sites ainda podem expirar sessões ou exigir nova autenticação. [Dados armazenados nos perfis do Firefox](https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data)
+O tar é privado e contém dados sensíveis. A senha principal do Firefox, quando configurada, continua necessária para abrir os logins salvos. Sites ainda podem expirar sessões ou exigir nova autenticação. [Dados armazenados nos perfis do Firefox](https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data)
 
 ## Instalação
 

@@ -56,10 +56,8 @@ func migrateSDK(ctx context.Context, home string, run func(...string) error) err
 	if err := sdkRealDirectoryPath(home); err != nil {
 		return err
 	}
-	for _, root := range []string{sdkRoot, sdkBackupRoot} {
-		if err := validateBackupPath(root); err != nil {
-			return err
-		}
+	if err := validateBackupPath(sdkRoot); err != nil {
+		return err
 	}
 	if pathInside(home, sdkRoot) || pathInside(sdkRoot, home) ||
 		pathInside(sdkBackupRoot, home) || pathInside(home, sdkBackupRoot) {
@@ -71,7 +69,7 @@ func migrateSDK(ctx context.Context, home string, run func(...string) error) err
 	if err := ensureSDKRoot(sdkRoot, 0755, run); err != nil {
 		return err
 	}
-	if err := (backupLocation{path: sdkBackupRoot, sudo: run}).prepare(); err != nil {
+	if err := managedBackup("SDK", run).prepare(); err != nil {
 		return err
 	}
 

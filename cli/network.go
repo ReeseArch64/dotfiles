@@ -123,6 +123,12 @@ func (c *sshConsole) configure() error {
 	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
 		return err
 	}
+	clientBackup := managedBackup("SSH", c.commands.interactive)
+	for _, location := range []backupLocation{clientBackup, managedBackup("SSHD", c.commands.interactive)} {
+		if err := location.prepare(); err != nil {
+			return err
+		}
+	}
 	if err := c.ensurePackages("openssh"); err != nil {
 		return err
 	}
@@ -165,7 +171,7 @@ func (c *sshConsole) configure() error {
 	if err := c.privileged("apply-server"); err != nil {
 		return err
 	}
-	backup, err := applyClient.install(managedBackup("SSH", c.commands.interactive))
+	backup, err := applyClient.install(clientBackup)
 	if backup != "" {
 		fmt.Fprintln(c.output, "Backup do cliente SSH:", backup)
 	}

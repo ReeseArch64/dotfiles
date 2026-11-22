@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
@@ -96,7 +98,7 @@ func writeConfigAtomic(path string, contents []byte, mode os.FileMode) error {
 type sshServer struct {
 	username, home, config, lockPath string
 	connection                       string
-	backups                          backupLocation
+	backup                           func([]byte) (string, error)
 	commands                         sshCommands
 	recoveryCommands                 sshCommands
 	probe                            func(string) error
@@ -162,17 +164,11 @@ func (s sshServer) apply() (backupPath string, result error) {
 	if enabledErr != nil {
 		enabledState = "disabled"
 	}
-	if err := s.backups.prepare(); err != nil {
-		return "", err
-	}
-	backup, err := os.MkdirTemp(s.backups.path, "sshd-*")
+	backup, err := s.backup(original)
 	if err != nil {
 		return "", err
 	}
 	backupPath = backup
-	if err := writeConfigAtomic(filepath.Join(backup, "sshd_config"), original, 0600); err != nil {
-		return "", errors.Join(err, os.Remove(backup))
-	}
 	staging, err := os.MkdirTemp(filepath.Dir(s.config), ".dotfiles-sshd-*")
 	if err != nil {
 		return backup, err
@@ -255,7 +251,9 @@ func applySSHServer(connection string) error {
 	username := account.Username
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
-	server := sshServer{username: username, home: account.HomeDir, connection: connection, config: "/etc/ssh/sshd_config", lockPath: "/run/dotfiles-ssh.lock", backups: managedBackup("SSHD", nil), commands: sshCommandsWithContext(ctx), recoveryCommands: systemSSHCommands()}
+	server := sshServer{username: username, home: account.HomeDir, connection: connection, config: "/etc/ssh/sshd_config", lockPath: "/run/dotfiles-ssh.lock", backup: func(data []byte) (string, error) {
+		return backupSSHDAsUser(ctx, account, data)
+	}, commands: sshCommandsWithContext(ctx), recoveryCommands: systemSSHCommands()}
 	if _, err := server.commands.capture("", "ssh-keygen", "-A"); err != nil {
 		return err
 	}
@@ -265,6 +263,60 @@ func applySSHServer(connection string) error {
 	}
 	fmt.Printf("SSH somente por chaves, sem root, habilitado para %s. Backup: %s\nTeste uma NOVA conexão antes de fechar a sessão atual. O firewall não foi alterado.\n", username, backup)
 	return nil
+}
+
+func backupSSHDAsUser(ctx context.Context, account *user.User, contents []byte) (string, error) {
+	uid, err := strconv.ParseUint(account.Uid, 10, 32)
+	if err != nil || uid == 0 {
+		return "", errors.New("usuário inválido para o backup do SSHD")
+	}
+	gid, err := strconv.ParseUint(account.Gid, 10, 32)
+	if err != nil {
+		return "", err
+	}
+	binary, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	// The backup tree belongs to the user. Only the child writes into it.
+	command := exec.CommandContext(ctx, binary, "--sshd-backup")
+	command.SysProcAttr = &syscall.SysProcAttr{Credential: &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}}
+	command.Stdin, command.Stderr = strings.NewReader(string(contents)), os.Stderr
+	out, err := command.Output()
+	if err != nil {
+		return "", fmt.Errorf("salvar backup do SSHD como %s: %w", account.Username, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+func writeSSHDBackup(p profile) error {
+	if p.sshKeyName() == "" || os.Geteuid() == 0 {
+		return errors.New("execute o backup do SSHD como usuário normal em Desktop ou Laptop")
+	}
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+	backup, err := saveSSHDBackup(filepath.Join(backupRoot, "SSHD"), data)
+	if err != nil {
+		return err
+	}
+	fmt.Println(backup)
+	return nil
+}
+
+func saveSSHDBackup(path string, contents []byte) (string, error) {
+	if err := privateBackupDirectory(path); err != nil {
+		return "", err
+	}
+	backup, err := os.MkdirTemp(path, "sshd-*")
+	if err != nil {
+		return "", err
+	}
+	if err := writeConfigAtomic(filepath.Join(backup, "sshd_config"), contents, 0600); err != nil {
+		return "", errors.Join(err, os.Remove(backup))
+	}
+	return backup, nil
 }
 
 func sudoAccount() (*user.User, error) {

@@ -9,54 +9,90 @@ import (
 	"syscall"
 )
 
-const backupRoot = "/mnt/backups/dotfiles"
+const (
+	backupMount = "/mnt/backups"
+	backupRoot  = backupMount + "/dotfiles"
+)
 
 type backupLocation struct {
 	path string
+	base string
 	sudo func(...string) error
 }
 
 func managedBackup(name string, sudo func(...string) error) backupLocation {
-	return backupLocation{path: filepath.Join(backupRoot, name), sudo: sudo}
+	return backupLocation{path: filepath.Join(backupRoot, name), base: backupMount, sudo: sudo}
 }
 
 func (b backupLocation) prepare() error {
-	if filepath.Dir(b.path) != backupRoot {
+	if b.base == "" {
 		return privateBackupDirectory(b.path)
 	}
-	// The shared parent is controlled by root. Each feature has its own
-	// private directory, and privileged writers never traverse user-owned paths.
-	for path := backupRoot; ; path = filepath.Dir(path) {
-		info, err := os.Lstat(path)
-		if err == nil && (!info.IsDir() || info.Sys().(*syscall.Stat_t).Uid != 0 || info.Mode().Perm()&0022 != 0) {
-			return fmt.Errorf("diretório de backup precisa ser controlado pelo root: %s", path)
-		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		if path == "/" {
+	base, target := filepath.Clean(b.base), filepath.Clean(b.path)
+	if !filepath.IsAbs(base) || !pathInside(base, target) || target == base {
+		return fmt.Errorf("destino de backup fora de %s: %s", b.base, b.path)
+	}
+	if err := validateBackupPath(filepath.Dir(base)); err != nil {
+		return err
+	}
+	var parents []string
+	for path := filepath.Dir(target); ; path = filepath.Dir(path) {
+		parents = append(parents, path)
+		if path == base {
 			break
 		}
 	}
-	create := func(path string, mode os.FileMode, uid, gid int) error {
-		if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
+	for i := len(parents) - 1; i >= 0; i-- {
+		if err := b.prepareDirectory(parents[i], 0755); err != nil {
 			return err
 		}
-		if b.sudo == nil {
-			if err := os.MkdirAll(path, mode); err != nil {
-				return err
-			}
-			return os.Chmod(path, mode)
+	}
+	return b.prepareDirectory(target, 0700)
+}
+
+func (b backupLocation) prepareDirectory(path string, mode os.FileMode) error {
+	uid, gid := os.Geteuid(), os.Getegid()
+	repairMode := mode
+	check := func() (ready, owned bool, err error) {
+		info, err := os.Lstat(path)
+		if err != nil {
+			return false, false, err
 		}
-		return b.sudo("sudo", "install", "-d", "-m", fmt.Sprintf("%04o", mode), "-o", strconv.Itoa(uid), "-g", strconv.Itoa(gid), "--", path)
+		if !info.IsDir() {
+			return false, false, fmt.Errorf("backup requer diretório real: %s", path)
+		}
+		owned = int(info.Sys().(*syscall.Stat_t).Uid) == uid
+		permissions := info.Mode().Perm()
+		if mode == 0755 {
+			repairMode = permissions | 0700
+		}
+		ready = owned && permissions == repairMode
+		return ready, owned, nil
 	}
-	if err := create(backupRoot, 0755, 0, 0); err != nil {
-		return fmt.Errorf("criar diretório de backups: %w", err)
+	ready, owned, err := check()
+	if errors.Is(err, os.ErrNotExist) {
+		if err = os.Mkdir(path, mode); err == nil || errors.Is(err, os.ErrExist) {
+			ready, owned, err = check()
+		}
 	}
-	if err := create(b.path, 0700, os.Geteuid(), os.Getegid()); err != nil {
-		return fmt.Errorf("criar diretório de backup %s: %w", b.path, err)
+	if ready {
+		return nil
 	}
-	return privateBackupDirectory(b.path)
+	if owned {
+		err = os.Chmod(path, repairMode)
+	} else if b.sudo != nil && (err == nil || errors.Is(err, os.ErrPermission)) {
+		err = b.sudo("sudo", "install", "-d", "-m", fmt.Sprintf("%04o", repairMode), "-o", strconv.Itoa(uid), "-g", strconv.Itoa(gid), "--", path)
+	}
+	if err == nil {
+		ready, _, err = check()
+		if ready {
+			return nil
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("preparar permissões de backup em %s: %w", path, err)
+	}
+	return fmt.Errorf("não foi possível aplicar as permissões de backup em %s", path)
 }
 
 func (b backupLocation) saveFile(pattern string, data []byte) (string, error) {

@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const firefoxBackupDir = "/mnt/backups/Firefox"
+const firefoxBackupDir = backupMount + "/Firefox"
 
 var errFirefoxOpen = errors.New("feche completamente o Firefox antes de fazer o backup")
 
@@ -35,7 +35,8 @@ func runFirefoxBackup(p profile) error {
 	printActionHeader()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	fmt.Println("Verificando se o Firefox está fechado e preparando o backup…")
-	path, err := backupFirefox(ctx, home, config, firefoxBackupDir, time.Now(), firefoxClosed, systemSSHCommands().interactive)
+	location := backupLocation{path: firefoxBackupDir, base: backupMount, sudo: systemSSHCommands().interactive}
+	path, err := backupFirefox(ctx, home, config, location, time.Now(), firefoxClosed)
 	stop()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -257,49 +258,6 @@ func lockFirefoxProfile(profile string) (*os.File, error) {
 	return file, nil
 }
 
-func ensureFirefoxBackupDir(path string, run func(...string) error) error {
-	for current := path; ; current = filepath.Dir(current) {
-		info, err := os.Lstat(current)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		if err == nil && !info.IsDir() {
-			return fmt.Errorf("%s precisa ser um diretório real", current)
-		}
-		if filepath.Dir(current) == current {
-			break
-		}
-	}
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		if err := run("sudo", "install", "-d", "-m", "0700", "-o", strconv.Itoa(os.Getuid()), "-g", strconv.Itoa(os.Getgid()), "--", path); err != nil {
-			return fmt.Errorf("criar pasta de backup do Firefox: %w", err)
-		}
-	} else if err != nil {
-		return err
-	}
-	info, err := os.Lstat(path)
-	if err != nil {
-		return err
-	}
-	owner, ok := info.Sys().(*syscall.Stat_t)
-	if !info.IsDir() || !ok || int(owner.Uid) != os.Getuid() {
-		return fmt.Errorf("%s precisa pertencer ao usuário atual", path)
-	}
-	if info.Mode().Perm() != 0700 {
-		if err := os.Chmod(path, 0700); err != nil {
-			return err
-		}
-		info, err = os.Lstat(path)
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() || info.Mode().Perm() != 0700 {
-			return fmt.Errorf("%s precisa permitir acesso somente ao dono", path)
-		}
-	}
-	return nil
-}
-
 func tarLocation(home, path string) (base, member string) {
 	if pathInside(home, path) {
 		relative, _ := filepath.Rel(home, path)
@@ -323,7 +281,8 @@ func (plan firefoxBackupPlan) tarArgs(home string) []string {
 	return args
 }
 
-func backupFirefox(ctx context.Context, home, config, dest string, now time.Time, checkClosed func() error, sudo func(...string) error) (string, error) {
+func backupFirefox(ctx context.Context, home, config string, location backupLocation, now time.Time, checkClosed func() error) (string, error) {
+	dest := location.path
 	if err := checkClosed(); err != nil {
 		return "", err
 	}
@@ -341,7 +300,7 @@ func backupFirefox(ctx context.Context, home, config, dest string, now time.Time
 		}
 		defer lock.Close()
 	}
-	if err := ensureFirefoxBackupDir(dest, sudo); err != nil {
+	if err := location.prepare(); err != nil {
 		return "", err
 	}
 	if err := checkClosed(); err != nil {
