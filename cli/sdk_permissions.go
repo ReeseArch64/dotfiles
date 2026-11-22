@@ -1,0 +1,78 @@
+package main
+
+import (
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+)
+
+// forceRemoveAll remove uma árvore mesmo quando ela contém diretórios somente
+// leitura, como o cache de módulos do Go (dirs 0555, arquivos 0444). O unlink de
+// um arquivo depende da permissão de escrita no diretório pai, não do arquivo,
+// então garantimos escrita em cada diretório antes de remover.
+func forceRemoveAll(path string) error {
+	if err := os.RemoveAll(path); err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	_ = filepath.WalkDir(path, func(p string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if entry.IsDir() {
+			_ = os.Chmod(p, 0700)
+		}
+		return nil
+	})
+	return os.RemoveAll(path)
+}
+
+func validateMigrationTree(root string) error {
+	mounts, err := os.ReadFile("/proc/self/mountinfo")
+	if err != nil {
+		return fmt.Errorf("verificar pontos de montagem: %v", err)
+	}
+	unescape := strings.NewReplacer(`\040`, " ", `\011`, "\t", `\012`, "\n", `\134`, "\\")
+	for _, line := range strings.Split(string(mounts), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) > 4 && pathInside(root, unescape.Replace(fields[4])) {
+			return fmt.Errorf("a árvore %s contém um ponto de montagem em %s", root, unescape.Replace(fields[4]))
+		}
+	}
+	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() && !entry.Type().IsRegular() && entry.Type()&os.ModeSymlink == 0 {
+			return fmt.Errorf("arquivo especial em %s; feche os aplicativos antes de migrar", path)
+		}
+		// WalkDir checks directory access, but not whether files can be copied.
+		if entry.Type().IsRegular() {
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			return file.Close()
+		}
+		return nil
+	})
+}
+
+func repairMigrationPermissions(path string, uid, gid int, run func(...string) error) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s deve ser um diretório real, sem links simbólicos", path)
+	}
+	// GNU chown/chmod do not traverse symlinks encountered during recursion.
+	// Keep existing modes, adding access only for the owner; never use 777.
+	owner := strconv.Itoa(uid) + ":" + strconv.Itoa(gid)
+	if err := run("sudo", "chown", "-R", "-P", "--no-dereference", "--", owner, path); err != nil {
+		return err
+	}
+	return run("sudo", "chmod", "-R", "u+rwX", "--", path)
+}

@@ -284,6 +284,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--cursor"}
 	case "firefox-backup":
 		args = []string{"--firefox-backup"}
+	case "sdk-links":
+		args = []string{"--sdk-links"}
 	}
 	command := exec.Command(executable, args...)
 	command.Env = append(command.Environ(), "DOTFILES_ACTION_TITLE="+title)

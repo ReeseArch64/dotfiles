@@ -11,6 +11,7 @@ type screen int
 const (
 	screenMain screen = iota
 	screenSystem
+	screenSecurity
 	screenSSH
 	screenSSHKeys
 	screenFirewall
@@ -21,6 +22,7 @@ const (
 var screenTitles = map[screen]string{
 	screenMain:       "Menu principal",
 	screenSystem:     "Sistema Operacional",
+	screenSecurity:   "Segurança",
 	screenSSH:        "SSH",
 	screenSSHKeys:    "Chaves autorizadas",
 	screenFirewall:   "Firewall",
@@ -73,6 +75,11 @@ type menuItem struct {
 func (m model) items() []menuItem {
 	switch m.screen {
 	case screenSystem:
+		return []menuItem{
+			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
+			{title: "Migrar pastas para /mnt/sdk", desc: "Mover dados e criar os 23 links aprovados", action: "sdk-links"},
+		}
+	case screenSecurity:
 		firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
 		if !m.status.sshReady {
 			firewallDescription = "Requer SSH configurado"
@@ -80,7 +87,6 @@ func (m model) items() []menuItem {
 		return []menuItem{
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
 			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall, disabled: !m.status.sshReady},
-			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
 		}
 	case screenSSH:
 		return []menuItem{
@@ -106,7 +112,8 @@ func (m model) items() []menuItem {
 		return []menuItem{quit}
 	}
 	return []menuItem{
-		{title: "Sistema Operacional", desc: "Configurar SSH, firewall e cursor", goTo: screenSystem},
+		{title: "Sistema Operacional", desc: "Configurar o cursor e migrar pastas para /mnt/sdk", goTo: screenSystem},
+		{title: "Segurança", desc: "Configurar SSH e firewall", goTo: screenSecurity},
 		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
 		quit,
 	}
