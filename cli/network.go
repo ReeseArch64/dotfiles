@@ -277,6 +277,18 @@ func printActionHeader() {
 	}
 }
 
+func (p profile) menuAction(action string) string {
+	if p.prefix == "homelab" {
+		switch action {
+		case "configure":
+			return "homelab-ssh"
+		case "firewall":
+			return "homelab-firewall"
+		}
+	}
+	return action
+}
+
 func actionCommand(action, title string) (*exec.Cmd, error) {
 	executable, err := os.Executable()
 	if err != nil {

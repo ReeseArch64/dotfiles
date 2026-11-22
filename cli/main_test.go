@@ -34,13 +34,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if got := m.profile.sshKeyName(); got != tt.keyName {
 				t.Fatalf("nome da chave = %q, esperado %q", got, tt.keyName)
 			}
-			want := []string{"Sair"}
-			if tt.keyName != "" {
-				want = []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}
-			}
-			if m.profile.prefix == "homelab" {
-				want = []string{"Segurança", "CasaOS", "Sair"}
-			}
+			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Sair"}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}
@@ -131,6 +125,80 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMenuStructureAndAvailability(t *testing.T) {
+	for _, tt := range []struct {
+		hostname string
+		main     []string
+		security []string
+		ssh      []string
+	}{
+		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"homelab", []string{"Segurança", "CasaOS", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
+		{"homeprod", []string{"Sair"}, nil, nil},
+		{"unknown", []string{"Sair"}, nil, nil},
+	} {
+		t.Run(tt.hostname, func(t *testing.T) {
+			menu := newMenu(tt.hostname)
+			menu.status.sshReady = true
+			for page := screenMain; page < screenJob; page++ {
+				menu.screen = page
+				items := menu.items()
+				var enabled []string
+				for i, item := range items {
+					if !item.disabled {
+						enabled = append(enabled, item.title)
+					}
+					items[i].disabled = false
+				}
+				if !slices.Equal(items, screenItems(page)) {
+					t.Fatalf("estrutura diferente em %s: %v", screenTitles[page], items)
+				}
+				switch page {
+				case screenMain:
+					if !slices.Equal(enabled, tt.main) {
+						t.Fatalf("menu principal habilitado: %v", enabled)
+					}
+				case screenSecurity:
+					if !slices.Equal(enabled, tt.security) {
+						t.Fatalf("menu Segurança habilitado: %v", enabled)
+					}
+				case screenSSH:
+					if !slices.Equal(enabled, tt.ssh) {
+						t.Fatalf("menu SSH habilitado: %v", enabled)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestMenuNavigationSkipsUnavailableItems(t *testing.T) {
+	menu := newMenu("homelab")
+	if got := menu.menuCursor(menu.items()); got != 1 {
+		t.Fatalf("seleção inicial deveria ser Segurança: %d", got)
+	}
+	if next, command := menu.handleKey("1"); command != nil || next.(model).screen != screenMain {
+		t.Fatal("atalho abriu Sistema Operacional desabilitado")
+	}
+	next, _ := menu.handleKey("down")
+	menu = next.(model)
+	if got := menu.menuCursor(menu.items()); got != 4 {
+		t.Fatalf("seleção seguinte deveria ser CasaOS: %d", got)
+	}
+	next, _ = menu.handleKey("enter")
+	if next.(model).screen != screenCasaOS {
+		t.Fatal("Enter não abriu CasaOS")
+	}
+	menu = newMenu("homeprod")
+	if got := menu.menuCursor(menu.items()); got != 5 {
+		t.Fatalf("seleção inicial deveria ser Sair: %d", got)
+	}
+	if next, command := menu.handleKey("2"); command != nil || next.(model).screen != screenMain {
+		t.Fatal("atalho abriu Segurança desabilitada")
 	}
 }
 

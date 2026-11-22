@@ -15,29 +15,6 @@ import (
 
 const casaOSInstallerURL = "https://get.casaos.io"
 
-func homelabItems(page screen) []menuItem {
-	switch page {
-	case screenMain:
-		return []menuItem{
-			{title: "Segurança", desc: "Configurar SSH por chave e firewall UFW", goTo: screenSecurity},
-			{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
-			{title: "Sair", desc: "Até a próxima!", quit: true},
-		}
-	case screenSecurity:
-		return []menuItem{
-			{title: "SSH", desc: "Autorizar uma chave pública e testar o acesso", goTo: screenSSH},
-			{title: "Firewall", desc: "Permitir conexões de entrada pela LAN e preservar o acesso SSH atual", goTo: screenFirewall},
-		}
-	case screenSSH:
-		return []menuItem{{title: "Configurar SSH", desc: "Testar a chave Ed25519 antes de exigir autenticação por chave", action: "homelab-ssh"}}
-	case screenFirewall:
-		return []menuItem{{title: "Configurar Firewall", desc: "Ativar o UFW e liberar todas as portas e protocolos da LAN", action: "homelab-firewall"}}
-	case screenCasaOS:
-		return []menuItem{{title: "Instalar CasaOS", desc: "Executar o instalador oficial e preparar o acesso ao Docker", action: "homelab-casaos"}}
-	}
-	return nil
-}
-
 func ubuntuRelease(data string) bool {
 	for line := range strings.SplitSeq(data, "\n") {
 		key, value, ok := strings.Cut(strings.TrimSpace(line), "=")

@@ -11,6 +11,8 @@ A CLI identifica a máquina pelo hostname e mostra o ambiente e o autor no menu.
 
 O identificador pode aparecer como parte do hostname separada por hífen, como em `desktop-alan`. A CLI ignora maiúsculas e minúsculas. Nomes sem identificador ou com mais de um perfil aparecem como **Sem suporte**.
 
+A estrutura e os atalhos dos menus são os mesmos em todos os perfis. Opções indisponíveis aparecem em cinza e ficam desabilitadas. Quando o Homelab oferece uma ação compartilhada de SSH ou firewall, ela usa o procedimento do Ubuntu.
+
 ## Segurança
 
 Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
@@ -25,7 +27,7 @@ Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
 **Segurança → Proton Pass** exige que o Firefox já esteja instalado e que exista o diretório `~/.config/mozilla`. Instala `proton-pass-cli-bin` pelo yay, prepara o yay se precisar e executa `pass-cli login` no terminal. Se o pacote já estiver instalado, a ação inicia o login novamente.
 
-O perfil HomeProd é identificado como Ubuntu e oferece apenas **Sair**. Desktop e Laptop podem acessar os servidores quando suas chaves públicas estiverem autorizadas.
+No perfil HomeProd, apenas **Sair** fica habilitado. Desktop e Laptop podem acessar os servidores quando suas chaves públicas estiverem autorizadas.
 
 Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/backups` e aos subdiretórios usados pela ação. Usa `sudo` quando precisa corrigir a propriedade ou criar um diretório sem acesso de escrita no pai. A pasta específica de cada ação fica com permissão `0700`.
 

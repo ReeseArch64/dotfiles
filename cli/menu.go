@@ -93,10 +93,35 @@ type menuItem struct {
 }
 
 func (m model) items() []menuItem {
-	if m.profile.prefix == "homelab" {
-		return homelabItems(m.screen)
+	items := screenItems(m.screen)
+	for i := range items {
+		items[i].disabled = !m.menuItemAvailable(items[i])
+		if items[i].goTo == screenFirewall && items[i].disabled && m.profile.sshKeyName() != "" {
+			items[i].desc = "Requer SSH configurado"
+		}
 	}
-	switch m.screen {
+	return items
+}
+
+func (m model) menuItemAvailable(item menuItem) bool {
+	workstation := m.profile.sshKeyName() != ""
+	homelab := m.profile.prefix == "homelab"
+	switch {
+	case item.quit:
+		return true
+	case item.goTo == screenCasaOS || item.action == "homelab-casaos":
+		return homelab
+	case item.goTo == screenSecurity || item.goTo == screenSSH || item.action == "configure":
+		return workstation || homelab
+	case item.goTo == screenFirewall || item.action == "firewall":
+		return homelab || workstation && m.status.sshReady
+	default:
+		return workstation
+	}
+}
+
+func screenItems(page screen) []menuItem {
+	switch page {
 	case screenSystem:
 		return []menuItem{
 			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
@@ -133,19 +158,15 @@ func (m model) items() []menuItem {
 	case screenMise:
 		return []menuItem{{title: "Configurar Mise e instalar ferramentas", desc: "Aplicar o mise.toml e executar mise install", action: "setup-mise"}}
 	case screenSecurity:
-		firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
-		if !m.status.sshReady {
-			firewallDescription = "Requer SSH configurado"
-		}
 		return []menuItem{
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
-			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall, disabled: !m.status.sshReady},
+			{title: "Firewall", desc: "Ativar o UFW e aplicar a política da LAN", goTo: screenFirewall},
 			{title: "Proton Pass", desc: "Instalar a CLI e iniciar o login (requer Firefox configurado)", action: "proton-pass"},
 		}
 	case screenSSH:
 		return []menuItem{
-			{title: "Configurar SSH", desc: "Configurar cliente e permitir acesso somente por chave", action: "configure"},
-			{title: "Criar chave SSH", desc: "Gerar o par Ed25519 " + m.profile.sshKeyName(), action: "generate"},
+			{title: "Configurar SSH", desc: "Configurar o acesso por chave pública", action: "configure"},
+			{title: "Criar chave SSH", desc: "Gerar um par de chaves Ed25519", action: "generate"},
 			{title: "Chaves autorizadas", desc: "Adicionar, visualizar e remover chaves públicas", goTo: screenSSHKeys},
 		}
 	case screenSSHKeys:
@@ -155,22 +176,21 @@ func (m model) items() []menuItem {
 			{title: "Remover chave pública", desc: "Escolher e confirmar a remoção de uma chave", action: "remove"},
 		}
 	case screenFirewall:
-		return []menuItem{{title: "Configurar Firewall", desc: "Ativar UFW e permitir SSH somente na LAN", action: "firewall", disabled: !m.status.sshReady}}
+		return []menuItem{{title: "Configurar Firewall", desc: "Ativar o UFW e aplicar a política da LAN", action: "firewall"}}
+	case screenCasaOS:
+		return []menuItem{{title: "Instalar CasaOS", desc: "Executar o instalador oficial e preparar o acesso ao Docker", action: "homelab-casaos"}}
 	case screenWebBrowser:
 		return []menuItem{{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"}}
 	case screenJob:
 		return nil
-	}
-	quit := menuItem{title: "Sair", desc: "Até a próxima!", quit: true}
-	if m.profile.sshKeyName() == "" {
-		return []menuItem{quit}
 	}
 	return []menuItem{
 		{title: "Sistema Operacional", desc: "Configurar o sistema e instalar ferramentas", goTo: screenSystem},
 		{title: "Segurança", desc: "Configurar SSH, firewall e Proton Pass", goTo: screenSecurity},
 		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
 		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
-		quit,
+		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
+		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}
 }
 
@@ -236,27 +256,47 @@ func (m model) back() (model, tea.Cmd) {
 
 func (m model) handleKey(key string) (tea.Model, tea.Cmd) {
 	items := m.items()
-	cur := m.cursor[m.screen]
+	cur := m.menuCursor(items)
 	switch key {
 	case "ctrl+c", "q":
 		return m, tea.Quit
 	case "up", "k":
-		m.cursor[m.screen] = (cur - 1 + len(items)) % len(items)
+		m.cursor[m.screen] = nextMenuItem(items, cur, -1)
 	case "down", "j", "tab":
-		m.cursor[m.screen] = (cur + 1) % len(items)
+		m.cursor[m.screen] = nextMenuItem(items, cur, 1)
 	case "esc", "left", "h", "backspace":
 		return m.back()
 	case "enter", "right", "l", " ":
-		return m.selectItem(items[cur])
+		if len(items) > 0 {
+			return m.selectItem(items[cur])
+		}
 	default:
 		if len(key) == 1 {
-			if index := int(key[0]) - '1'; index >= 0 && index < len(items) {
+			if index := int(key[0]) - '1'; index >= 0 && index < len(items) && !items[index].disabled {
 				m.cursor[m.screen] = index
 				return m.selectItem(items[index])
 			}
 		}
 	}
 	return m, nil
+}
+
+func (m model) menuCursor(items []menuItem) int {
+	index := m.cursor[m.screen]
+	if len(items) > 0 && items[index].disabled {
+		return nextMenuItem(items, index, 1)
+	}
+	return index
+}
+
+func nextMenuItem(items []menuItem, index, direction int) int {
+	for step := 1; step <= len(items); step++ {
+		next := (index + step*direction + len(items)) % len(items)
+		if !items[next].disabled {
+			return next
+		}
+	}
+	return index
 }
 
 func (m model) selectItem(item menuItem) (tea.Model, tea.Cmd) {
@@ -269,7 +309,7 @@ func (m model) selectItem(item menuItem) (tea.Model, tea.Cmd) {
 		m.stack = append(m.stack, m.screen)
 		m.screen = screenJob
 		m.job = &jobRun{title: item.title}
-		command, err := actionCommand(item.action, item.title)
+		command, err := actionCommand(m.profile.menuAction(item.action), item.title)
 		if err != nil {
 			m.job.done, m.job.err = true, err
 			return m, nil

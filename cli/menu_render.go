@@ -96,7 +96,7 @@ func (m model) viewMenu(width int, elapsed time.Duration, compact, selectedDescr
 	if len(items) == 0 {
 		return lipgloss.NewStyle().Foreground(colDim).Render("Nenhuma opção disponível.")
 	}
-	cur := m.cursor[m.screen]
+	cur := m.menuCursor(items)
 	var rows []string
 	for i, it := range items {
 		num := fmt.Sprintf("%d", i+1)
@@ -136,13 +136,9 @@ func (m model) viewHelp(compact bool) string {
 		}
 		return key.Render("enter") + " " + txt.Render("voltar")
 	}
-	if len(m.items()) == 1 && m.screen == screenMain {
-		pairs = append(pairs, [2]string{"enter", "selecionar"})
-	} else {
-		pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
-		if len(m.stack) > 0 {
-			pairs = append(pairs, [2]string{"esc", "voltar"})
-		}
+	pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
+	if len(m.stack) > 0 {
+		pairs = append(pairs, [2]string{"esc", "voltar"})
 	}
 	pairs = append(pairs, [2]string{"q", "sair"})
 	var parts []string
