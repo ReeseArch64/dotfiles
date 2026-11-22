@@ -63,7 +63,7 @@ func (installer packageInstaller) run(action, modules string) error {
 		if err != nil {
 			return err
 		}
-		official = append(headers, "vulkan-tools", "mesa-utils")
+		official = append(headers, "base-devel", "vulkan-tools", "mesa-utils")
 	case "proton-pass":
 		if err := installer.checkProtonPassFirefox(); err != nil {
 			return err
@@ -81,7 +81,7 @@ func (installer packageInstaller) run(action, modules string) error {
 		fmt.Fprintln(installer.console.output, "Pacote do AUR:", aur)
 	}
 	if action == "install-yay" || aur != "" {
-		fmt.Fprintln(installer.console.output, "Se necessário, compilar yay em ~/.aur/yay com base-devel.")
+		fmt.Fprintln(installer.console.output, "Se necessário, instalar git e base-devel e compilar yay em ~/.aur/yay.")
 	}
 	if action == "proton-pass" {
 		fmt.Fprintln(installer.console.output, "Iniciar login com pass-cli login após a instalação.")
@@ -214,9 +214,6 @@ func (installer packageInstaller) ensureYay() error {
 	if _, err := installer.which("yay"); err == nil {
 		return nil
 	}
-	if _, err := installer.which("git"); err != nil {
-		return errors.New("git precisa estar disponível para clonar o yay")
-	}
 	root, err := aurDirectory(installer.console.home, sdkRoot)
 	if err != nil {
 		return err
@@ -228,6 +225,14 @@ func (installer packageInstaller) ensureYay() error {
 	defer unlock()
 	if _, err := installer.which("yay"); err == nil {
 		return nil
+	}
+	if _, err := installer.which("git"); err != nil {
+		if err := installer.console.ensurePackages("git"); err != nil {
+			return err
+		}
+		if _, err := installer.which("git"); err != nil {
+			return fmt.Errorf("git não está disponível após a instalação: %w", err)
+		}
 	}
 	target := filepath.Join(root, "yay")
 	_, err = os.Lstat(target)

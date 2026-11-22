@@ -32,6 +32,14 @@ main() {
         if [ -d package/cachyos ]; then
             mkdir -p "$dotfiles_dir/cachyos"
             cp -Rn -- package/cachyos/. "$dotfiles_dir/cachyos/"
+            fish_template=$dotfiles_dir/cachyos/fish/config.fish
+            # The 1.7.x template predates the dependency checks in fish_greeting.
+            if [ -f package/cachyos/fish/config.fish ] && [ -f "$fish_template" ] &&
+                [ ! -L "$fish_template" ] && [ ! -L "$dotfiles_dir/cachyos/fish" ] &&
+                [ "$(sha256sum < "$fish_template")" = '5ebc1cc6f7fb2aa2faeec92a5587b0bb923a6800554c28efbfa709641fb5cac2  -' ]
+            then
+                install -m 0644 package/cachyos/fish/config.fish "$fish_template"
+            fi
         fi
     elif [ -e "$dotfiles_dir" ] || [ -L "$dotfiles_dir" ]; then
         printf 'O caminho %s precisa ser um diretório.\n' "$dotfiles_dir" >&2

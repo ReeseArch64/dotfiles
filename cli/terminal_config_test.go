@@ -7,8 +7,35 @@ import (
 	"testing"
 )
 
+func TestFastfetchCreatesMissingProfilePhotoAndKeepsCustomPhoto(t *testing.T) {
+	home := t.TempDir()
+	destination := filepath.Join(home, ".face")
+	lock := filepath.Join(home, ".dotfiles-fastfetch.lock")
+	source := filepath.Join("..", "cachyos", "fastfetch", "face.jpg")
+	want, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ensureProfilePhoto(source, destination, lock); err != nil {
+		t.Fatal(err)
+	}
+	if photo, err := os.ReadFile(destination); err != nil || !bytes.Equal(want, photo) {
+		t.Fatalf("foto aplicada incorretamente: %v", err)
+	}
+	custom := []byte("foto personalizada")
+	if err := os.WriteFile(destination, custom, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ensureProfilePhoto(source, destination, lock); err != nil {
+		t.Fatal(err)
+	}
+	if photo, err := os.ReadFile(destination); err != nil || !bytes.Equal(custom, photo) {
+		t.Fatalf("foto personalizada alterada: %v", err)
+	}
+}
+
 func TestApplyTerminalConfigCopiesAssetsAndBacksUpChanges(t *testing.T) {
-	for _, file := range []string{"fish/config.fish", "fastfetch/config.json"} {
+	for _, file := range []string{"fish/config.fish", "fastfetch/config.jsonc"} {
 		t.Run(file, func(t *testing.T) {
 			home := t.TempDir()
 			source := filepath.Join("..", "cachyos", file)

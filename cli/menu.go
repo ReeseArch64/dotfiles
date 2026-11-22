@@ -108,9 +108,9 @@ func (m model) items() []menuItem {
 	case screenDrivers:
 		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}
 	case screenFish:
-		return []menuItem{{title: "Configurar Fish", desc: "Aplicar o config.fish do Desktop", action: "setup-fish"}}
+		return []menuItem{{title: "Configurar Fish", desc: "Instalar as dependências e aplicar o config.fish", action: "setup-fish"}}
 	case screenFastfetch:
-		return []menuItem{{title: "Configurar Fastfetch", desc: "Instalar chafa se necessário e aplicar o config.json", action: "setup-fastfetch"}}
+		return []menuItem{{title: "Configurar Fastfetch", desc: "Instalar Fastfetch e Chafa e preparar a foto de perfil", action: "setup-fastfetch"}}
 	case screenProgramming:
 		return []menuItem{{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit}}
 	case screenGit:

@@ -181,7 +181,7 @@ func TestDriversFindHeadersForInstalledKernels(t *testing.T) {
 			}
 			continue
 		}
-		want := []string{"sudo pacman -S --needed -- linux-cachyos-lts-headers linux-cachyos-headers vulkan-tools mesa-utils"}
+		want := []string{"sudo pacman -S --needed -- linux-cachyos-lts-headers linux-cachyos-headers base-devel vulkan-tools mesa-utils"}
 		if err != nil || !slices.Equal(*commands, want) {
 			t.Fatalf("headers: %v, %v", *commands, err)
 		}
@@ -193,9 +193,9 @@ func TestYayBootstrap(t *testing.T) {
 		t.Run(state, func(t *testing.T) {
 			installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
 			target := filepath.Join(installer.console.home, ".aur", "yay")
-			ready := false
+			ready, gitReady := false, state != "sem git"
 			installer.which = func(name string) (string, error) {
-				if (name == "git" && state != "sem git") || (name == "yay" && ready) {
+				if (name == "git" && gitReady) || (name == "yay" && ready) {
 					return "/usr/bin/" + name, nil
 				}
 				return "", exec.ErrNotFound
@@ -225,6 +225,9 @@ func TestYayBootstrap(t *testing.T) {
 				return capture(input, args...)
 			}
 			installer.console.commands.interactive = func(args ...string) error {
+				if slices.Equal(args, []string{"sudo", "pacman", "-S", "--needed", "--", "git"}) {
+					gitReady = true
+				}
 				if args[0] == "git" {
 					if want := []string{"git", "clone", "--", yayRepository, target}; !slices.Equal(args, want) {
 						t.Fatalf("clone = %q, esperado %q", args, want)
@@ -243,14 +246,17 @@ func TestYayBootstrap(t *testing.T) {
 			}
 			err := installer.run("install-yay", "")
 			switch state {
-			case "clone alterado", "sem git":
+			case "clone alterado":
 				if err == nil || len(*commands) != 0 {
 					t.Fatalf("instalação deveria falhar: %q, %v", *commands, err)
 				}
 			default:
 				want := []string{"sudo pacman -S --needed -- base-devel", "makepkg -si"}
-				if state == "clone novo" {
+				if state != "clone existente" {
 					want = slices.Insert(want, 1, "git clone -- "+yayRepository+" "+target)
+				}
+				if state == "sem git" {
+					want = slices.Insert(want, 0, "sudo pacman -S --needed -- git")
 				}
 				if err != nil || !slices.Equal(*commands, want) {
 					t.Fatalf("instalação = %q, erro %v, esperado %q", *commands, err, want)

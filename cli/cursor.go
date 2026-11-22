@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -20,6 +21,9 @@ var miscInclude = regexp.MustCompile(`(?m)^[\t ]*include[\t ]+"(?:\./)?cfg/misc\
 func runCursorAction(p profile) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute a configuração do cursor pelo menu Desktop ou Laptop como usuário normal")
+	}
+	if _, err := exec.LookPath("niri"); err != nil {
+		return errors.New("instale o Niri antes de aplicar a configuração do cursor")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {

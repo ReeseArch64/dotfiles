@@ -54,7 +54,7 @@ func TestConfigureGitUsesLocalSigningKey(t *testing.T) {
 	if err := configureGit(console, config, assets, "desktop-test"); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(packages, []string{"git", "gnupg", "lazygit", "git-delta", "git-ignore-bin"}) {
+	if !slices.Equal(packages, []string{"git", "gnupg", "lazygit", "git-delta", "git-lfs", "neovim", "openssh", "git-ignore-bin"}) {
 		t.Fatalf("pacotes: %v", packages)
 	}
 	if key := run("git", "config", "--file", filepath.Join(home, ".gitconfig"), "--get", "user.signingkey"); !validSigningFingerprint(key) {

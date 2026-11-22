@@ -1,11 +1,26 @@
 # CachyOS Config
-source /usr/share/cachyos-fish-config/conf.d/done.fish
+if test -r /usr/share/cachyos-fish-config/conf.d/done.fish
+    source /usr/share/cachyos-fish-config/conf.d/done.fish
+end
 
 # Fastfetch
 function fish_greeting
+    set -l config "$HOME/.config/fastfetch/config.jsonc"
+    if not test -r "$config"
+        set config "$HOME/.config/fastfetch/config.json"
+    end
+    if command -sq fastfetch; and test -r "$config"
+        if command -sq chafa; and test -r "$HOME/.face"
+            if string match -q '*.jsonc' -- "$config"
+                fastfetch --config "$config"
+            else
+                fastfetch --config "$config" --logo-type chafa --logo "$HOME/.face"
+            end
+        else
+            fastfetch --config "$config" --logo-type auto --logo ''
+        end
+    end
 end
-
-fastfetch --config $HOME/.config/fastfetch/config.json --logo-type chafa --logo "$HOME/.face"
 
 # Mise
 mise activate fish | source
@@ -63,7 +78,7 @@ end
 function copy
     set count (count $argv | tr -d \n)
     if test "$count" = 2; and test -d "$argv[1]"
-        set from (echo $argv[1] | trim-right /)
+        set from (string trim -r -c / -- "$argv[1]")
         set to (echo $argv[2])
         command cp -r $from $to
     else
@@ -77,7 +92,10 @@ alias reload="niri msg action load-config-file"
 alias install="sudo pacman -S --noconfirm"
 alias update="sudo pacman -Syy"
 
-alias upgrade='sudo cachyos-rate-mirrors && sudo pacman -Syyuu --noconfirm'
+if command -sq cachyos-rate-mirrors
+    alias upgrade='sudo cachyos-rate-mirrors && sudo pacman -Syyuu --noconfirm'
+    alias mirror="sudo cachyos-rate-mirrors"
+end
 
 alias fixpacman="sudo rm /var/lib/pacman/db.lck"
 
@@ -92,8 +110,6 @@ alias tarnow='tar -acf '
 alias untar='tar -zxvf '
 
 alias wget='wget -c '
-
-alias mirror="sudo cachyos-rate-mirrors"
 
 alias enablenow="sudo systemctl enable --now"
 alias enable="sudo systemctl enable"

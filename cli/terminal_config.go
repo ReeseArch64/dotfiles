@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 func runTerminalConfig(p profile, app string) error {
@@ -18,7 +20,7 @@ func runTerminalConfig(p profile, app string) error {
 	case "fish":
 		name, filename = "Fish", "config.fish"
 	case "fastfetch":
-		name, filename = "Fastfetch", "config.json"
+		name, filename = "Fastfetch", "config.jsonc"
 	default:
 		return errors.New("ação de configuração inválida")
 	}
@@ -29,30 +31,29 @@ func runTerminalConfig(p profile, app string) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
-	asset := filepath.Join("cachyos", app, filename)
-	source := filepath.Join(home, ".dotfiles", asset)
-	if binary, err := os.Executable(); err == nil {
-		local := filepath.Join(filepath.Dir(filepath.Dir(binary)), asset)
-		if _, err := os.Stat(local); err == nil {
-			source = local
-		}
-	}
+	source := terminalAsset(home, app, filename)
 	destination := filepath.Join(home, ".config", app, filename)
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup(name, console.commands.interactive)
+	lock := filepath.Join(home, ".dotfiles-"+app+".lock")
+	packages := terminalConfigPackages(app, console.commands)
 	printActionHeader()
 	fmt.Fprintln(console.output, "Aplicar a configuração em", destination)
+	fmt.Fprintln(console.output, "Instalar se estiverem ausentes:", strings.Join(packages, ", "))
 	if app == "fastfetch" {
-		fmt.Fprintln(console.output, "Instalar chafa se estiver ausente para renderizar a imagem no terminal.")
+		fmt.Fprintln(console.output, "Copiar a foto de perfil para ~/.face se ainda não existir.")
 	}
 	fmt.Fprintln(console.output, "A configuração anterior recebe backup em", location.path)
 	err = console.confirm("Digite CONFIRMO para aplicar: ", "CONFIRMO")
+	if err == nil {
+		err = console.ensurePackages(packages...)
+	}
 	if err == nil && app == "fastfetch" {
-		err = console.ensurePackages("chafa")
+		err = ensureProfilePhoto(terminalAsset(home, app, "face.jpg"), filepath.Join(home, ".face"), lock)
 	}
 	if err == nil {
 		var backup string
-		backup, err = applyTerminalConfig(source, destination, filepath.Join(home, ".dotfiles-"+app+".lock"), location)
+		backup, err = applyTerminalConfig(source, destination, lock, location)
 		if backup != "" {
 			fmt.Fprintln(console.output, "Backup:", backup)
 		}
@@ -64,6 +65,54 @@ func runTerminalConfig(p profile, app string) error {
 	}
 	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
+}
+
+func terminalAsset(home, app, name string) string {
+	asset := filepath.Join("cachyos", app, name)
+	if binary, err := os.Executable(); err == nil {
+		local := filepath.Join(filepath.Dir(filepath.Dir(binary)), asset)
+		if _, err := os.Stat(local); err == nil {
+			return local
+		}
+	}
+	return filepath.Join(home, ".dotfiles", asset)
+}
+
+func terminalConfigPackages(app string, commands sshCommands) []string {
+	if app == "fastfetch" {
+		return []string{"fastfetch", "chafa"}
+	}
+	packages := []string{"fish", "mise", "eza", "bat", "util-linux", "man-db"}
+	for _, name := range []string{"cachyos-fish-config", "cachyos-rate-mirrors"} {
+		if _, err := commands.capture("", "pacman", "-Si", "--", name); err == nil {
+			packages = append(packages, name)
+		}
+	}
+	if slices.Contains(packages, "cachyos-fish-config") {
+		packages = append(packages, "libnotify")
+	}
+	return packages
+}
+
+func ensureProfilePhoto(source, destination, lock string) error {
+	unlock, err := lockOperation(lock, "foto de perfil")
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	if info, err := os.Stat(destination); err == nil {
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("a foto de perfil precisa ser um arquivo: %s", destination)
+		}
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	image, err := os.ReadFile(source)
+	if err != nil {
+		return fmt.Errorf("ler foto de perfil do Dotfiles: %w", err)
+	}
+	return writeConfigAtomic(destination, image, 0644)
 }
 
 func applyTerminalConfig(source, destination, lock string, location backupLocation) (string, error) {

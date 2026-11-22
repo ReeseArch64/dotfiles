@@ -104,7 +104,7 @@ CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos b
 
 Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
-A base compartilhada contém `btop`, `cursor`, `fastfetch`, `ghostty`, `mise`, `noctalia`, `pi`, os arquivos estáticos de `git` e os arquivos comuns de `niri`. Permanecem separados `fish/config.fish`, `ssh/config`, `niri/cfg/autostart.kdl` e `niri/cfg/display.kdl`. O arquivo `git/.gitconfig` também permanece por perfil, mesmo inicialmente idêntico, pois recebe a chave GPG específica do dispositivo e nunca deve usar fallback compartilhado.
+A base compartilhada em `setup/config/` contém `btop`, `ghostty`, `mise`, `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, os arquivos estáticos de Git e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri e o `git/.gitconfig`, que recebe a chave GPG específica do dispositivo.
 
 Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
@@ -200,10 +200,10 @@ Não depende de `/usr/share/cachyos-fish-config`: os recursos portáveis necess�
 
 Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu principal. Ela:
 
-1. Valida a configuração própria do servidor e `assets/face.jpg` antes de instalar pacotes.
+1. Valida a configuração própria do servidor e `../cachyos/fastfetch/face.jpg` antes de instalar pacotes.
 2. Garante que Chafa esteja disponível para renderizar a foto; quando ausente, instala `chafa` via APT. Preserva um Fastfetch já disponível e funcional. Quando ausente, instala a release oficial 2.70.0 via pacote `.deb`, com SHA-256 fixado para Ubuntu amd64 ou arm64. Usa APT para dependências, sem PPA ou novos repositórios; requer internet. Outras arquiteturas são recusadas pelo instalador.
 3. Copia `setup/homelab/fastfetch/config.json` ou `setup/homeprod/fastfetch/config.json` para `~/.config/fastfetch/config.json`, sem herdar `setup/config/`. O sistema operacional é detectado automaticamente; não há módulos gráficos nem consulta de IP público. O logo usa `command-raw` para executar Chafa sobre `~/.face`, em blocos coloridos de até 30 colunas por 15 linhas. Isso funciona no SSH sem depender da detecção das dimensões em pixels do terminal pelo Fastfetch, que pode falhar no modo `chafa` interno.
-4. Copia `assets/face.jpg` para `~/.face`, como nos perfis desktop/notebook.
+4. Copia `../cachyos/fastfetch/face.jpg` para `~/.face`, como nos perfis desktop/notebook.
 
 Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação isolada `Fastfetch e foto de perfil` não altera o shell de login, não executa Fastfetch automaticamente. Para visualizar as informações com a foto, execute `fastfetch`. A ação `Configurar Fish` também instala o greeting que o executa ao abrir uma sessão interativa.
 
@@ -501,9 +501,9 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 | Destino | Origem | Formato |
 | --- | --- | --- |
 | `~/.gitconfig` | `setup/<perfil>/git/.gitconfig` | Cópia regular |
-| `~/.gitattributes` | `setup/config/git/.gitattributes` | Cópia regular |
-| `~/.gitignore` | `setup/config/git/.gitignore` | Cópia regular |
-| `~/.config/git/config` | `setup/config/git/config` | Cópia regular |
+| `~/.gitattributes` | `../cachyos/git/.gitattributes` | Cópia regular |
+| `~/.gitignore` | `../cachyos/git/.gitignore` | Cópia regular |
+| `~/.config/git/config` | `../cachyos/git/config` | Cópia regular |
 
 A ação substitui `~/.gitconfig` e recria os três links simbólicos sem backup automático.
 
@@ -539,7 +539,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 4. Instala Fish, `rustup`, o toolkit `tk` para Python e as dependências de compilação do PHP via Pacman (`sudo pacman -S --needed`): `base-devel`, `autoconf`, `bison`, `re2c`, `pkgconf`, `libxml2`, `openssl`, `curl`, `libzip`, `sqlite`, `oniguruma`, `libpng`, `libjpeg-turbo`, `freetype2`, `icu`, `readline`, `gettext`, `libsodium` e `libxslt`.
 5. Instala todas as ferramentas declaradas no `mise.toml`, incluindo PHP na versão `latest`.
 6. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
-7. Copia `setup/<perfil>/fish/config.fish` para `~/.config/fish/config.fish`.
+7. Copia a configuração do Fish para `~/.config/fish/config.fish`. A fonte do Desktop fica em `../cachyos/fish/config.fish` e a do notebook em `setup/notebook/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
 9. Valida `rustc --version` e `cargo --version`.
 10. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
@@ -597,11 +597,6 @@ A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/do
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
-No desktop, `yhomelab` e `ynotebook` montam a pasta pessoal do usuário remoto em `~/mnt/homelab` e `~/mnt/notebook` e abrem o Yazi nesse diretório. Reutilizam os hosts e as chaves de `~/.ssh/config`, incluindo a confirmação do fingerprint e a passphrase no primeiro acesso. O alias Fish `notebook` também usa esse host SSH (`192.168.1.103`).
-
-Para disponibilizar os comandos, aplique `Desenvolvimento > Ambiente de Desenvolvimento`; instale Yazi e SSHFS por `Desenvolvimento > Ferramentas de terminal` e aplique `Configurar SSH` caso ainda não tenha feito. Abra um novo terminal. As máquinas de destino precisam estar acessíveis por SSH com o subsistema SFTP habilitado.
-
-As montagens são feitas sob demanda, sem sudo, e permanecem disponíveis ao sair do Yazi. Você pode abrir outra aba do Yazi em qualquer um desses caminhos e copiar/colar normalmente. Para desmontar, saia da pasta nos terminais/Yazi e execute `yremote --unmount homelab` ou `yremote --unmount notebook`. Uma montagem ocupada gera erro, sem desmontagem forçada. Se a rede cair durante uma transferência, confira o resultado e repita a cópia se necessário. Esses comandos existem somente no perfil desktop, respeitando o acesso desktop → notebook/homelab.
 
 ### Ambiente Sandbox
 
@@ -695,7 +690,7 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 
 Quando `lvim` está ausente, a CLI instala LunarVim com a branch `release-1.4/neovim-0.9`.
 
-A ação copia `setup/config/fastfetch/config.json` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório, priorizando um arquivo específico do perfil caso exista.
+A ação copia `../cachyos/fastfetch/config.jsonc` para `~/.config/fastfetch/config.json` sem alterar outros arquivos do diretório, priorizando um arquivo específico do perfil caso exista.
 
 Ela também copia `setup/config/btop/`, com eventuais arquivos específicos do perfil por cima, para `~/.config/btop`. Uma configuração diferente recebe backup com timestamp.
 
@@ -709,7 +704,7 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 
 ### Niri
 
-`Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O cursor de `setup/config/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`, também permitindo arquivos específicos do perfil.
+`Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O `misc.kdl` vem de `../cachyos/niri/cfg/misc.kdl` quando não há configuração específica. O cursor de `../cachyos/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`, também permitindo arquivos específicos do perfil.
 
 Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do notebook contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
 
@@ -803,7 +798,7 @@ A pasta contém onze imagens destinadas a diferentes telas:
 
 ### Foto de perfil
 
-`Desktop > Foto de perfil` copia `assets/face.jpg` para `~/.face`.
+`Desktop > Foto de perfil` copia `../cachyos/fastfetch/face.jpg` para `~/.face`.
 
 A ação substitui o destino existente. Faça uma cópia manual quando quiser preservar a foto atual.
 
@@ -945,7 +940,6 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 ```text
 .
 ├── assets/
-│   ├── face.jpg
 │   └── wallpapers/
 ├── cmd/dotfiles/          # Código e testes da CLI
 ├── setup/

@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+var gitPackages = []string{"git", "gnupg", "lazygit", "git-delta", "git-lfs", "neovim", "openssh"}
+
 func runGitSetup(p profile) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("configure o Git pelo menu Desktop ou Laptop como usuário normal")
@@ -42,7 +44,8 @@ func runGitSetup(p profile) error {
 
 	printActionHeader()
 	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	fmt.Fprintln(console.output, "Instalar git, gnupg, lazygit, git-delta e git-ignore-bin e aplicar os quatro arquivos globais do Git.")
+	fmt.Fprintln(console.output, "Instalar os pacotes do Git e aplicar os quatro arquivos globais de configuração.")
+	fmt.Fprintln(console.output, "Pacotes:", strings.Join(append(slices.Clone(gitPackages), "git-ignore-bin"), ", "))
 	fmt.Fprintln(console.output, "Os arquivos substituídos recebem backup em", filepath.Join(backupRoot, "Git"))
 	err = console.confirm("Digite CONFIRMO para configurar o Git: ", "CONFIRMO")
 	if err == nil {
@@ -65,7 +68,7 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 		return err
 	}
 	defer unlock()
-	if err := console.ensurePackages("git", "gnupg", "lazygit", "git-delta"); err != nil {
+	if err := console.ensurePackages(gitPackages...); err != nil {
 		return err
 	}
 	installer := packageInstaller{console: &console, which: exec.LookPath, build: buildYay}
