@@ -64,7 +64,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
@@ -137,7 +137,7 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 	}{
 		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
 		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
-		{"homelab", []string{"Segurança", "CasaOS", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
+		{"homelab", []string{"Sistema Operacional", "Segurança", "CasaOS", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
 		{"homeprod", []string{"Sair"}, nil, nil},
 		{"unknown", []string{"Sair"}, nil, nil},
 	} {
@@ -178,13 +178,15 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 
 func TestMenuNavigationSkipsUnavailableItems(t *testing.T) {
 	menu := newMenu("homelab")
-	if got := menu.menuCursor(menu.items()); got != 1 {
-		t.Fatalf("seleção inicial deveria ser Segurança: %d", got)
+	if got := menu.menuCursor(menu.items()); got != 0 {
+		t.Fatalf("seleção inicial deveria ser Sistema Operacional: %d", got)
 	}
-	if next, command := menu.handleKey("1"); command != nil || next.(model).screen != screenMain {
-		t.Fatal("atalho abriu Sistema Operacional desabilitado")
+	if next, command := menu.handleKey("3"); command != nil || next.(model).screen != screenMain {
+		t.Fatal("atalho abriu Navegador Web desabilitado")
 	}
 	next, _ := menu.handleKey("down")
+	menu = next.(model)
+	next, _ = menu.handleKey("down")
 	menu = next.(model)
 	if got := menu.menuCursor(menu.items()); got != 4 {
 		t.Fatalf("seleção seguinte deveria ser CasaOS: %d", got)

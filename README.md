@@ -38,6 +38,10 @@ As ações são disponibilizadas pelo hostname `homelab` e executadas no Ubuntu 
 - **Segurança → SSH → Configurar SSH** instala OpenSSH pelo APT e reaproveita `ssh.socket` quando habilitado. Cole a chave pública Ed25519 e teste uma segunda conexão com a chave correspondente e `sudo -v`. Após a segunda confirmação, a ação mantém a chave testada, exige autenticação por chave e bloqueia login como root. Ela valida a configuração antes de recarregar o serviço e guarda os arquivos anteriores em `/mnt/backups/dotfiles/SSH` e `/mnt/backups/dotfiles/SSHD`.
 - **Segurança → Firewall → Configurar Firewall** instala e ativa o UFW. Permite todas as portas e protocolos de entrada pela interface da LAN IPv4 privada detectada, preserva as regras existentes e libera o IP e a porta da sessão SSH atual. Aplica a política padrão de negar entrada e permitir saída e restaura a configuração anterior se uma etapa falhar.
 - **CasaOS → Instalar CasaOS** baixa o instalador oficial por HTTPS e, após validar o script, executa-o com `sudo`. A ação adiciona o administrador atual ao grupo `docker`. Abra uma nova sessão para que a associação ao grupo tenha efeito. [Instalação oficial do CasaOS](https://wiki.casaos.io/en/get-started)
+- **Sistema Operacional → Servidor → Liberar porta 53 (DNS)** desativa o `DNSStubListener` do `systemd-resolved`, mantém a resolução via servidores DNS upstream e recusa drop-ins conflitantes. Se `resolv.conf` apontar para o stub, troca o link para o arquivo upstream. Em falha, restaura os arquivos alterados. [Configuração do systemd-resolved](https://www.freedesktop.org/software/systemd/man/latest/resolved.conf.html)
+- **Sistema Operacional → Servidor → Configurar swap** ativa `/swapfile-homelab` com 2 GiB e registra a configuração em `/etc/fstab`. Funciona em ext4 e XFS, mantém outras swaps e reserva pelo menos 4 GiB livres ao criar o arquivo. [Manual de swapon](https://manpages.ubuntu.com/manpages/noble/man8/swapon.8.html)
+
+As duas ações são implementadas em Go e guardam os arquivos substituídos em `/mnt/backups/dotfiles/DNS` e `/mnt/backups/dotfiles/Swap`.
 
 ## Sistema Operacional
 

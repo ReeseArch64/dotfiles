@@ -37,6 +37,9 @@ func runHomelabAction(device profile, args []string) error {
 		return errors.New("as ações do Homelab exigem Ubuntu (ID=ubuntu em /etc/os-release)")
 	}
 	if len(args) == 2 {
+		if args[0] == "save-backup" {
+			return writeHomelabBackup(args[1])
+		}
 		return runPrivilegedHomelab(args[0], args[1])
 	}
 	if len(args) != 1 || os.Geteuid() == 0 {
@@ -55,6 +58,10 @@ func runHomelabAction(device profile, args []string) error {
 		err = configureHomelabFirewall(&console)
 	case "casaos":
 		err = installCasaOS(&console, account.Username)
+	case "dns":
+		err = configureHomelabSystem(&console, "DNS", "apply-dns", "Desativar o stub DNS do systemd-resolved e preservar os servidores DNS.")
+	case "swap":
+		err = configureHomelabSystem(&console, "Swap", "apply-swap", "Ativar 2 GiB de swap em /swapfile-homelab e registrar no /etc/fstab.")
 	default:
 		return errors.New("ação Homelab inválida")
 	}
@@ -70,7 +77,14 @@ func runPrivilegedHomelab(action, connection string) error {
 	if err != nil {
 		return err
 	}
-	unlock, err := sshLock("/run/dotfiles-ssh.lock")
+	lock, operation := "/run/dotfiles-ssh.lock", "SSH e firewall"
+	switch action {
+	case "apply-dns":
+		lock, operation = "/run/dotfiles-dns.lock", "DNS"
+	case "apply-swap":
+		lock, operation = "/run/dotfiles-swap.lock", "swap"
+	}
+	unlock, err := lockOperation(lock, operation)
 	if err != nil {
 		return err
 	}
@@ -84,6 +98,10 @@ func runPrivilegedHomelab(action, connection string) error {
 	case "harden-ssh":
 		backup := func(data []byte) (string, error) { return backupSSHDAsUser(ctx, account, data) }
 		return hardenHomelabSSH("/etc/ssh/sshd_config", account.Username, connection, commands, systemSSHCommands(), backup)
+	case "apply-dns":
+		return homelabDNSPaths().apply(commands, systemSSHCommands(), homelabBackupAsUser(ctx, account, "DNS"))
+	case "apply-swap":
+		return applyHomelabSwap(ctx, "/etc/fstab", "/swapfile-homelab", 2*gibibyte, commands, systemSSHCommands(), homelabBackupAsUser(ctx, account, "Swap"))
 	case "apply-firewall":
 		lan, err := detectLAN()
 		if err != nil {
@@ -98,6 +116,19 @@ func runPrivilegedHomelab(action, connection string) error {
 	default:
 		return errors.New("ação administrativa Homelab inválida")
 	}
+}
+
+func configureHomelabSystem(c *sshConsole, category, action, description string) error {
+	location := managedBackup(category, c.commands.interactive)
+	fmt.Fprintln(c.output, description)
+	fmt.Fprintln(c.output, "Arquivos substituídos recebem backup em", location.path)
+	if err := c.confirm("Digite CONFIRMO para continuar: ", "CONFIRMO"); err != nil {
+		return err
+	}
+	if err := location.prepare(); err != nil {
+		return err
+	}
+	return c.homelabPrivileged(action)
 }
 
 func (c *sshConsole) homelabPrivileged(action string) error {

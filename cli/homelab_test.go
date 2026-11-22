@@ -21,6 +21,8 @@ func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 		{[]string{"2", "1"}, "ssh"},
 		{[]string{"2", "2"}, "firewall"},
 		{[]string{"5"}, "casaos"},
+		{[]string{"1", "9"}, "dns"},
+		{[]string{"1", "9"}, "swap"},
 	} {
 		current := menu
 		for _, key := range tt.keys {
@@ -28,10 +30,13 @@ func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 			current = next.(model)
 		}
 		items := current.items()
-		if len(items) == 0 || items[0].disabled {
+		index := slices.IndexFunc(items, func(item menuItem) bool {
+			return current.profile.menuAction(item.action) == "homelab-"+tt.action
+		})
+		if index < 0 || items[index].disabled {
 			t.Fatalf("submenu de %s: %v", tt.action, items)
 		}
-		command, err := actionCommand(current.profile.menuAction(items[0].action), items[0].title)
+		command, err := actionCommand(current.profile.menuAction(items[index].action), items[index].title)
 		if err != nil || !slices.Equal(command.Args[1:], []string{"--homelab", tt.action}) {
 			t.Fatalf("ação %s: %v, %v", tt.action, command, err)
 		}

@@ -17,6 +17,7 @@ const (
 	screenFish
 	screenFastfetch
 	screenTerminal
+	screenServer
 	screenProgramming
 	screenGit
 	screenMise
@@ -38,6 +39,7 @@ var screenTitles = map[screen]string{
 	screenFish:          "Fish",
 	screenFastfetch:     "Fastfetch",
 	screenTerminal:      "Terminal",
+	screenServer:        "Servidor",
 	screenProgramming:   "Programação",
 	screenGit:           "Git",
 	screenMise:          "Mise",
@@ -111,6 +113,10 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return true
 	case item.goTo == screenCasaOS || item.action == "homelab-casaos":
 		return homelab
+	case item.goTo == screenSystem:
+		return workstation || homelab
+	case item.goTo == screenServer || item.action == "homelab-dns" || item.action == "homelab-swap":
+		return homelab
 	case item.goTo == screenSecurity || item.goTo == screenSSH || item.action == "configure":
 		return workstation || homelab
 	case item.goTo == screenFirewall || item.action == "firewall":
@@ -132,6 +138,7 @@ func screenItems(page screen) []menuItem {
 			{title: "Fish", desc: "Configurar o shell Fish", goTo: screenFish},
 			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
 			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
+			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 		}
 	case screenEssentials:
 		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}
@@ -148,6 +155,11 @@ func screenItems(page screen) []menuItem {
 		return []menuItem{{title: "Configurar Fastfetch", desc: "Instalar Fastfetch e Chafa e preparar a foto de perfil", action: "setup-fastfetch"}}
 	case screenTerminal:
 		return []menuItem{{title: "Instalar Kitty", desc: "Instalar o terminal pelo Pacman", action: "install-kitty"}}
+	case screenServer:
+		return []menuItem{
+			{title: "Liberar porta 53 (DNS)", desc: "Desativar o stub do systemd-resolved e preservar a resolução DNS", action: "homelab-dns"},
+			{title: "Configurar swap", desc: "Ativar 2 GiB de swap persistente", action: "homelab-swap"},
+		}
 	case screenProgramming:
 		return []menuItem{
 			{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit},

@@ -266,9 +266,13 @@ func applySSHServer(connection string) error {
 }
 
 func backupSSHDAsUser(ctx context.Context, account *user.User, contents []byte) (string, error) {
+	return saveBackupAsUser(ctx, account, contents, "--sshd-backup")
+}
+
+func saveBackupAsUser(ctx context.Context, account *user.User, contents []byte, args ...string) (string, error) {
 	uid, err := strconv.ParseUint(account.Uid, 10, 32)
 	if err != nil || uid == 0 {
-		return "", errors.New("usuário inválido para o backup do SSHD")
+		return "", errors.New("usuário inválido para o backup")
 	}
 	gid, err := strconv.ParseUint(account.Gid, 10, 32)
 	if err != nil {
@@ -279,12 +283,12 @@ func backupSSHDAsUser(ctx context.Context, account *user.User, contents []byte) 
 		return "", err
 	}
 	// The backup tree belongs to the user. Only the child writes into it.
-	command := exec.CommandContext(ctx, binary, "--sshd-backup")
+	command := exec.CommandContext(ctx, binary, args...)
 	command.SysProcAttr = &syscall.SysProcAttr{Credential: &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}}
 	command.Stdin, command.Stderr = strings.NewReader(string(contents)), os.Stderr
 	out, err := command.Output()
 	if err != nil {
-		return "", fmt.Errorf("salvar backup do SSHD como %s: %w", account.Username, err)
+		return "", fmt.Errorf("salvar backup como %s: %w", account.Username, err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -322,7 +326,7 @@ func saveSSHDBackup(path string, contents []byte) (string, error) {
 func sudoAccount() (*user.User, error) {
 	username := os.Getenv("SUDO_USER")
 	if os.Geteuid() != 0 || username == "root" || !regexp.MustCompile(`^[a-z_][a-z0-9_-]*\$?$`).MatchString(username) {
-		return nil, errors.New("execute pelo menu SSH como usuário normal")
+		return nil, errors.New("execute pelo menu como usuário normal")
 	}
 	account, err := user.Lookup(username)
 	if err != nil {
