@@ -17,13 +17,7 @@ import (
 const casaOSInstallerURL = "https://get.casaos.io"
 
 func ubuntuRelease(data string) bool {
-	for line := range strings.SplitSeq(data, "\n") {
-		key, value, ok := strings.Cut(strings.TrimSpace(line), "=")
-		if ok && key == "ID" {
-			return strings.Trim(value, "\"'") == "ubuntu"
-		}
-	}
-	return false
+	return osReleaseID(data) == "ubuntu"
 }
 
 func runHomelabAction(device profile, args []string) error {

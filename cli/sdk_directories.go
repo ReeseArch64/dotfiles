@@ -38,7 +38,7 @@ func copySDKTree(ctx context.Context, source, target string) error {
 	return nil
 }
 
-func prepareSDKDirectories(home, root string, mappings [][2]string, ops sdkMigrationOps) error {
+func prepareSDKDirectories(home, root string, ops sdkMigrationOps) error {
 	home, err := filepath.Abs(home)
 	if err != nil {
 		return err
@@ -56,24 +56,18 @@ func prepareSDKDirectories(home, root string, mappings [][2]string, ops sdkMigra
 		return fmt.Errorf("HOME e destino não podem se sobrepor: %s, %s", home, root)
 	}
 
-	migrations := make([]sdkMigration, 0, len(mappings))
-	for _, mapping := range mappings {
-		migrations = append(migrations, sdkMigration{home: filepath.Join(home, mapping[0]), target: filepath.Join(root, mapping[1])})
+	migrations := make([]sdkMigration, 0, len(sdkDirectoryMappings))
+	for _, mapping := range sdkDirectoryMappings {
+		source := filepath.Join(home, mapping[0])
+		if mapping[0] == miseSDKPath {
+			source = sdkMiseSource(home, root)
+		}
+		migrations = append(migrations, sdkMigration{home: source, target: filepath.Join(root, mapping[1])})
 	}
 	return runDirectoryMigrations(migrations, ops)
 }
 
-func sdkMappingsForProfile(p profile) [][2]string {
-	if p.prefix == "homelab" {
-		return homelabSDKMappings
-	}
-	if p.sshKeyName() != "" {
-		return sdkDirectoryMappings
-	}
-	return nil
-}
-
-var homelabSDKMappings = [][2]string{{".local/share/mise", "Mise"}}
+const miseSDKPath = ".local/share/mise"
 
 var sdkDirectoryMappings = [][2]string{
 	{".aur", "Aur"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
@@ -81,6 +75,22 @@ var sdkDirectoryMappings = [][2]string{
 	{".agent-browser", "AgentBrowser"}, {".cargo", "Cargo"}, {".expo", "Expo"},
 	{".vite-plus", "VitePlus"}, {".docker", "Docker"}, {".dotnet", "Dotnet"}, {".java", "Java"},
 	{".copilot", "Copilot"}, {".azure", "Azure"}, {".aws", "Aws"}, {".gemini", "Gemini"}, {".railway", "Railway"}, {".tauri", "Tauri"},
+	{miseSDKPath, "Mise"},
+}
+
+func sdkMiseSource(home, root string) string {
+	local := filepath.Join(home, ".local")
+	legacy := filepath.Join(root, "Local")
+	// Older CachyOS setups already moved .local to the SDK. Accept that exact link.
+	if link, err := os.Readlink(local); err == nil {
+		if !filepath.IsAbs(link) {
+			link = filepath.Join(home, link)
+		}
+		if filepath.Clean(link) == legacy && sdkRealDirectoryPath(legacy) == nil {
+			return filepath.Join(legacy, "share", "mise")
+		}
+	}
+	return filepath.Join(home, miseSDKPath)
 }
 
 func runDirectoryMigrations(migrations []sdkMigration, ops sdkMigrationOps) (result error) {

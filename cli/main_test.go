@@ -204,6 +204,28 @@ func TestMenuNavigationSkipsUnavailableItems(t *testing.T) {
 	}
 }
 
+func TestSDKMigrationOnlyOnCachyOSWorkstations(t *testing.T) {
+	for _, tt := range []struct {
+		host, release string
+		allowed       bool
+	}{
+		{"desktop", "ID=cachyos\n", true},
+		{"laptop", "ID=\"cachyos\"\n", true},
+		{"laptop", "ID=omarchy\nID_LIKE=arch\n", false},
+		{"desktop", "ID=ubuntu\n", false},
+		{"homelab", "ID=cachyos\n", false},
+		{"homeprod", "ID=ubuntu\n", false},
+		{"desktop", "", false},
+	} {
+		m := newMenu(tt.host)
+		m.osID = osReleaseID(tt.release)
+		m.screen = screenSystem
+		if m.items()[1].disabled == tt.allowed || m.profile.canMigrateSDK(m.osID) != tt.allowed {
+			t.Fatalf("host %s, os-release %q: migração SDK deveria estar habilitada=%t", tt.host, tt.release, tt.allowed)
+		}
+	}
+}
+
 func TestLegacyMenuCardsAndCursor(t *testing.T) {
 	m := newMenu("laptop-alan")
 	m.width, m.height = 100, 35

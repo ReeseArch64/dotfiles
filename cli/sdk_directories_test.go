@@ -88,7 +88,7 @@ func TestSDKMigrationApprovedDirectoriesAndBackups(t *testing.T) {
 	sdkTestFile(t, filepath.Join(root, "Claude", "conflict"), "previous target")
 	sdkTestFile(t, filepath.Join(root, "Claude", "unique"), "target only")
 	ops := systemSDKOps(context.Background(), backups)
-	if err := prepareSDKDirectories(home, root, sdkDirectoryMappings, ops); err != nil {
+	if err := prepareSDKDirectories(home, root, ops); err != nil {
 		t.Fatal(err)
 	}
 	links := make(map[string]string)
@@ -109,6 +109,9 @@ func TestSDKMigrationApprovedDirectoriesAndBackups(t *testing.T) {
 	if !reflect.DeepEqual(links, pairs) {
 		t.Fatalf("links instalados: %v", links)
 	}
+	if link, err := os.Readlink(filepath.Join(home, miseSDKPath)); err != nil || link != filepath.Join(root, "Mise") {
+		t.Fatalf("link do Mise: %q, %v", link, err)
+	}
 	for _, name := range excluded {
 		sdkTestContent(t, filepath.Join(home, name, "fixture"), name)
 	}
@@ -117,23 +120,26 @@ func TestSDKMigrationApprovedDirectoriesAndBackups(t *testing.T) {
 	sdkTestContent(t, filepath.Join(sdkTestBackup(t, backups, filepath.Join(home, ".claude")), "conflict"), "home")
 	sdkTestContent(t, filepath.Join(sdkTestBackup(t, backups, filepath.Join(root, "Claude")), "conflict"), "previous target")
 	ops.copyTree = func(string, string) error { t.Fatal("reaplicação copiou dados"); return nil }
-	if err := prepareSDKDirectories(home, root, sdkDirectoryMappings, ops); err != nil {
+	if err := prepareSDKDirectories(home, root, ops); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestHomelabSDKMigrationMovesOnlyMise(t *testing.T) {
+func TestSDKMigrationMiseWithLegacyLocalLink(t *testing.T) {
 	home, root, backups := sdkTestRoots(t)
 	location := filepath.Join(home, ".local", "share", "mise")
 	target := filepath.Join(root, "Mise")
-	sdkTestFile(t, filepath.Join(location, "conflict"), "home")
+	legacy := filepath.Join(root, "Local")
+	sdkTestFile(t, filepath.Join(legacy, "share", "mise", "conflict"), "home")
+	if err := os.Symlink(legacy, filepath.Join(home, ".local")); err != nil {
+		t.Fatal(err)
+	}
 	sdkTestFile(t, filepath.Join(target, "conflict"), "previous target")
 	sdkTestFile(t, filepath.Join(target, "unique"), "target only")
 	sdkTestFile(t, filepath.Join(home, ".cache", "fixture"), "cache")
 	sdkTestFile(t, filepath.Join(home, ".local", "share", "other", "fixture"), "other")
-	settings := sdkMappingsForProfile(identifyProfile("homelab"))
 	ops := systemSDKOps(context.Background(), backups)
-	if err := prepareSDKDirectories(home, root, settings, ops); err != nil {
+	if err := prepareSDKDirectories(home, root, ops); err != nil {
 		t.Fatal(err)
 	}
 	if link, err := os.Readlink(location); err != nil || link != target {
@@ -145,12 +151,12 @@ func TestHomelabSDKMigrationMovesOnlyMise(t *testing.T) {
 	sdkTestContent(t, filepath.Join(home, ".local", "share", "other", "fixture"), "other")
 	sdkTestContent(t, filepath.Join(sdkTestBackup(t, backups, target), "conflict"), "previous target")
 	ops.copyTree = func(string, string) error { t.Fatal("reaplicação copiou dados"); return nil }
-	if err := prepareSDKDirectories(home, root, settings, ops); err != nil {
+	if err := prepareSDKDirectories(home, root, ops); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestHomelabSDKMigrationHandlesMissingAndLinkedParents(t *testing.T) {
+func TestSDKMigrationHandlesMissingAndLinkedParents(t *testing.T) {
 	for _, scenario := range []string{"novo", "falha ao criar link", "ancestral simbólico"} {
 		t.Run(scenario, func(t *testing.T) {
 			home, root, backups := sdkTestRoots(t)
@@ -162,9 +168,14 @@ func TestHomelabSDKMigrationHandlesMissingAndLinkedParents(t *testing.T) {
 				}
 			}
 			if scenario == "falha ao criar link" {
-				ops.symlink = func(string, string) error { return errors.New("falha simulada") }
+				ops.symlink = func(target, link string) error {
+					if target == filepath.Join(root, "Mise") {
+						return errors.New("falha simulada")
+					}
+					return os.Symlink(target, link)
+				}
 			}
-			err := prepareSDKDirectories(home, root, homelabSDKMappings, ops)
+			err := prepareSDKDirectories(home, root, ops)
 			if scenario == "novo" {
 				if err != nil {
 					t.Fatal(err)
@@ -201,7 +212,7 @@ func TestSDKMigrationDoesNotReplaceUnexpectedEntry(t *testing.T) {
 		}
 		return rename(source, target)
 	}
-	if err := prepareSDKDirectories(home, root, sdkDirectoryMappings, ops); !errors.Is(err, os.ErrExist) {
+	if err := prepareSDKDirectories(home, root, ops); !errors.Is(err, os.ErrExist) {
 		t.Fatalf("conflito deveria abortar a migração: %v", err)
 	}
 	sdkTestContent(t, conflict, "arrived during migration")
@@ -234,7 +245,7 @@ func TestSDKMigrationRollsBackAcrossFilesystems(t *testing.T) {
 		}
 		return err
 	}
-	if err := prepareSDKDirectories(home, root, sdkDirectoryMappings, ops); !errors.Is(err, context.Canceled) {
+	if err := prepareSDKDirectories(home, root, ops); !errors.Is(err, context.Canceled) {
 		t.Fatalf("migração deveria reverter ao cancelar: %v", err)
 	}
 	sdkTestContent(t, filepath.Join(home, ".aur", "file"), "original")

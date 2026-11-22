@@ -60,6 +60,7 @@ type statusResult struct {
 
 type model struct {
 	profile       profile
+	osID          string
 	start, now    time.Time
 	width, height int
 	screen        screen
@@ -72,7 +73,7 @@ type model struct {
 
 func newMenu(hostname string) model {
 	now := time.Now()
-	return model{profile: identifyProfile(hostname), start: now, now: now, width: 80, height: 24}
+	return model{profile: identifyProfile(hostname), osID: systemOSID(), start: now, now: now, width: 80, height: 24}
 }
 
 func tick() tea.Cmd {
@@ -116,7 +117,7 @@ func (m model) menuItemAvailable(item menuItem) bool {
 	case item.goTo == screenSystem:
 		return workstation || homelab
 	case item.action == "sdk-links":
-		return len(sdkMappingsForProfile(m.profile)) > 0
+		return m.profile.canMigrateSDK(m.osID)
 	case item.goTo == screenFish || item.goTo == screenFastfetch || item.goTo == screenTerminalTools ||
 		item.action == "setup-fish" || item.action == "setup-fastfetch" || item.action == "terminal-tools":
 		return workstation || homelab

@@ -19,10 +19,13 @@ const (
 	sdkBackupRoot = backupRoot + "/SDK"
 )
 
+func (p profile) canMigrateSDK(osID string) bool {
+	return p.sshKeyName() != "" && osID == "cachyos"
+}
+
 func runSDKMigration(p profile) error {
-	mappings := sdkMappingsForProfile(p)
-	if len(mappings) == 0 || os.Geteuid() == 0 {
-		return errors.New("execute a migração pelo menu Desktop, Laptop ou Homelab como usuário normal")
+	if !p.canMigrateSDK(systemOSID()) || os.Geteuid() == 0 {
+		return errors.New("a migração para /mnt/sdk exige CachyOS e deve ser executada pelo menu Desktop ou Laptop como usuário normal")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -30,7 +33,7 @@ func runSDKMigration(p profile) error {
 	}
 	printActionHeader()
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	for _, mapping := range mappings {
+	for _, mapping := range sdkDirectoryMappings {
 		fmt.Printf("  ~/%s → %s\n", mapping[0], filepath.Join(sdkRoot, mapping[1]))
 	}
 	fmt.Printf("\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", sdkBackupRoot)
@@ -39,7 +42,7 @@ func runSDKMigration(p profile) error {
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	err = migrateSDK(ctx, home, mappings, console.commands.interactive)
+	err = migrateSDK(ctx, home, console.commands.interactive)
 	stop()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -50,7 +53,7 @@ func runSDKMigration(p profile) error {
 	return err
 }
 
-func migrateSDK(ctx context.Context, home string, mappings [][2]string, run func(...string) error) error {
+func migrateSDK(ctx context.Context, home string, run func(...string) error) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
@@ -88,7 +91,7 @@ func migrateSDK(ctx context.Context, home string, mappings [][2]string, run func
 		return repairMigrationPermissions(path, os.Getuid(), os.Getgid(), run)
 	}
 	fmt.Println("Preparando as cópias e os backups…")
-	return prepareSDKDirectories(home, sdkRoot, mappings, ops)
+	return prepareSDKDirectories(home, sdkRoot, ops)
 }
 
 func systemSDKOps(ctx context.Context, backups string) sdkMigrationOps {

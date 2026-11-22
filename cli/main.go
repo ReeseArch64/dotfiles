@@ -9,12 +9,27 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.15.0"
+const version = "1.15.1"
 
 type profile struct {
 	prefix      string
 	name        string
 	environment string
+}
+
+func osReleaseID(data string) string {
+	for line := range strings.SplitSeq(data, "\n") {
+		key, value, ok := strings.Cut(strings.TrimSpace(line), "=")
+		if ok && key == "ID" {
+			return strings.Trim(value, "\"'")
+		}
+	}
+	return ""
+}
+
+func systemOSID() string {
+	data, _ := os.ReadFile("/etc/os-release")
+	return osReleaseID(string(data))
 }
 
 func identifyProfile(hostname string) profile {

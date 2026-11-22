@@ -14,14 +14,17 @@ import (
 
 func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 	menu := newMenu("homelab-alan")
+	menu.osID = "ubuntu"
 	system, _ := menu.handleKey("1")
 	items := system.(model).items()
-	if len(items) < 2 || items[1].disabled || items[1].action != "sdk-links" {
-		t.Fatalf("migração SDK indisponível no Homelab: %v", items)
+	if len(items) < 2 || !items[1].disabled || items[1].action != "sdk-links" {
+		t.Fatalf("migração SDK deveria ficar desabilitada no Homelab: %v", items)
 	}
-	command, err := actionCommand(items[1].action, items[1].title)
-	if err != nil || !slices.Equal(command.Args[1:], []string{"--sdk-links"}) {
-		t.Fatalf("ação de migração SDK: %v, %v", command, err)
+	if next, cmd := system.(model).handleKey("2"); cmd != nil || next.(model).screen != screenSystem {
+		t.Fatal("atalho acionou a migração SDK no Homelab")
+	}
+	if err := runSDKMigration(menu.profile); err == nil {
+		t.Fatal("a execução direta permitiu a migração SDK no Homelab")
 	}
 	for _, tt := range []struct {
 		keys   []string
