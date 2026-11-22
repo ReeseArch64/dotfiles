@@ -110,7 +110,7 @@ func (m model) items() []menuItem {
 	case screenFish:
 		return []menuItem{{title: "Configurar Fish", desc: "Aplicar o config.fish do Desktop", action: "setup-fish"}}
 	case screenFastfetch:
-		return []menuItem{{title: "Configurar Fastfetch", desc: "Aplicar o config.json compartilhado", action: "setup-fastfetch"}}
+		return []menuItem{{title: "Configurar Fastfetch", desc: "Instalar chafa se necessário e aplicar o config.json", action: "setup-fastfetch"}}
 	case screenProgramming:
 		return []menuItem{{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit}}
 	case screenGit:

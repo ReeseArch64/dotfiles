@@ -42,8 +42,15 @@ func runTerminalConfig(p profile, app string) error {
 	location := managedBackup(name, console.commands.interactive)
 	printActionHeader()
 	fmt.Fprintln(console.output, "Aplicar a configuração em", destination)
+	if app == "fastfetch" {
+		fmt.Fprintln(console.output, "Instalar chafa se estiver ausente para renderizar a imagem no terminal.")
+	}
 	fmt.Fprintln(console.output, "A configuração anterior recebe backup em", location.path)
-	if err = console.confirm("Digite CONFIRMO para aplicar: ", "CONFIRMO"); err == nil {
+	err = console.confirm("Digite CONFIRMO para aplicar: ", "CONFIRMO")
+	if err == nil && app == "fastfetch" {
+		err = console.ensurePackages("chafa")
+	}
+	if err == nil {
 		var backup string
 		backup, err = applyTerminalConfig(source, destination, filepath.Join(home, ".dotfiles-"+app+".lock"), location)
 		if backup != "" {

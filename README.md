@@ -42,7 +42,7 @@ Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/b
 
 **Sistema Operacional → Fish → Configurar Fish** aplica o `config.fish` do Desktop em `~/.config/fish/config.fish`.
 
-**Sistema Operacional → Fastfetch → Configurar Fastfetch** aplica o `config.json` compartilhado do legado em `~/.config/fastfetch/config.json`. O `config.fish` usa esse arquivo ao executar o Fastfetch.
+**Sistema Operacional → Fastfetch → Configurar Fastfetch** instala `chafa` quando necessário e aplica o `config.json` compartilhado do legado em `~/.config/fastfetch/config.json`. O `config.fish` usa esse arquivo ao executar o Fastfetch e pede ao Chafa para renderizar a imagem de perfil.
 
 As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda. Use os submenus com Fish e Fastfetch já instalados.
 
