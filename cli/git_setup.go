@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -125,7 +123,7 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 	if err != nil {
 		return err
 	}
-	backup, err := applyGitFiles(files, managedBackup("Git", console.commands.interactive))
+	backup, err := applyConfigFiles(files, managedBackup("Git", console.commands.interactive), "git")
 	if backup != "" {
 		fmt.Fprintln(console.output, "Backup do Git:", backup)
 	}
@@ -135,14 +133,8 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 	return err
 }
 
-type gitFile struct {
-	path     string
-	contents []byte
-	mode     os.FileMode
-}
-
-func gitFiles(home, config, assets string) ([]gitFile, error) {
-	var files []gitFile
+func gitFiles(home, config, assets string) ([]configFile, error) {
+	var files []configFile
 	for _, name := range []string{".gitconfig", ".gitattributes", ".gitignore", "config"} {
 		destination, mode := filepath.Join(home, name), os.FileMode(0644)
 		if name == "config" {
@@ -155,112 +147,7 @@ func gitFiles(home, config, assets string) ([]gitFile, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ler arquivo Git do Dotfiles: %w", err)
 		}
-		files = append(files, gitFile{destination, content, mode})
+		files = append(files, configFile{destination, content, mode})
 	}
 	return files, nil
-}
-
-type stagedGitFile struct {
-	target, staged, original string
-	previous, replacement    os.FileInfo
-}
-
-func applyGitFiles(files []gitFile, backup backupLocation) (backupDir string, result error) {
-	var staged []stagedGitFile
-	for _, file := range files {
-		info, err := os.Lstat(file.path)
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-		case err != nil:
-			return "", err
-		case info.Mode().IsRegular():
-			current, err := os.ReadFile(file.path)
-			if err != nil {
-				return "", err
-			}
-			if bytes.Equal(current, file.contents) && info.Mode().Perm() == file.mode {
-				continue
-			}
-		case info.Mode()&os.ModeSymlink != 0:
-			// Replace the legacy link itself and preserve it in the backup.
-		default:
-			return "", fmt.Errorf("destino Git não é arquivo regular nem link: %s", file.path)
-		}
-		dir := filepath.Dir(file.path)
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			return "", err
-		}
-		work, err := os.MkdirTemp(dir, ".dotfiles-git-*")
-		if err != nil {
-			return "", err
-		}
-		defer os.RemoveAll(work)
-		candidate := filepath.Join(work, "candidate")
-		if err := writeConfigAtomic(candidate, file.contents, file.mode); err != nil {
-			return "", err
-		}
-		replacement, err := os.Stat(candidate)
-		if err != nil {
-			return "", err
-		}
-		staged = append(staged, stagedGitFile{target: file.path, staged: candidate, previous: info, replacement: replacement})
-	}
-
-	for i := range staged {
-		file := &staged[i]
-		if file.previous == nil {
-			continue
-		}
-		if backupDir == "" {
-			if err := backup.prepare(); err != nil {
-				return "", err
-			}
-			backupDir, result = os.MkdirTemp(backup.path, "git-*")
-			if result != nil {
-				return "", result
-			}
-		}
-		file.original = filepath.Join(backupDir, filepath.Base(file.target))
-		if err := copySDKTree(context.Background(), file.target, file.original); err != nil {
-			return backupDir, err
-		}
-	}
-
-	applied := 0
-	defer func() {
-		if result != nil {
-			for _, file := range slices.Backward(staged[:applied]) {
-				result = errors.Join(result, file.restore())
-			}
-		}
-	}()
-	for _, file := range staged {
-		current, err := os.Lstat(file.target)
-		switch {
-		case file.previous == nil && errors.Is(err, os.ErrNotExist):
-		case err == nil && file.previous != nil && os.SameFile(file.previous, current) &&
-			file.previous.Mode() == current.Mode() && file.previous.Size() == current.Size() && file.previous.ModTime().Equal(current.ModTime()):
-		default:
-			return backupDir, fmt.Errorf("arquivo Git mudou durante a preparação: %s", file.target)
-		}
-		if err := os.Rename(file.staged, file.target); err != nil {
-			return backupDir, err
-		}
-		applied++
-	}
-	return backupDir, nil
-}
-
-func (file stagedGitFile) restore() error {
-	current, err := os.Lstat(file.target)
-	if err != nil || !os.SameFile(file.replacement, current) {
-		return fmt.Errorf("arquivo Git mudou durante a restauração: %s", file.target)
-	}
-	if file.original == "" {
-		return os.Remove(file.target)
-	}
-	if err := copySDKTree(context.Background(), file.original, file.staged); err != nil {
-		return err
-	}
-	return os.Rename(file.staged, file.target)
 }

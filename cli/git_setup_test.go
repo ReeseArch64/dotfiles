@@ -89,8 +89,8 @@ func TestGitFilesBackUpLegacyLinkAndExistingConfig(t *testing.T) {
 	}
 	config := filepath.Join(home, ".gitconfig")
 	sdkTestFile(t, config, "old config")
-	files := []gitFile{{ignore, []byte("new ignore"), 0644}, {config, []byte("new config"), 0600}}
-	backup, err := applyGitFiles(files, backupLocation{path: central})
+	files := []configFile{{ignore, []byte("new ignore"), 0644}, {config, []byte("new config"), 0600}}
+	backup, err := applyConfigFiles(files, backupLocation{path: central}, "git")
 	if err != nil || !pathInside(central, backup) {
 		t.Fatalf("backup: %s, %v", backup, err)
 	}

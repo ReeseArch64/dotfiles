@@ -31,7 +31,7 @@ func runTerminalConfig(p profile, app string) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
-	source := terminalAsset(home, app, filename)
+	source := cachyosAsset(home, app, filename)
 	destination := filepath.Join(home, ".config", app, filename)
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup(name, console.commands.interactive)
@@ -49,7 +49,7 @@ func runTerminalConfig(p profile, app string) error {
 		err = console.ensurePackages(packages...)
 	}
 	if err == nil && app == "fastfetch" {
-		err = ensureProfilePhoto(terminalAsset(home, app, "face.jpg"), filepath.Join(home, ".face"), lock)
+		err = ensureProfilePhoto(cachyosAsset(home, app, "face.jpg"), filepath.Join(home, ".face"), lock)
 	}
 	if err == nil {
 		var backup string
@@ -67,7 +67,7 @@ func runTerminalConfig(p profile, app string) error {
 	return err
 }
 
-func terminalAsset(home, app, name string) string {
+func cachyosAsset(home, app, name string) string {
 	asset := filepath.Join("cachyos", app, name)
 	if binary, err := os.Executable(); err == nil {
 		local := filepath.Join(filepath.Dir(filepath.Dir(binary)), asset)

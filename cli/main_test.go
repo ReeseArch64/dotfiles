@@ -42,12 +42,21 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if tt.keyName != "" {
 				programming, _ := m.selectItem(m.items()[3])
 				programmingMenu := programming.(model)
-				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, []string{"Git"}) {
+				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, []string{"Git", "Mise"}) {
 					t.Fatalf("menu de programação = %v", got)
 				}
 				gitMenu, _ := programmingMenu.selectItem(programmingMenu.items()[0])
 				if got := gitMenu.(model).items(); len(got) != 1 || got[0].action != "setup-git" {
 					t.Fatalf("menu Git = %v", got)
+				}
+				miseMenu, _ := programmingMenu.selectItem(programmingMenu.items()[1])
+				miseItems := miseMenu.(model).items()
+				if len(miseItems) != 1 {
+					t.Fatalf("menu Mise = %v", miseItems)
+				}
+				miseCommand, err := actionCommand(miseItems[0].action, miseItems[0].title)
+				if err != nil || !slices.Equal(miseCommand.Args[1:], []string{"--setup-mise"}) {
+					t.Fatalf("ação do Mise: %v, %v", miseCommand, err)
 				}
 				browser, _ := m.selectItem(m.items()[2])
 				if got := menuTitles(browser.(model).items()); !slices.Equal(got, []string{"Backup Completo"}) {

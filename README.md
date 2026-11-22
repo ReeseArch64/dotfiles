@@ -54,6 +54,8 @@ As duas ações pedem confirmação antes de copiar a configuração e guardam a
 
 O `~/.gitconfig` recebe o fingerprint local em `user.signingkey` e habilita GPG para commits e tags. A CLI reaproveita a chave configurada se ela puder assinar pelo e-mail da identidade Git. Se não houver uma chave de assinatura para esse e-mail, gera uma Ed25519 com senha e validade de dois anos e exibe a chave pública.
 
+**Programação → Mise → Configurar Mise e instalar ferramentas** instala o Mise e as dependências de compilação, copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A autenticação em cada ferramenta fica a cargo do usuário. Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
+
 ## Navegador Web
 
 **Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.

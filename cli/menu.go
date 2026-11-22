@@ -19,6 +19,7 @@ const (
 	screenTerminal
 	screenProgramming
 	screenGit
+	screenMise
 	screenSecurity
 	screenSSH
 	screenSSHKeys
@@ -38,6 +39,7 @@ var screenTitles = map[screen]string{
 	screenTerminal:      "Terminal",
 	screenProgramming:   "Programação",
 	screenGit:           "Git",
+	screenMise:          "Mise",
 	screenSecurity:      "Segurança",
 	screenSSH:           "SSH",
 	screenSSHKeys:       "Chaves autorizadas",
@@ -117,9 +119,14 @@ func (m model) items() []menuItem {
 	case screenTerminal:
 		return []menuItem{{title: "Instalar Kitty", desc: "Instalar o terminal pelo Pacman", action: "install-kitty"}}
 	case screenProgramming:
-		return []menuItem{{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit}}
+		return []menuItem{
+			{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit},
+			{title: "Mise", desc: "Configurar o Mise e instalar as ferramentas", goTo: screenMise},
+		}
 	case screenGit:
 		return []menuItem{{title: "Configurar Git", desc: "Instalar ferramentas e aplicar a configuração global", action: "setup-git"}}
+	case screenMise:
+		return []menuItem{{title: "Configurar Mise e instalar ferramentas", desc: "Aplicar o mise.toml e executar mise install", action: "setup-mise"}}
 	case screenSecurity:
 		firewallDescription := "Ativar UFW e permitir SSH somente na LAN"
 		if !m.status.sshReady {
