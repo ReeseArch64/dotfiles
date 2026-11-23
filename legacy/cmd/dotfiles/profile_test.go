@@ -207,10 +207,15 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 			}
 		}
 		m.screen = screenDevelopment
+		if device == deviceDesktop {
+			return
+		}
+		found := false
 		for _, it := range m.items() {
 			if it.title != "Ambiente de Desenvolvimento" {
 				continue
 			}
+			found = true
 			for _, current := range it.job().steps {
 				switch current.label {
 				case "Copiar configuração para ~/.config/mise/config.toml", "Copiar configuração para ~/.config/fish/config.fish":
@@ -225,7 +230,7 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 				}
 			}
 		}
-		if !regularFileMatches(configPath(m.setupDir, "mise", "mise.toml"), filepath.Join(home, ".config", "mise", "config.toml")) {
+		if !found || !regularFileMatches(configPath(m.setupDir, "mise", "mise.toml"), filepath.Join(home, ".config", "mise", "config.toml")) {
 			t.Fatal("mise não recebeu a configuração do perfil")
 		}
 	})

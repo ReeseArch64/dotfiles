@@ -196,11 +196,12 @@ func (m model) items() []item {
 			items = append(items,
 				item{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
 				item{title: "GPG", desc: "Gerar chave GPG por dispositivo após configurar o Git", goTo: screenGPG},
+				item{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }},
 			)
 		}
-		items = append(items, item{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }})
 		if m.device == deviceDesktop {
 			items = append(items,
+				item{title: "Rust e Better Stack", desc: "Instalar Rust estável e configurar a CLI do Better Stack", job: rustAndBetterStackJob},
 				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
 				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code, Android Studio e Zed via yay", job: idesJob},
 			)
@@ -210,11 +211,15 @@ func (m model) items() []item {
 		}
 		return append(items,
 			item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob},
-			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }},
+			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir, m.device) }},
 		)
 	case screenDesktop:
+		niriDescription := "Copiar a configuração completa do Niri"
+		if m.device == deviceNotebook {
+			niriDescription = "Copiar configuração e cursor FrierenBLZ"
+		}
 		items := []item{
-			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
+			{title: "Niri", desc: niriDescription, job: func() job { return niriJob(m.setupDir, m.device) }},
 		}
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob})

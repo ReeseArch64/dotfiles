@@ -147,7 +147,12 @@ func developmentEnvironmentSteps(setupDir, home string, packageSteps []step) []s
 	}))
 	steps = append(steps, cloudLoginSteps(home)...)
 	steps = append(steps, fishConfigStep(setupDir, home))
-	return append(steps,
+	steps = append(steps, rustAndBetterStackSteps(home)...)
+	return append(steps, npmLoginStep(home))
+}
+
+func rustAndBetterStackSteps(home string) []step {
+	return []step{
 		skipWhen(rustupToolchainStep(), func() bool {
 			out, err := exec.Command("rustup", "default").Output()
 			return err == nil && strings.HasPrefix(strings.TrimSpace(string(out)), "stable-") && verifyRustTools(home) == nil
@@ -159,8 +164,13 @@ func developmentEnvironmentSteps(setupDir, home string, packageSteps []step) []s
 			return executableFile(filepath.Join(home, ".local", "bin", "bs")) || commandSucceeds(nil, "bs", "--version")
 		}),
 		betterStackLoginStep(home),
-		npmLoginStep(home),
-	)
+	}
+}
+
+func rustAndBetterStackJob() job {
+	home, _ := os.UserHomeDir()
+	steps := ensurePkgs("rustup", "curl")
+	return job{title: "Configurar Rust e Better Stack", steps: append(steps, rustAndBetterStackSteps(home)...)}
 }
 
 func developmentEnvironmentJob(setupDir string) job {
