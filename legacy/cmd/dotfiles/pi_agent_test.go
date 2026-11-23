@@ -48,7 +48,7 @@ func TestRepositoryPiSettingsDeclareRequiredPackages(t *testing.T) {
 		if !slices.Equal(settings.Packages, requiredPiPackages) {
 			t.Fatalf("pacotes inesperados: %v", settings.Packages)
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestInstallPiConfigCopiesRegularFilesAndPreservesExisting(t *testing.T) {

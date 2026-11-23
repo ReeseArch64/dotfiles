@@ -47,14 +47,14 @@ func migratedConfigPath(setupDir, relative string) string {
 	if sharedConfigDirectory(setupDir) == "" {
 		return ""
 	}
+	// The remaining Desktop Niri action still needs the shared misc.kdl include.
+	if filepath.Base(setupDir) == "desktop" && relative != "niri/cfg/misc.kdl" {
+		return ""
+	}
 	switch relative {
 	case "cursor", "cursor/FrierenBLZ", "fastfetch", "git/.gitattributes", "git/.gitignore", "git/config", "mise", "mise/mise.toml", "niri/cfg/misc.kdl":
 	case "fastfetch/config.json":
 		relative = "fastfetch/config.jsonc"
-	case "fish", "fish/config.fish":
-		if filepath.Base(setupDir) != "desktop" {
-			return ""
-		}
 	default:
 		return ""
 	}

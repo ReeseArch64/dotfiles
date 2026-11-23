@@ -145,19 +145,22 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 				t.Fatalf("configuração exclusiva %s não deve existir no laptop: %v", name, err)
 			}
 		}
-		for _, name := range []string{"cursor", "fastfetch", "fish", "git", "mise", "niri", "noctalia", "pi", "ssh"} {
-			if name == "git" && filepath.Base(setupDir) == "desktop" {
-				continue
-			}
+		names := []string{"niri", "ssh"}
+		if filepath.Base(setupDir) == "notebook" {
+			names = append(names, "cursor", "fastfetch", "fish", "git", "mise", "noctalia", "pi")
+		}
+		for _, name := range names {
 			if info, err := os.Stat(configPath(setupDir, name)); err != nil || !info.IsDir() {
 				t.Fatalf("configuração %s ausente em %s: %v", name, setupDir, err)
 			}
 		}
-		if err := validatePiConfig(setupDir); err != nil {
-			t.Fatal(err)
-		}
-		if err := installMiseConfig(setupDir, t.TempDir()); err != nil {
-			t.Fatal(err)
+		if filepath.Base(setupDir) == "notebook" {
+			if err := validatePiConfig(setupDir); err != nil {
+				t.Fatal(err)
+			}
+			if err := installMiseConfig(setupDir, t.TempDir()); err != nil {
+				t.Fatal(err)
+			}
 		}
 		if err := installNiri(setupDir, t.TempDir(), time.Now()); err != nil {
 			t.Fatal(err)
@@ -169,11 +172,7 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 	forEachRepositoryProfile(t, func(t *testing.T, source string) {
 		home := t.TempDir()
 		t.Setenv("HOME", home)
-		device := deviceDesktop
-		if filepath.Base(source) == "notebook" {
-			device = deviceNotebook
-		}
-		m := newModelForDevice(t.TempDir(), device)
+		m := newModelForDevice(t.TempDir(), deviceNotebook)
 		for _, name := range []string{"pi", "noctalia", "fish", "mise"} {
 			if err := copyDirectory(configPath(source, name), configPath(m.setupDir, name)); err != nil {
 				t.Fatal(err)
@@ -185,9 +184,6 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 		}
 		installNoctaliaTestPlugins(t, pluginDir)
 		for _, screen := range []screen{screenNoctalia, screenPiAgent} {
-			if device != deviceNotebook {
-				continue
-			}
 			m.screen = screen
 			for _, current := range m.items()[0].job().steps {
 				if current.run != nil {
@@ -198,20 +194,15 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 			}
 			m.refresh()
 		}
-		if device == deviceNotebook && (!m.piAgent.settingsOK || !m.piAgent.themeOK || m.piAgent.configErr != nil) {
+		if !m.piAgent.settingsOK || !m.piAgent.themeOK || m.piAgent.configErr != nil {
 			t.Fatalf("Pi não usa perfil selecionado: %#v", m.piAgent)
 		}
-		if device == deviceNotebook {
-			for _, file := range m.noctalia.files {
-				if !file.ok || !strings.HasPrefix(file.source, m.setupDir+string(filepath.Separator)) {
-					t.Fatalf("Noctalia não usa perfil selecionado: %#v", file)
-				}
+		for _, file := range m.noctalia.files {
+			if !file.ok || !strings.HasPrefix(file.source, m.setupDir+string(filepath.Separator)) {
+				t.Fatalf("Noctalia não usa perfil selecionado: %#v", file)
 			}
 		}
 		m.screen = screenDevelopment
-		if device == deviceDesktop {
-			return
-		}
 		found := false
 		for _, it := range m.items() {
 			if it.title != "Ambiente de Desenvolvimento" {
@@ -235,7 +226,27 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 		if !found || !regularFileMatches(configPath(m.setupDir, "mise", "mise.toml"), filepath.Join(home, ".config", "mise", "config.toml")) {
 			t.Fatal("mise não recebeu a configuração do perfil")
 		}
-	})
+	}, deviceNotebook)
+}
+
+func TestDesktopResolvesOnlyRemainingConfiguration(t *testing.T) {
+	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
+		for _, name := range []string{
+			"cursor/FrierenBLZ", "fastfetch/config.json", "fish/config.fish", "git/.gitignore",
+			"mise/mise.toml", "noctalia/settings.toml", "pi/agent/settings.json",
+		} {
+			expected := filepath.Join(setupDir, name)
+			if path := configPath(setupDir, name); path != expected {
+				t.Fatalf("Desktop legado ainda herda %s de %s", name, path)
+			}
+			if _, err := os.Lstat(expected); !os.IsNotExist(err) {
+				t.Fatalf("configuração migrada ainda está no Desktop legado: %s (%v)", expected, err)
+			}
+		}
+		if _, err := os.Stat(configPath(setupDir, "niri", "cfg", "misc.kdl")); err != nil {
+			t.Fatalf("include do Niri ausente: %v", err)
+		}
+	}, deviceDesktop)
 }
 
 func TestFindSetupRepository(t *testing.T) {

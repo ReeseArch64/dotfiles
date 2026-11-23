@@ -55,7 +55,7 @@ func TestMiseConfigIncludesCloudCLIs(t *testing.T) {
 				t.Fatalf("configuração %q ausente em mise.toml", want)
 			}
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestMiseConfigIncludesKubernetesCLIs(t *testing.T) {
@@ -73,7 +73,7 @@ func TestMiseConfigIncludesKubernetesCLIs(t *testing.T) {
 				t.Fatalf("configuração %q ausente em mise.toml", want)
 			}
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestMiseConfigIncludesJavaGradleAndMaven(t *testing.T) {
@@ -91,7 +91,7 @@ func TestMiseConfigIncludesJavaGradleAndMaven(t *testing.T) {
 				t.Fatalf("configuração %q ausente em mise.toml", want)
 			}
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestMiseConfigIncludesPHPWithoutComposer(t *testing.T) {
@@ -106,12 +106,12 @@ func TestMiseConfigIncludesPHPWithoutComposer(t *testing.T) {
 		if strings.Contains(string(content), "composer") {
 			t.Fatal("Composer não deve ser instalado pelo mise")
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestMiseSetupActivatesToolsAfterConfig(t *testing.T) {
 	home := t.TempDir()
-	steps := miseSetupSteps("/tmp/dotfiles/setup/desktop", home)
+	steps := miseSetupSteps("/tmp/dotfiles/setup/notebook", home)
 	if len(steps) < 2 {
 		t.Fatalf("passos insuficientes: %d", len(steps))
 	}
