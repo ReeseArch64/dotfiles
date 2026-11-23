@@ -12,9 +12,9 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 | Área | Ações |
 | --- | --- |
-| Sistema | SSH e firewall no Desktop e no Notebook, Docker e remoção de aplicativos pré-instalados no Notebook |
-| Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Zed e Proton VPN CLI no Desktop |
-| Desktop | Foto de perfil, Niri, Noctalia, Firefox e papéis de parede no Notebook, Discord, Obsidian e Turing Smart Screen no Desktop |
+| Sistema | SSH, firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
+| Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Proton VPN CLI no Desktop |
+| Desktop | Foto de perfil, Niri, Noctalia, Firefox e papéis de parede no Notebook, Discord no Desktop |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG no Notebook |
 
@@ -24,12 +24,10 @@ A [CLI atual](../README.md) reúne os instaladores e as configurações migradas
 
 | Área | O que falta migrar |
 | --- | --- |
-| Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go), [Obsidian com suas configurações](#obsidian) e [Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren](#turing-smart-screen-somente-desktop). |
-| Desenvolvimento e IA | [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
-| Segurança | Definir se o Desktop ainda precisa dos aliases e das múltiplas identidades de SSH e de uma política somente cliente, com o servidor desativado e a porta bloqueada. A CLI atual usa uma identidade por dispositivo e permite configurar acesso pela LAN. |
-| Diretórios | Decidir se é necessário mover `~/.local` por inteiro para o SDK. A CLI atual move `~/.local/share/mise`, além de `~/go`, `~/.render` e `~/.maple`. |
+| Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go). |
+| Desenvolvimento e IA | [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
 
-No Desktop, o Fastfetch da CLI atual cria `~/.face` quando a foto está ausente. O ambiente Sandbox usa Docker em **Programação → Docker → Ambiente Sandbox**. Os papéis de parede ficam em `../cachyos/wallpapers/`, que também é a fonte dos fluxos arquivados.
+No Desktop, o Fastfetch da CLI atual cria `~/.face` quando a foto está ausente. O ambiente Sandbox usa Docker em **Programação → Docker → Ambiente Sandbox**. Zed, Obsidian e Turing Smart Screen estão em **Programas** na CLI atual. Os papéis de parede ficam em `../cachyos/wallpapers/`, que também é a fonte dos fluxos arquivados.
 
 Ficaram fora da migração do Desktop o Proton VPN CLI, a lixeira `~/.trash`, o login automático, o Thunderbird, o VS Code, o Android Studio, o Better Stack e as ações de backup de Btrfs, projetos, chaves SSH/GPG e perfis de navegador. O mapeamento histórico de `~/.vscode` e as ações de backup do Notebook estão descritos nas seções do código arquivado.
 
@@ -103,9 +101,9 @@ CasaOS, Pi Agent, Ollama e LunarVim executam scripts remotos baixados com `curl`
 
 Os perfis arquivados usam `setup/desktop/` e `setup/notebook/`. A resolução procura primeiro o arquivo do perfil e, quando existir uma base em `setup/config/`, permite complementá-lo com os arquivos dessa base.
 
-Cada perfil mantém seu `ssh/config`. O Notebook tem seus próprios arquivos do Niri, Fish, Noctalia e Pi Agent. Reutiliza o `misc.kdl`, o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`. A CLI atual tem os arquivos gerenciados do Niri para Desktop e preserva o config, o input e o display locais.
+O Notebook mantém seu `ssh/config` e tem seus próprios arquivos do Niri, Fish, Noctalia e Pi Agent. Reutiliza o `misc.kdl`, o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`. A CLI atual tem os arquivos gerenciados do Niri para Desktop e preserva o config, o input e o display locais.
 
-Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
+Discord e Ollama continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
 Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
@@ -120,7 +118,6 @@ A tabela registra os mapeamentos históricos da migração SDK dos dois perfis:
 | Link no home | Destino |
 | --- | --- |
 | `~/.aur` | `/mnt/sdk/Aur` |
-| `~/.local` | `/mnt/sdk/Local` |
 | `~/.cache` | `/mnt/sdk/Cache` |
 | `~/Android` | `/mnt/sdk/Android` |
 | `~/.gradle` | `/mnt/sdk/Gradle` |
@@ -159,7 +156,7 @@ Se já houver dados no destino, eles são mesclados: os arquivos do home prevale
 
 Se uma pasta a migrar não puder ser lida por falta de permissão, a CLI solicita `sudo` para corrigir seu proprietário/grupo para o usuário atual (`chown -R -P --no-dereference`) e adicionar acesso ao dono (`chmod -R u+rwX`), antes de tentar novamente. Isso se limita à árvore afetada, no home ou no destino; não segue links simbólicos externos, não concede acesso a outros usuários e não apaga dados. As permissões corrigidas também ficam nos backups, mesmo se a migração falhar depois.
 
-**Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links do grupo afetado (SDK ou storage). Os backups são preservados para conferência; a CLI não os remove automaticamente.
+**Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links do grupo afetado (SDK ou storage). Os backups são preservados para conferência; a CLI não os remove automaticamente.
 
 Para compilar e executar sem instalar o comando:
 
@@ -439,33 +436,13 @@ A ação executa a configuração completa:
 7. Desabilita `sshd.socket`.
 8. Habilita e inicia `sshd.service` permanentemente.
 
-As identidades são separadas pelo dispositivo de origem:
+O Notebook exige o par `id_trabalho_notebook`, a chave pública `id_trabalho_desktop.pub` e os pares compartilhados `id_github`, `id_gitlab` e `id_gitea`. A ação mantém `id_trabalho_desktop.pub` em `authorized_keys`. O alias `gitea` usa a porta 2222 e a identidade `~/.ssh/id_gitea`.
 
-| Perfil configurado | Chaves próprias | Chaves públicas recebidas |
-| --- | --- | --- |
-| Desktop | `id_trabalho_desktop`, `id_pessoal_desktop` e respectivos `.pub` | nenhuma |
-| Notebook | `id_trabalho_notebook` e seu `.pub` | `id_trabalho_desktop.pub` |
-| Homelab | nenhuma chave privada | `id_pessoal_desktop.pub` |
-
-Desktop e notebook também exigem os pares compartilhados `id_github`, `id_gitlab` e `id_gitea`, sem sufixo de dispositivo. Não existe uma identidade `id_pessoal_notebook`.
-
-O alias SSH `gitea` usa `HostName 192.168.1.107`, porta `2222`, usuário `git` e `IdentityFile ~/.ssh/id_gitea`, sem encaminhar o agente. Use URLs como `git@gitea:usuario/repositorio.git` no remoto `backup`. O acesso direto ao IP continua na porta SSH normal, sem afetar o acesso administrativo ao Homelab. Disponibilize `~/.ssh/id_gitea` e `~/.ssh/id_gitea.pub` antes de configurar o SSH e cadastre a chave pública no Gitea. O SSH usa o padrão `StrictHostKeyChecking ask`: no primeiro acesso, confira o fingerprint antes de aceitar a chave de `[192.168.1.107]:2222` em `known_hosts`.
-
-A ação copia `setup/<perfil>/ssh/config` para `~/.ssh/config`, cria `~/.ssh/known_hosts` quando necessário e aplica permissões `0700` ao diretório e `0600` aos arquivos. Nos perfis desktop e notebook não há `StrictHostKeyChecking` global: aplica-se o padrão `ask`, que solicita confirmação para chaves de hosts novos. Confira o fingerprint antes de aceitar. No desktop, as conexões administrativas aceitam `ssh notebook` (`192.168.1.103`), `ssh homelab` (`192.168.1.107`) e `ssh homeprod` (endereço definido em `HostName` no bloco HOMEPROD). O bloco do notebook aceita `Host notebook 192.168.1.103`, para que o acesso pelo IP também use o usuário `alsgy` e a chave `id_trabalho_desktop`. Os outros blocos administrativos usam seus aliases nas linhas `Host`. O HomeProd ainda usa um placeholder no repositório e requer preencher o endereço real antes do acesso. No explorador de arquivos, use `sftp://alsgy@192.168.1.103/home/alsgy/` ou, se ele respeitar os aliases do OpenSSH, `sftp://notebook/home/alsgy/`. Se a chave estiver protegida por passphrase, faça primeiro `ssh notebook` no terminal para desbloqueá-la no agente. Esses aliases não adicionam acessos administrativos ao perfil notebook. O bloco HOMEPROD do desktop mantém explicitamente `IdentitiesOnly yes`, assim como notebook e homelab. As configurações de `setup/homelab/` e `setup/homeprod/` não são alteradas por essas opções.
-
-No desktop e no notebook, a ação `Configurar SSH` executa `systemctl --user enable --now ssh-agent.socket`, sem sudo: inicia o socket imediatamente e habilita sua ativação nas próximas sessões do usuário. A ativação não depende do autostart do Niri. Nos dois perfis, `IdentityAgent /run/user/%i/ssh-agent.socket` aponta explicitamente para esse agente, compartilhado entre os terminais. Cada chave privada criptografada solicita sua passphrase no primeiro uso; `AddKeysToAgent yes` mantém a chave desbloqueada somente em memória enquanto o agente estiver ativo. Reiniciar o agente ou o computador exige desbloquear novamente. O dotfiles não remove nem armazena a passphrase. Isso não memoriza senhas de login dos servidores nem senhas de `sudo`.
-
-O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → homelab. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub`; o homelab aceita somente `id_pessoal_desktop.pub`. Assim, a identidade pessoal não concede acesso ao equipamento de trabalho. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
-
-A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups/dotfiles`. A autenticação por senha permanece disponível como recuperação no notebook e no homelab; clientes com a chave privada correspondente entram diretamente por chave pública.
-
-Uma configuração diferente é preservada em `/mnt/backups/dotfiles`, identificada pela origem e pela data, sem criar arquivos de backup dentro de `~/.ssh`.
+A ação habilita `ssh-agent.socket` para o usuário, cria `~/.ssh/known_hosts` e preserva configurações substituídas em `/mnt/backups/dotfiles`.
 
 ### Firewall
 
-O menu `Sistema > Firewall` oferece somente a ação `Configurar Firewall`.
-
-A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por padrão. Ela remove a liberação global do SSH, libera a porta somente para a rede local e ativa o UFW permanentemente.
+O menu `Sistema > Firewall` no Notebook instala `ufw` e `iptables-nft`, bloqueia entradas, permite saídas por padrão e libera o SSH somente na rede local.
 
 ## Desenvolvimento
 
@@ -579,10 +556,6 @@ A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/do
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
 
-### Zed
-
-`Desenvolvimento > Instalar Zed` instala o pacote `zed` via yay.
-
 ### Android CLI
 
 `Desenvolvimento > Android CLI` executa o instalador:
@@ -686,41 +659,6 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 No Notebook, `Desktop > Mozilla Firefox` instala `firefox` e `xdg-utils` via Pacman e define `firefox.desktop` como navegador padrão. No Desktop, use `Navegador Web > Instalar Firefox` na CLI atual. Os atalhos do Niri e o Noctalia usam Firefox.
 
 O backup e a restauração de navegador e chaveiro foram removidos da CLI. Arquivos de backup criados anteriormente permanecem no disco.
-
-### Obsidian
-
-`Desktop > Obsidian` instala `obsidian-bin` via yay/AUR e copia `setup/desktop/obsidian/` para `~/.obsidian`.
-
-### Turing Smart Screen (somente Desktop)
-
-`Desktop > Turing Smart Screen` instala `turing-smart-screen-python` com Python 3.13, suporte à GPU AMD (Radeon RX 7600) e tema Frieren. Requer o `mise` instalado. Use `Programação > Mise` na CLI atual.
-
-A ação executa etapas separadas:
-
-1. Instala o pacote AUR com `env -u PYTHONHOME -u PYTHONPATH PATH=/usr/bin:/bin /usr/bin/yay -S turing-smart-screen-python`, evitando interferência do Python do mise. Instala o `yay` a partir do código-fonte se necessário.
-2. Executa `mise install python@3.13`, sem alterar o Python global ou do sistema.
-3. Cria `~/.local/share/turing-screen-venv` com `mise exec python@3.13 -- python -m venv`.
-4. Em outro comando, instala `/opt/turing-smart-screen-python/requirements.txt` usando o Python desse venv.
-5. Adiciona o usuário atual ao grupo `turing-smart-screen` criado pelo pacote e recarrega as regras com `sudo udevadm control --reload-rules`.
-6. Instala `base-devel` e `libdrm` via Pacman; instala `setuptools`, `wheel` e `Cython` no venv.
-7. Compila `pyamdgpuinfo` no venv com `pip install --no-build-isolation --no-binary=pyamdgpuinfo pyamdgpuinfo`. Os requisitos dessa versão não instalam essa biblioteca automaticamente no Python 3.13.
-8. Copia `setup/desktop/turing-smart-screen-python/themes/frieren/` para `/opt/turing-smart-screen-python/res/themes/frieren/` e substitui `/opt/turing-smart-screen-python/config.yaml` pelo arquivo do repositório, usando `sudo`.
-
-Após concluir, desconecte e reconecte a tela USB, saia da sessão gráfica e entre novamente. Confira o grupo com `id` e, para a tela em `/dev/ttyACM0`, com `/usr/bin/ls -l /dev/ttyACM0`: o dispositivo deve pertencer ao grupo `turing-smart-screen`.
-
-Para iniciar após renovar a sessão:
-
-```bash
-env PATH="$HOME/.local/share/turing-screen-venv/bin:$PATH" /usr/bin/turing-smart-screen main
-```
-
-Para executar temporariamente com o grupo atualizado, sem sair da sessão, use `sg`:
-
-```bash
-sg turing-smart-screen -c 'env PATH="$HOME/.local/share/turing-screen-venv/bin:$PATH" /usr/bin/turing-smart-screen main'
-```
-
-A instalação não inicia o programa automaticamente. A configuração do Niri já contém uma entrada de autostart para esse venv.
 
 ### Wallpapers
 

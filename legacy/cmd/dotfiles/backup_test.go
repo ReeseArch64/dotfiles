@@ -81,7 +81,7 @@ func TestBackupSSHKeysCopiesIdentityFiles(t *testing.T) {
 	testBackupStore(t)
 	sshDir := t.TempDir()
 	destination := filepath.Join(t.TempDir(), "ssh")
-	names := requiredSSHIdentityFiles(deviceDesktop)
+	names := requiredSSHIdentityFiles(deviceNotebook)
 	for _, name := range names {
 		mode := os.FileMode(0600)
 		if strings.HasSuffix(name, ".pub") {

@@ -62,7 +62,7 @@ func prepareHomeDirectoryLinks(home, root string, ops sdkMigrationOps, mappings 
 }
 
 var sdkDirectoryMappings = [][2]string{
-	{".aur", "Aur"}, {".local", "Local"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
+	{".aur", "Aur"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
 	{".bun", "Bun"}, {".pi", "Pi"}, {".codex", "Codex"}, {".npm", "Npm"}, {".rustup", "Rustup"},
 	{".agent-browser", "AgentBrowser"}, {".cargo", "Cargo"}, {".expo", "Expo"}, {".vscode", "Vscode"},
 	{".vite-plus", "VitePlus"}, {"go", "Go"}, {".docker", "Docker"}, {".dotnet", "Dotnet"}, {".java", "Java"},

@@ -52,7 +52,7 @@ func sdkTestBackup(t *testing.T, path string) string {
 }
 
 var sdkTestMappings = [][2]string{
-	{".aur", "Aur"}, {".local", "Local"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
+	{".aur", "Aur"}, {".cache", "Cache"}, {"Android", "Android"}, {".gradle", "Gradle"},
 	{".bun", "Bun"}, {".pi", "Pi"}, {".codex", "Codex"}, {".npm", "Npm"}, {".rustup", "Rustup"},
 	{".agent-browser", "AgentBrowser"}, {".cargo", "Cargo"}, {".expo", "Expo"}, {".vscode", "Vscode"},
 	{".vite-plus", "VitePlus"}, {"go", "Go"}, {".docker", "Docker"}, {".dotnet", "Dotnet"}, {".java", "Java"},
@@ -166,7 +166,7 @@ func TestSDKMigrationPreservesAllSourcesMetadataAndSymlinks(t *testing.T) {
 
 func TestSDKMergeBacksUpConflictsAndNeverFollowsDestinationSymlinks(t *testing.T) {
 	home, root := sdkTestRoots(t)
-	source, target := filepath.Join(home, ".local"), filepath.Join(root, "Local")
+	source, target := filepath.Join(home, ".cache"), filepath.Join(root, "Cache")
 	external := t.TempDir()
 	sdkTestWrite(t, filepath.Join(external, "file"), "external")
 	for name, value := range map[string]string{"nested/conflict": "source", "file-to-dir/child": "source child", "dir-to-file": "source file", "symlink-to-dir/file": "new internal", "replaced-link": "source link conflict"} {
@@ -398,21 +398,21 @@ func TestSDKCrossFilesystemMigration(t *testing.T) {
 	if homeStat.Dev == rootStat.Dev {
 		t.Skip("temporary paths are on the same filesystem")
 	}
-	sdkTestWrite(t, filepath.Join(home, ".local", "nested", "file"), "cross filesystem")
-	sdkTestWrite(t, filepath.Join(root, "Local", "target-only"), "retained")
+	sdkTestWrite(t, filepath.Join(home, ".cache", "nested", "file"), "cross filesystem")
+	sdkTestWrite(t, filepath.Join(root, "Cache", "target-only"), "retained")
 	if err := prepareSDKDirectories(home, root, sdkTestOps()); err != nil {
 		t.Fatal(err)
 	}
-	sdkTestContent(t, filepath.Join(root, "Local", "nested", "file"), "cross filesystem")
-	sdkTestContent(t, filepath.Join(root, "Local", "target-only"), "retained")
-	sdkTestContent(t, filepath.Join(sdkTestBackup(t, filepath.Join(home, ".local")), "nested", "file"), "cross filesystem")
+	sdkTestContent(t, filepath.Join(root, "Cache", "nested", "file"), "cross filesystem")
+	sdkTestContent(t, filepath.Join(root, "Cache", "target-only"), "retained")
+	sdkTestContent(t, filepath.Join(sdkTestBackup(t, filepath.Join(home, ".cache")), "nested", "file"), "cross filesystem")
 }
 
 func TestSDKFailuresPreserveOriginalsAndRestoreEarlierActivations(t *testing.T) {
 	for _, phase := range []string{"copy", "symlink", "move-target", "install-target", "move-home", "activate-link", "later-link"} {
 		t.Run(phase, func(t *testing.T) {
 			home, root := sdkTestRoots(t)
-			for _, pair := range [][2]string{{".aur", "Aur"}, {".local", "Local"}} {
+			for _, pair := range [][2]string{{".aur", "Aur"}, {".cache", "Cache"}} {
 				sdkTestWrite(t, filepath.Join(home, pair[0], "file"), "home "+pair[0])
 				sdkTestWrite(t, filepath.Join(root, pair[1], "file"), "target "+pair[1])
 			}
@@ -425,7 +425,7 @@ func TestSDKFailuresPreserveOriginalsAndRestoreEarlierActivations(t *testing.T) 
 				if err := copySDKTree(from, to); err != nil {
 					return err
 				}
-				if phase == "copy" && from == filepath.Join(home, ".local") {
+				if phase == "copy" && from == filepath.Join(home, ".cache") {
 					failed = true
 					return failure
 				}
@@ -450,7 +450,7 @@ func TestSDKFailuresPreserveOriginalsAndRestoreEarlierActivations(t *testing.T) 
 				case "activate-link":
 					match = filepath.Base(from) == "link" && to == filepath.Join(home, ".aur")
 				case "later-link":
-					match = filepath.Base(from) == "link" && to == filepath.Join(home, ".local")
+					match = filepath.Base(from) == "link" && to == filepath.Join(home, ".cache")
 				}
 				if match && !failed {
 					failed = true
@@ -464,7 +464,7 @@ func TestSDKFailuresPreserveOriginalsAndRestoreEarlierActivations(t *testing.T) 
 			if !failed {
 				t.Fatal("fault not reached")
 			}
-			for _, pair := range [][2]string{{".aur", "Aur"}, {".local", "Local"}} {
+			for _, pair := range [][2]string{{".aur", "Aur"}, {".cache", "Cache"}} {
 				sdkTestContent(t, filepath.Join(home, pair[0], "file"), "home "+pair[0])
 				sdkTestContent(t, filepath.Join(root, pair[1], "file"), "target "+pair[1])
 				if info, _ := os.Lstat(filepath.Join(home, pair[0])); !info.IsDir() {

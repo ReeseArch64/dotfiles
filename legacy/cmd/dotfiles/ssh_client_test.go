@@ -42,10 +42,6 @@ func installSSHClientTestIdentities(t *testing.T, home string, device deviceProf
 
 func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 	for device, want := range map[deviceProfile][]string{
-		deviceDesktop: {
-			"id_trabalho_desktop", "id_trabalho_desktop.pub", "id_pessoal_desktop", "id_pessoal_desktop.pub",
-			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub", "id_gitea", "id_gitea.pub",
-		},
 		deviceNotebook: {
 			"id_trabalho_notebook", "id_trabalho_notebook.pub", "id_trabalho_desktop.pub",
 			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub", "id_gitea", "id_gitea.pub",
@@ -60,7 +56,6 @@ func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 
 func TestIncomingSSHIdentitiesMatchDeviceRole(t *testing.T) {
 	for device, want := range map[deviceProfile][]string{
-		deviceDesktop:  nil,
 		deviceNotebook: {"id_trabalho_desktop.pub"},
 		deviceServer:   {"id_pessoal_desktop.pub"},
 	} {
@@ -78,46 +73,10 @@ func TestSSHConfigsUseKeysFromTheirOriginDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	desktop := readHomelabFile(t, configPath(setupDirectory(root, deviceDesktop), "ssh", "config"))
-	for _, want := range []string{
-		"IdentityFile ~/.ssh/id_trabalho_desktop",
-		"IdentityFile ~/.ssh/id_pessoal_desktop",
-	} {
-		if !strings.Contains(desktop, want) {
-			t.Fatalf("configuração desktop sem %s", want)
-		}
-	}
-	if strings.Contains(desktop, "Host 192.168.1.104") {
-		t.Fatal("desktop não deve configurar conexão SSH para si mesmo")
-	}
 	notebook := readHomelabFile(t, configPath(setupDirectory(root, deviceNotebook), "ssh", "config"))
 	for _, forbidden := range []string{"id_pessoal_notebook", "Host 192.168.1.103", "Host 192.168.1.104", "Host 192.168.1.107"} {
 		if strings.Contains(notebook, forbidden) {
 			t.Fatalf("configuração notebook contém acesso não autorizado: %s", forbidden)
-		}
-	}
-}
-
-func TestDesktopSSHAdminAliasesPreserveTargetsAndKeys(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	config := configPath(setupDirectory(root, deviceDesktop), "ssh", "config")
-	for _, tc := range []struct{ alias, host, identity string }{
-		{"notebook", "192.168.1.103", "id_trabalho_desktop"},
-		{"192.168.1.103", "192.168.1.103", "id_trabalho_desktop"},
-		{"homelab", "192.168.1.107", "id_pessoal_desktop"},
-		{"homeprod", "***.**.***.**", "id_pessoal_desktop"},
-	} {
-		output, err := exec.Command("ssh", "-G", "-F", config, tc.alias).Output()
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, want := range []string{"hostname " + tc.host + "\n", "user alsgy\n", "port 22\n", "identityfile ~/.ssh/" + tc.identity + "\n", "identitiesonly yes\n"} {
-			if !strings.Contains(string(output), want) {
-				t.Fatalf("%s: configuração ausente %q: %s", tc.alias, want, output)
-			}
 		}
 	}
 }
@@ -127,7 +86,7 @@ func TestSSHConfigsUseDefaultHostKeyChecking(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+	for _, device := range []deviceProfile{deviceNotebook} {
 		config := configPath(setupDirectory(root, device), "ssh", "config")
 		for _, host := range []string{"192.168.1.103", "192.168.1.107", "github.com", "gitlab.com", "gitea"} {
 			output, err := exec.Command("ssh", "-G", "-F", config, host).Output()
@@ -138,22 +97,6 @@ func TestSSHConfigsUseDefaultHostKeyChecking(t *testing.T) {
 				t.Fatalf("%s / %s: esperado StrictHostKeyChecking ask: %s", device, host, output)
 			}
 		}
-	}
-}
-
-func TestDesktopHomeProdDeclaresIdentitiesOnly(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	config := readHomelabFile(t, configPath(setupDirectory(root, deviceDesktop), "ssh", "config"))
-	_, block, found := strings.Cut(config, "Host homeprod\n")
-	if !found {
-		t.Fatal("bloco HOMEPROD ausente")
-	}
-	block, _, _ = strings.Cut(block, "\n#")
-	if !strings.Contains(block, "IdentitiesOnly yes") {
-		t.Fatalf("HOMEPROD deve preservar IdentitiesOnly yes: %s", block)
 	}
 }
 
@@ -183,7 +126,7 @@ func TestSSHConfigsUseDedicatedGiteaAlias(t *testing.T) {
 		if !strings.Contains(string(output), "port 22\n") || strings.Contains(string(output), "id_gitea") {
 			t.Fatalf("alias Gitea alterou acesso SSH normal ao IP: %s", output)
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestSSHConfigsAllowInteractiveTTY(t *testing.T) {
@@ -191,7 +134,7 @@ func TestSSHConfigsAllowInteractiveTTY(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+	for _, device := range []deviceProfile{deviceNotebook} {
 		config := configPath(setupDirectory(root, device), "ssh", "config")
 		output, err := exec.Command("ssh", "-G", "-F", config, "github.com").Output()
 		if err != nil {
@@ -250,25 +193,6 @@ func TestAuthorizeSSHIdentitiesEnforcesDeviceSetAndIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestDesktopRemovesAllIncomingSSHKeys(t *testing.T) {
-	testBackupStore(t)
-	home := t.TempDir()
-	sshDir := filepath.Join(home, ".ssh")
-	if err := os.Mkdir(sshDir, 0700); err != nil {
-		t.Fatal(err)
-	}
-	authorized := filepath.Join(sshDir, "authorized_keys")
-	if err := os.WriteFile(authorized, []byte("ssh-ed25519 AAAA antiga\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if err := authorizeSSHIdentities(home, nil, time.Now()); err != nil {
-		t.Fatal(err)
-	}
-	if content, err := os.ReadFile(authorized); err != nil || len(content) != 0 {
-		t.Fatalf("desktop ainda aceita chaves: %q, %v", content, err)
-	}
-}
-
 func TestAuthorizeSSHIdentitiesCreatesMissingEmptyFile(t *testing.T) {
 	testBackupStore(t)
 	home := t.TempDir()
@@ -321,11 +245,11 @@ func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
 
-	err := installSSHClientConfig(dotfiles, home, deviceDesktop, time.Now())
+	err := installSSHClientConfig(dotfiles, home, deviceNotebook, time.Now())
 	if err == nil {
 		t.Fatal("esperava erro para identidades ausentes")
 	}
-	for _, name := range requiredSSHIdentityFiles(deviceDesktop) {
+	for _, name := range requiredSSHIdentityFiles(deviceNotebook) {
 		if !strings.Contains(err.Error(), name) {
 			t.Fatalf("erro não menciona %s: %v", name, err)
 		}
@@ -338,9 +262,9 @@ func TestInstallSSHClientConfigRequiresEveryIdentityFile(t *testing.T) {
 func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
-	installSSHClientTestIdentities(t, home, deviceDesktop)
+	installSSHClientTestIdentities(t, home, deviceNotebook)
 
-	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, time.Now()); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceNotebook, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	sshDir := filepath.Join(home, ".ssh")
@@ -368,14 +292,14 @@ func TestInstallSSHClientConfigCopiesWithSecurePermissions(t *testing.T) {
 func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
-	installSSHClientTestIdentities(t, home, deviceDesktop)
+	installSSHClientTestIdentities(t, home, deviceNotebook)
 	destination := filepath.Join(home, ".ssh", "config")
 	if err := os.WriteFile(destination, []byte("old"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 
-	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, now); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceNotebook, now); err != nil {
 		t.Fatal(err)
 	}
 	backup := testBackupFor(t, destination)
@@ -388,13 +312,13 @@ func TestInstallSSHClientConfigPreservesExistingConfig(t *testing.T) {
 func TestInstallSSHClientConfigIsIdempotent(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareSSHClientTest(t)
-	installSSHClientTestIdentities(t, home, deviceDesktop)
+	installSSHClientTestIdentities(t, home, deviceNotebook)
 	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
 
-	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, now); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceNotebook, now); err != nil {
 		t.Fatal(err)
 	}
-	if err := installSSHClientConfig(dotfiles, home, deviceDesktop, now); err != nil {
+	if err := installSSHClientConfig(dotfiles, home, deviceNotebook, now); err != nil {
 		t.Fatal(err)
 	}
 	matches, err := testBackupPaths(localBackupRoot(), "files", filepath.Join(home, ".ssh", "config"))
@@ -405,29 +329,25 @@ func TestInstallSSHClientConfigIsIdempotent(t *testing.T) {
 
 func TestSSHMenuHasSingleConfigurationAction(t *testing.T) {
 	testBackupStore(t)
-	model := newModel(t.TempDir())
+	model := newModelForDevice(t.TempDir(), deviceNotebook)
 	model.screen = screenSSH
 	model.ssh.cfg = map[string]string{"port": "2222"}
 	items := model.items()
 	if titles := itemTitles(items); len(items) != 1 || titles[0] != "Configurar SSH" {
 		t.Fatalf("ações SSH inesperadas: %v", titles)
 	}
-	labels := jobStepLabels(configureSSHJob(model.dotfiles, "2222", "192.168.1.0/24", deviceDesktop))
+	labels := jobStepLabels(configureSSHJob(model.dotfiles, "2222", "192.168.1.0/24", deviceNotebook))
 	for _, want := range []string{
 		"Validar chaves e copiar ~/.ssh/config",
 		"Autorizar chave para conexões SSH recebidas",
 		"Habilitar ssh-agent do usuário",
 		"Remover liberação LAN anterior de 2222/tcp",
 		"Desabilitar sshd.socket",
-		"Desabilitar sshd.service no desktop",
+		"Habilitar e iniciar sshd.service",
+		"Liberar 2222/tcp para 192.168.1.0/24",
 	} {
 		if !slices.Contains(labels, want) {
 			t.Fatalf("passo SSH %q ausente: %v", want, labels)
-		}
-	}
-	for _, label := range labels {
-		if strings.HasPrefix(label, "Liberar 2222/tcp") || label == "Habilitar e iniciar sshd.service" {
-			t.Fatalf("desktop aceita SSH recebido: %v", labels)
 		}
 	}
 }

@@ -158,40 +158,32 @@ func (m model) items() []item {
 	}
 	switch m.screen {
 	case screenMain:
-		systemDescription := "SSH, firewall e Docker"
 		developmentDescription := "Git, ambientes e IDEs"
 		if m.device == deviceDesktop {
-			systemDescription = "SSH e firewall"
 			developmentDescription = "Ambientes e ferramentas de desenvolvimento"
 		}
-		items := []item{
-			{title: "Sistema", desc: systemDescription, goTo: screenSystem},
-			{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
-			{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
-			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
+		var items []item
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Sistema", desc: "SSH, firewall e Docker", goTo: screenSystem})
 		}
+		items = append(items,
+			item{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
+			item{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
+			item{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
+		)
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups/dotfiles", goTo: screenBackup})
 		}
 		return append(items, item{title: "Sair", desc: "Até a próxima!", quit: true})
 	case screenSystem:
-		sshDescription := "Configurar cliente e servidor permanente com acesso pela LAN"
-		firewallDescription := "Ativar o UFW e liberar o SSH somente na LAN"
-		if m.device == deviceDesktop {
-			sshDescription = "Configurar somente o cliente e bloquear conexões recebidas"
-			firewallDescription = "Ativar o UFW sem liberar SSH de entrada"
-		}
-		items := []item{
-			{title: "SSH", desc: sshDescription, goTo: screenSSH},
-			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall},
-		}
 		if m.device == deviceNotebook {
-			items = append(items,
-				item{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
-				item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup},
-			)
+			return []item{
+				{title: "SSH", desc: "Configurar cliente e servidor permanente com acesso pela LAN", goTo: screenSSH},
+				{title: "Firewall", desc: "Ativar o UFW e liberar o SSH somente na LAN", goTo: screenFirewall},
+				{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
+				{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup},
+			}
 		}
-		return items
 	case screenDevelopment:
 		var items []item
 		if m.device == deviceNotebook {
@@ -200,9 +192,6 @@ func (m model) items() []item {
 				item{title: "GPG", desc: "Gerar chave GPG por dispositivo após configurar o Git", goTo: screenGPG},
 				item{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }},
 			)
-		}
-		if m.device == deviceDesktop {
-			items = append(items, item{title: "Instalar Zed", desc: "Instalar o editor Zed via yay", job: zedJob})
 		}
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob})
@@ -223,8 +212,6 @@ func (m model) items() []item {
 		if m.device == deviceDesktop {
 			items = append(items,
 				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.setupDir) }},
-				item{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.setupDir) }},
-				item{title: "Turing Smart Screen", desc: "Instalar com Python 3.13, GPU AMD e tema Frieren", job: func() job { return turingScreenJob(m.setupDir) }},
 			)
 		}
 		if m.device == deviceNotebook {
@@ -256,9 +243,13 @@ func (m model) items() []item {
 			return m.piAgentItems()
 		}
 	case screenSSH:
-		return m.sshItems()
+		if m.device == deviceNotebook {
+			return m.sshItems()
+		}
 	case screenFirewall:
-		return m.fwItems()
+		if m.device == deviceNotebook {
+			return m.fwItems()
+		}
 	case screenDocker:
 		if m.device == deviceNotebook {
 			return m.dockerItems()

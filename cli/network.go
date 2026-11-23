@@ -326,7 +326,7 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--" + action}
 	case "setup-fish", "setup-fastfetch":
 		args = []string{"--terminal-config", strings.TrimPrefix(action, "setup-")}
-	case "essential-tools", "install-yay", "terminal-tools", "install-posting", "install-lunarvim", "install-kitty", "install-artcraft-launcher", "install-firefox", "install-rust", "drivers", "proton-pass":
+	case "essential-tools", "install-yay", "terminal-tools", "install-posting", "install-lunarvim", "install-kitty", "install-artcraft-launcher", "install-firefox", "install-rust", "drivers", "proton-pass", "install-zed", "setup-obsidian", "setup-turing":
 		args = []string{"--packages", action}
 	default:
 		if name, ok := strings.CutPrefix(action, "mise-login-"); ok {

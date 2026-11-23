@@ -89,7 +89,7 @@ func TestBackupExportsRetainEveryGeneration(t *testing.T) {
 				switch category {
 				case "ssh":
 					origin = filepath.Join(home, ".ssh")
-					names := requiredSSHIdentityFiles(deviceDesktop)
+					names := requiredSSHIdentityFiles(deviceNotebook)
 					for _, name := range names {
 						sdkTestWrite(t, filepath.Join(origin, name), value)
 					}

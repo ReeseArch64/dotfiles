@@ -58,7 +58,7 @@ No Desktop e Laptop com CachyOS, **Sistema Operacional → Armazenamento e proje
 
 **Sistema Operacional → Armazenamento e projetos → Configurar ~/Projects** prepara `/mnt/workspaces` com permissão `0700` e cria o link `~/Projects` apontando para ele. Se o caminho já contiver um arquivo, um diretório ou um link para outro destino, a ação pede que o caminho seja liberado antes de continuar.
 
-No Desktop, **Sistema Operacional → Niri** aplica regras, atalhos, animações, layout, autostart e demais arquivos do Dotfiles em `~/.config/niri` ou em `$XDG_CONFIG_HOME/niri`. A ação preserva `config.kdl`, `cfg/input.kdl`, `cfg/display.kdl` e os demais arquivos locais. Valida uma cópia da configuração local com os novos arquivos usando `niri validate` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Niri`. Para que o Niri carregue os arquivos, mantenha os includes correspondentes no seu `config.kdl`. A ação cria `~/Pictures/Screenshots`. O autostart da Turing Smart Screen é executado quando o programa e seu ambiente Python estão disponíveis. [Configuração e validação do Niri](https://github.com/niri-wm/niri/wiki/Configuration%3A-Overview)
+No Desktop, **Sistema Operacional → Niri** aplica regras, atalhos, animações, layout, autostart e demais arquivos do Dotfiles em `~/.config/niri` ou em `$XDG_CONFIG_HOME/niri`. A ação preserva `config.kdl`, `cfg/input.kdl`, `cfg/display.kdl` e os demais arquivos locais. Valida uma cópia da configuração local com os novos arquivos usando `niri validate` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Niri`. Para que o Niri carregue os arquivos, mantenha os includes correspondentes no seu `config.kdl`. A ação cria `~/Pictures/Screenshots`. [Configuração e validação do Niri](https://github.com/niri-wm/niri/wiki/Configuration%3A-Overview)
 
 **Sistema Operacional → Fish → Configurar Fish** instala as dependências ausentes e aplica `~/.config/fish/config.fish`. A ação reaproveita o Mise disponível no `PATH` ou em `~/.local/bin`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.
 
@@ -85,6 +85,12 @@ Em **Programas → Ferramentas de Terminal**, a instalação em lote também inc
 No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados → Remover aplicativos** exige o Kitty instalado. Após confirmação, desinstala os pacotes encontrados entre `alacritty`, `meld` e `shelly` com `pacman -Rns`. A ação também apaga `~/.config/alacritty`, `~/.cache/alacritty`, `~/.config/meld`, `~/.local/share/meld` e `~/.cache/meld` quando existirem. [Manual do Pacman](https://man.archlinux.org/man/pacman.8.en#REMOVE_OPTIONS_(APPLY_TO_-R))
 
 **Programas → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay após confirmação no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
+
+**Programas → Instalar Zed** instala o pacote `zed` do repositório oficial pelo Pacman. [Pacote do Zed no Arch Linux](https://archlinux.org/packages/extra/x86_64/zed/)
+
+**Programas → Configurar Obsidian** reaproveita o pacote `obsidian` se já estiver instalado ou instala `obsidian-bin` pelo yay. Aplica `appearance.json` e `snippets/noctalia.css` em `~/.obsidian`, preserva os demais arquivos do diretório e guarda as versões substituídas em `/mnt/backups/dotfiles/Obsidian`. [Pacote do Obsidian no AUR](https://aur.archlinux.org/packages/obsidian-bin)
+
+**Programas → Configurar Turing Smart Screen** está disponível no Desktop. Instala o pacote AUR, reutiliza o Python 3.13 do Mise quando disponível, prepara `~/.local/share/turing-screen-venv`, compila `pyamdgpuinfo` e aplica o tema Frieren. Guarda a configuração substituída em `/mnt/backups/dotfiles/Turing`. Após reconectar a tela e abrir uma nova sessão para carregar o grupo `turing-smart-screen`, inicie com `env PATH="$HOME/.local/share/turing-screen-venv/bin:$PATH" /usr/bin/turing-smart-screen main`. [Pacote da Turing no AUR](https://aur.archlinux.org/packages/turing-smart-screen-python)
 
 ## Programação
 

@@ -54,6 +54,7 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 		{"essential-tools", []string{"sudo pacman -S --needed -- base-devel curl wget rate-mirrors"}},
 		{"install-kitty", []string{"sudo pacman -S --needed -- kitty"}},
 		{"install-artcraft-launcher", []string{"yay -S --needed -- artcraft-launcher-bin"}},
+		{"install-zed", []string{"sudo pacman -S --needed -- zed"}},
 		{"install-firefox", []string{
 			"sudo pacman -S --needed -- firefox xdg-utils",
 			"env -u BROWSER xdg-settings set default-web-browser firefox.desktop",

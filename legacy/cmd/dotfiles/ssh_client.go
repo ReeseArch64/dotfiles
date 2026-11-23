@@ -22,11 +22,6 @@ var gitSSHIdentityFiles = []string{
 func requiredSSHIdentityFiles(device deviceProfile) []string {
 	var deviceFiles []string
 	switch device {
-	case deviceDesktop:
-		deviceFiles = []string{
-			"id_trabalho_desktop", "id_trabalho_desktop.pub",
-			"id_pessoal_desktop", "id_pessoal_desktop.pub",
-		}
 	case deviceLaptop:
 		return []string{"id_laptop", "id_laptop.pub"}
 	case deviceNotebook:
@@ -55,8 +50,6 @@ func missingSSHIdentityFiles(home string, names []string) []string {
 
 func incomingSSHIdentities(device deviceProfile) ([]string, error) {
 	switch device {
-	case deviceDesktop:
-		return nil, nil
 	case deviceNotebook:
 		return []string{"id_trabalho_desktop.pub"}, nil
 	case deviceServer:

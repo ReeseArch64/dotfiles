@@ -30,6 +30,9 @@ func runPackageAction(profile profile, action string) error {
 	if profile.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute a instalação pelo menu Desktop ou Laptop como usuário normal")
 	}
+	if action == "setup-turing" && profile.prefix != "desktop" {
+		return errors.New("Turing Smart Screen está disponível no perfil Desktop")
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -75,6 +78,14 @@ func (installer packageInstaller) run(action, modules string) error {
 		official = []string{"kitty"}
 	case "install-artcraft-launcher":
 		aur = []string{"artcraft-launcher-bin"}
+	case "install-zed":
+		official = []string{"zed"}
+	case "setup-obsidian":
+		if !installer.installed("obsidian") {
+			aur = []string{"obsidian-bin"}
+		}
+	case "setup-turing":
+		return installer.setupTuring()
 	case "install-firefox":
 		official = []string{"firefox", "xdg-utils"}
 	case "install-rust":
@@ -116,6 +127,9 @@ func (installer packageInstaller) run(action, modules string) error {
 	if action == "install-rust" {
 		fmt.Fprintln(installer.console.output, "Usar a toolchain estável como padrão e verificar rustc e cargo.")
 	}
+	if action == "setup-obsidian" {
+		fmt.Fprintln(installer.console.output, "Aplicar aparência e snippet Noctalia em ~/.obsidian.")
+	}
 	if err := installer.console.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
 		return err
 	}
@@ -144,6 +158,8 @@ func (installer packageInstaller) run(action, modules string) error {
 	switch action {
 	case "install-firefox":
 		return setFirefoxDefault(installer.console.commands)
+	case "setup-obsidian":
+		return setupObsidian(installer.console)
 	case "install-rust":
 		if executable == "" {
 			executable = installer.rustupExecutable()

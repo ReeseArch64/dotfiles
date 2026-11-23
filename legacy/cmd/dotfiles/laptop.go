@@ -131,7 +131,7 @@ func (m model) laptopItems() []item {
 					}
 					return nil
 				})}
-			steps = append(steps, configureFirewallSteps(m.fw.port, m.fw.lan, true)...)
+			steps = append(steps, configureFirewallSteps(m.fw.port, m.fw.lan)...)
 			return job{title: "Configurar Firewall", steps: withSudo(steps...)}
 		}}}
 	default:

@@ -82,10 +82,6 @@ func (s sshStatus) card(width int) string {
 		rows = append(rows, cardRow{colErr, "Pacote", strings.Join(s.missing, ", ") + " não instalado"})
 	}
 	switch {
-	case s.device == deviceDesktop && (s.service.isActive() || s.socket.isActive()):
-		rows = append(rows, cardRow{colWarn, "Servidor", service + " ou " + socket + " ativo; deveria estar desabilitado"})
-	case s.device == deviceDesktop:
-		rows = append(rows, cardRow{colOK, "Servidor", "desabilitado no desktop"})
 	case s.service.isActive():
 		rows = append(rows, cardRow{colOK, "Servidor", "rodando (" + service + ")"})
 	case s.socket.isActive():
@@ -94,10 +90,6 @@ func (s sshStatus) card(width int) string {
 		rows = append(rows, cardRow{colDim, "Servidor", "parado"})
 	}
 	switch {
-	case s.device == deviceDesktop && (s.service.isEnabled() || s.socket.isEnabled()):
-		rows = append(rows, cardRow{colWarn, "Boot", service + " ou " + socket + " habilitado indevidamente"})
-	case s.device == deviceDesktop:
-		rows = append(rows, cardRow{colOK, "Boot", "sem servidor SSH"})
 	case s.service.isEnabled():
 		rows = append(rows, cardRow{colOK, "Boot", service + " habilitado"})
 	case s.socket.isEnabled():
@@ -106,30 +98,17 @@ func (s sshStatus) card(width int) string {
 		rows = append(rows, cardRow{colDim, "Boot", "não inicia no boot"})
 	}
 
-	if s.device == deviceDesktop {
-		rows = append(rows, cardRow{colOK, "Login", "somente cliente; entrada bloqueada"})
-	} else {
-		pw := s.cfg["passwordauthentication"]
-		loginColor := colOK
-		if pw != "no" {
-			loginColor = colWarn
-		}
-		rows = append(rows, cardRow{loginColor, "Login", fmt.Sprintf("porta %s · senha: %s · root: %s", s.port(), yesNo(pw), s.cfg["permitrootlogin"])})
+	pw := s.cfg["passwordauthentication"]
+	loginColor := colOK
+	if pw != "no" {
+		loginColor = colWarn
 	}
-
-	if s.device == deviceDesktop {
-		keyColor := colOK
-		if s.keys != 0 {
-			keyColor = colWarn
-		}
-		rows = append(rows, cardRow{keyColor, "Chaves", fmt.Sprintf("%d autorizadas; esperado 0", s.keys)})
-	} else {
-		keyColor := colOK
-		if s.keys == 0 && s.device != deviceLaptop {
-			keyColor = colWarn
-		}
-		rows = append(rows, cardRow{keyColor, "Chaves", fmt.Sprintf("%d em ~/.ssh/authorized_keys", s.keys)})
+	rows = append(rows, cardRow{loginColor, "Login", fmt.Sprintf("porta %s · senha: %s · root: %s", s.port(), yesNo(pw), s.cfg["permitrootlogin"])})
+	keyColor := colOK
+	if s.keys == 0 && s.device != deviceLaptop {
+		keyColor = colWarn
 	}
+	rows = append(rows, cardRow{keyColor, "Chaves", fmt.Sprintf("%d em ~/.ssh/authorized_keys", s.keys)})
 
 	var ips []string
 	for _, a := range s.addrs {
@@ -154,9 +133,6 @@ func yesNo(v string) string {
 
 func (m model) sshItems() []item {
 	description := "Configura cliente, authorized_keys, acesso pela LAN e servidor no boot"
-	if m.device == deviceDesktop {
-		description = "Configura o cliente e bloqueia conexões SSH recebidas"
-	}
 	return []item{{
 		title: "Configurar SSH",
 		desc:  description,
@@ -177,9 +153,8 @@ func configureSSHJob(setupDir, port, lan string, device deviceProfile) job {
 		}
 		return authorizeSSHIdentities(home, identities, time.Now())
 	})}
-	acceptIncoming := device != deviceDesktop
 	setup := ensurePkgs("openssh")
-	if device == deviceDesktop || device == deviceNotebook {
+	if device == deviceNotebook {
 		setup = append(setup, step{label: "Habilitar ssh-agent do usuário", run: func() (string, error) {
 			var output strings.Builder
 			for _, args := range [][]string{
@@ -196,18 +171,11 @@ func configureSSHJob(setupDir, port, lan string, device deviceProfile) job {
 			return output.String(), nil
 		}})
 	}
-	setup = append(setup, configureFirewallSteps(port, lan, acceptIncoming)...)
+	setup = append(setup, configureFirewallSteps(port, lan)...)
 	setup = append(setup, sudoStep("Desabilitar sshd.socket", true, "systemctl", "disable", "--now", "sshd.socket"))
-	if acceptIncoming {
-		setup = append(setup, sudoStep("Habilitar e iniciar sshd.service", false, "systemctl", "enable", "--now", "sshd.service"))
-	} else {
-		setup = append(setup, sudoStep("Desabilitar sshd.service no desktop", true, "systemctl", "disable", "--now", "sshd.service"))
-	}
+	setup = append(setup, sudoStep("Habilitar e iniciar sshd.service", false, "systemctl", "enable", "--now", "sshd.service"))
 	steps = append(steps, withSudo(setup...)...)
 	return job{title: "Configurar SSH", steps: steps, result: func() string {
-		if device == deviceDesktop {
-			return "Cliente SSH configurado; servidor desabilitado e conexões recebidas bloqueadas no desktop."
-		}
 		return sshResultForDevice(device)
 	}}
 }
@@ -243,7 +211,6 @@ type fwStatus struct {
 	rules     []ufwRule
 	rulesErr  error
 	lan, port string
-	device    deviceProfile
 }
 
 func loadFWStatusForDevice(device deviceProfile, port string) fwStatus {
@@ -258,7 +225,6 @@ func loadFWStatusForDevice(device deviceProfile, port string) fwStatus {
 		rulesErr:  err,
 		lan:       profileLANSubnet(device),
 		port:      port,
-		device:    device,
 	}
 }
 
@@ -304,10 +270,6 @@ func (f fwStatus) card(width int) string {
 	switch {
 	case f.rulesErr != nil:
 		rows = append(rows, cardRow{colWarn, "Regras", "sem permissão para ler /etc/ufw/user.rules"})
-	case f.device == deviceDesktop && f.sshAllowed():
-		rows = append(rows, cardRow{colWarn, "SSH", "porta " + f.port + " indevidamente liberada"})
-	case f.device == deviceDesktop:
-		rows = append(rows, cardRow{colOK, "SSH", "porta " + f.port + " bloqueada"})
 	case f.sshAllowed():
 		rows = append(rows, cardRow{colOK, "SSH", "porta " + f.port + " liberada"})
 	default:
@@ -350,21 +312,17 @@ func describeRule(r ufwRule) string {
 }
 
 func (m model) fwItems() []item {
-	allowSSH := m.device != deviceDesktop
-	description := "Ativa o UFW e bloqueia conexões SSH recebidas"
-	if allowSSH {
-		description = fmt.Sprintf("Ativa o UFW e libera SSH na LAN %s", m.fw.lan)
-	}
+	description := fmt.Sprintf("Ativa o UFW e libera SSH na LAN %s", m.fw.lan)
 	return []item{{
 		title: "Configurar Firewall",
 		desc:  description,
 		job: func() job {
-			return configureFirewallJob(m.fw.port, m.fw.lan, allowSSH)
+			return configureFirewallJob(m.fw.port, m.fw.lan)
 		},
 	}}
 }
 
-func configureFirewallSteps(port, lan string, allowSSH bool) []step {
+func configureFirewallSteps(port, lan string) []step {
 	steps := ensurePkgs("ufw", "iptables-nft")
 	steps = append(steps,
 		sudoStep("Entrada: bloquear por padrão", false, "ufw", "default", "deny", "incoming"),
@@ -372,18 +330,16 @@ func configureFirewallSteps(port, lan string, allowSSH bool) []step {
 		sudoStep("Remover liberação global de "+port+"/tcp", true, "ufw", "--force", "delete", "allow", port+"/tcp"),
 		sudoStep("Remover liberação LAN anterior de "+port+"/tcp", true,
 			"ufw", "--force", "delete", "allow", "from", lan, "to", "any", "port", port, "proto", "tcp", "comment", "SSH LAN"))
-	if allowSSH {
-		steps = append(steps, sudoStep("Liberar "+port+"/tcp para "+lan, false,
-			"ufw", "allow", "from", lan, "to", "any", "port", port, "proto", "tcp", "comment", "SSH LAN"))
-	}
+	steps = append(steps, sudoStep("Liberar "+port+"/tcp para "+lan, false,
+		"ufw", "allow", "from", lan, "to", "any", "port", port, "proto", "tcp", "comment", "SSH LAN"))
 	return append(steps,
 		sudoStep("Habilitar ufw.service no boot", false, "systemctl", "enable", "--now", "ufw.service"),
 		sudoStep("Ativar UFW", false, "ufw", "--force", "enable"))
 }
 
-func configureFirewallJob(port, lan string, allowSSH bool) job {
+func configureFirewallJob(port, lan string) job {
 	return job{
 		title: "Configurar Firewall",
-		steps: withSudo(configureFirewallSteps(port, lan, allowSSH)...),
+		steps: withSudo(configureFirewallSteps(port, lan)...),
 	}
 }

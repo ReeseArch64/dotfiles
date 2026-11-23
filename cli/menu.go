@@ -157,6 +157,8 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return workstation || homelab
 	case item.goTo == screenDocker || item.action == "setup-docker" || item.action == "setup-distrobox":
 		return m.profile.prefix == "desktop"
+	case item.action == "setup-turing":
+		return m.profile.prefix == "desktop"
 	case item.goTo == screenStorage || item.action == "sdk-links" || item.action == "storage-links" || item.action == "setup-workspaces":
 		return m.profile.canMigrateSDK(m.osID)
 	case item.action == "setup-niri":
@@ -203,6 +205,9 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Drivers", desc: "Instalar headers do kernel e utilitários gráficos", goTo: screenDrivers},
 			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
 			{title: "Instalar ArtCraft Launcher", desc: "Instalar artcraft-launcher-bin pelo yay", action: "install-artcraft-launcher"},
+			{title: "Instalar Zed", desc: "Instalar o editor pelo Pacman", action: "install-zed"},
+			{title: "Configurar Obsidian", desc: "Instalar o aplicativo e aplicar a aparência", action: "setup-obsidian"},
+			{title: "Configurar Turing Smart Screen", desc: "Preparar Python 3.13, suporte a GPU AMD e tema Frieren", action: "setup-turing"},
 			{title: screenTitles[screenPreinstalled], desc: "Remover Alacritty, Meld e Shelly", goTo: screenPreinstalled},
 		}
 	case screenEssentials:

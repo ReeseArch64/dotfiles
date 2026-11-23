@@ -111,7 +111,8 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 					t.Fatal("atalho não abriu Programas")
 				}
 				if got := menuTitles(programMenu.items()); !slices.Equal(got, []string{
-					"Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Terminal", "Instalar ArtCraft Launcher", "Aplicativos pré-instalados",
+					"Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Terminal", "Instalar ArtCraft Launcher",
+					"Instalar Zed", "Configurar Obsidian", "Configurar Turing Smart Screen", "Aplicativos pré-instalados",
 				}) {
 					t.Fatalf("menu Programas = %v", got)
 				}
@@ -119,6 +120,14 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				launcherCommand, err := actionCommand(launcher.action, launcher.title)
 				if launcher.disabled || err != nil || !slices.Equal(launcherCommand.Args[1:], []string{"--packages", "install-artcraft-launcher"}) {
 					t.Fatalf("ação do ArtCraft Launcher: %v, %v", launcherCommand, err)
+				}
+				for index, action := range []string{"install-zed", "setup-obsidian", "setup-turing"} {
+					item := programMenu.items()[5+index]
+					command, err := actionCommand(item.action, item.title)
+					unavailable := action == "setup-turing" && m.profile.prefix != "desktop"
+					if item.disabled != unavailable || err != nil || !slices.Equal(command.Args[1:], []string{"--packages", action}) {
+						t.Fatalf("ação de %s: %v, %v, %v", action, item, command, err)
+					}
 				}
 				wallpapers := osMenu.items()[5]
 				wallpapersCommand, err := actionCommand(wallpapers.action, wallpapers.title)

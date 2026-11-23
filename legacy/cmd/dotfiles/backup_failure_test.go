@@ -252,7 +252,7 @@ func TestSDKCrossDeviceBackupFailureAndRollback(t *testing.T) {
 			home, sdk := sdkTestRoots(t)
 			store := secondBackupFilesystem(t, home)
 			t.Setenv("DOTFILES_BACKUP_DIR", store)
-			for _, pair := range [][2]string{{".aur", "Aur"}, {".local", "Local"}} {
+			for _, pair := range [][2]string{{".aur", "Aur"}, {".cache", "Cache"}} {
 				sdkTestWrite(t, filepath.Join(home, pair[0], "file"), "home "+pair[0])
 				sdkTestWrite(t, filepath.Join(sdk, pair[1], "file"), "sdk "+pair[1])
 			}
@@ -265,13 +265,13 @@ func TestSDKCrossDeviceBackupFailureAndRollback(t *testing.T) {
 				if err := copySDKTree(from, to); err != nil {
 					return err
 				}
-				if phase == "backup-copy" && from == filepath.Join(home, ".local") && sdkPathWithin(to, store) {
+				if phase == "backup-copy" && from == filepath.Join(home, ".cache") && sdkPathWithin(to, store) {
 					return failure
 				}
 				return nil
 			}
 			ops.rename = func(from, to string) error {
-				if filepath.Base(from) == "link" && to == filepath.Join(home, ".local") && phase != "backup-copy" {
+				if filepath.Base(from) == "link" && to == filepath.Join(home, ".cache") && phase != "backup-copy" {
 					return failure
 				}
 				if phase == "rollback-activate" && filepath.Base(from) == "original" && !sdkPathWithin(from, store) && to == filepath.Join(home, ".aur") {
@@ -283,7 +283,7 @@ func TestSDKCrossDeviceBackupFailureAndRollback(t *testing.T) {
 			if !errors.Is(err, failure) {
 				t.Fatalf("failure lost: %v", err)
 			}
-			for _, pair := range [][2]string{{".aur", "Aur"}, {".local", "Local"}} {
+			for _, pair := range [][2]string{{".aur", "Aur"}, {".cache", "Cache"}} {
 				for _, origin := range []string{filepath.Join(home, pair[0]), filepath.Join(sdk, pair[1])} {
 					value := "home " + pair[0]
 					if sdkPathWithin(origin, sdk) {
@@ -293,7 +293,7 @@ func TestSDKCrossDeviceBackupFailureAndRollback(t *testing.T) {
 					if e != nil {
 						t.Fatal(e)
 					}
-					if phase == "backup-copy" && origin == filepath.Join(home, ".local") {
+					if phase == "backup-copy" && origin == filepath.Join(home, ".cache") {
 						sdkTestContent(t, filepath.Join(origin, "file"), value)
 					} else {
 						if len(paths) != 1 {

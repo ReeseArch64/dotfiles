@@ -132,7 +132,7 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 
 func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
-		for _, name := range []string{"discord", "obsidian", "ollama", turingScreenPackage} {
+		for _, name := range []string{"discord", "ollama"} {
 			info, err := os.Stat(configPath(setupDir, name))
 			if filepath.Base(setupDir) == "desktop" {
 				if err != nil || !info.IsDir() {
@@ -142,9 +142,9 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 				t.Fatalf("configuração exclusiva %s não deve existir no laptop: %v", name, err)
 			}
 		}
-		names := []string{"ssh"}
+		var names []string
 		if filepath.Base(setupDir) == "notebook" {
-			names = append(names, "niri", "cursor", "fastfetch", "fish", "git", "mise", "noctalia", "pi")
+			names = append(names, "ssh", "niri", "cursor", "fastfetch", "fish", "git", "mise", "noctalia", "pi")
 		}
 		for _, name := range names {
 			if info, err := os.Stat(configPath(setupDir, name)); err != nil || !info.IsDir() {
@@ -231,6 +231,7 @@ func TestDesktopResolvesOnlyRemainingConfiguration(t *testing.T) {
 		for _, name := range []string{
 			"cursor/FrierenBLZ", "fastfetch/config.json", "fish/config.fish", "git/.gitignore",
 			"mise/mise.toml", "niri/cfg/misc.kdl", "noctalia/settings.toml", "pi/agent/settings.json",
+			"ssh/config", "obsidian", "turing-smart-screen-python",
 		} {
 			expected := filepath.Join(setupDir, name)
 			if path := configPath(setupDir, name); path != expected {
