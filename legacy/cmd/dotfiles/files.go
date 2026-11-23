@@ -11,12 +11,11 @@ import (
 	"time"
 )
 
-// Only workstation profiles inherit the shared configuration. Server and other
-// profiles retain their original, isolated paths.
+// The Desktop profile can inherit shared configuration.
 func sharedConfigDirectory(setupDir string) string {
 	clean := filepath.Clean(setupDir)
 	profile := filepath.Base(clean)
-	if filepath.Base(filepath.Dir(clean)) != "setup" || (profile != "desktop" && profile != "notebook") {
+	if filepath.Base(filepath.Dir(clean)) != "setup" || profile != "desktop" {
 		return ""
 	}
 	return filepath.Join(filepath.Dir(clean), "config")
@@ -24,10 +23,6 @@ func sharedConfigDirectory(setupDir string) string {
 
 func configPath(setupDir string, elements ...string) string {
 	local := filepath.Join(append([]string{setupDir}, elements...)...)
-	// This file is updated by GPG and must never resolve to a shared source.
-	if filepath.Join(elements...) == filepath.Join("git", ".gitconfig") {
-		return local
-	}
 	if _, err := os.Lstat(local); !os.IsNotExist(err) {
 		return local
 	}
@@ -35,121 +30,6 @@ func configPath(setupDir string, elements ...string) string {
 		candidate := filepath.Join(append([]string{shared}, elements...)...)
 		if _, err := os.Lstat(candidate); err == nil {
 			return candidate
-		}
-	}
-	if migrated := migratedConfigPath(setupDir, filepath.Join(elements...)); migrated != "" {
-		return migrated
-	}
-	return local
-}
-
-func migratedConfigPath(setupDir, relative string) string {
-	if sharedConfigDirectory(setupDir) == "" || filepath.Base(setupDir) != "notebook" {
-		return ""
-	}
-	switch relative {
-	case "cursor", "cursor/FrierenBLZ", "fastfetch", "git/.gitattributes", "git/.gitignore", "git/config", "mise", "mise/mise.toml", "niri/cfg/misc.kdl":
-	case "fastfetch/config.json":
-		relative = "fastfetch/config.jsonc"
-	default:
-		return ""
-	}
-	return migratedCachyOSAsset(filepath.Dir(filepath.Dir(setupDir)), relative)
-}
-
-func migratedCachyOSAsset(dotfiles, relative string) string {
-	candidate := filepath.Join(dotfiles, "..", "cachyos", relative)
-	if _, err := os.Stat(candidate); err != nil {
-		return ""
-	}
-	return candidate
-}
-
-// A directory may contain both shared files and profile overrides. Materialize
-// that union before comparing or installing it, never mutating either source.
-func materializeConfigDirectory(setupDir string, elements ...string) (string, func(), error) {
-	local := filepath.Join(append([]string{setupDir}, elements...)...)
-	relative := filepath.Join(elements...)
-	var sources []string
-	if migrated := migratedConfigPath(setupDir, relative); migrated != "" {
-		sources = append(sources, migrated)
-	}
-	if shared := sharedConfigDirectory(setupDir); shared != "" {
-		candidate := filepath.Join(append([]string{shared}, elements...)...)
-		if _, err := os.Lstat(candidate); err == nil {
-			sources = append(sources, candidate)
-		} else if !os.IsNotExist(err) {
-			return "", nil, err
-		}
-	}
-	if _, err := os.Lstat(local); err == nil {
-		sources = append(sources, local)
-	} else if !os.IsNotExist(err) {
-		return "", nil, err
-	}
-	if len(sources) == 0 {
-		return "", nil, fmt.Errorf("configuração ausente: %s", local)
-	}
-	var misc string
-	if relative == "niri" {
-		migrated := migratedConfigPath(setupDir, "niri/cfg/misc.kdl")
-		if migrated != "" && configPath(setupDir, "niri", "cfg", "misc.kdl") == migrated {
-			misc = migrated
-		}
-	}
-	if len(sources) == 1 && misc == "" {
-		return sources[0], func() {}, nil
-	}
-	container, err := os.MkdirTemp("", "dotfiles-config-*")
-	if err != nil {
-		return "", nil, err
-	}
-	cleanup := func() { os.RemoveAll(container) }
-	merged := filepath.Join(container, "config")
-	for _, source := range sources {
-		if err := copyDirectory(source, merged); err != nil {
-			cleanup()
-			return "", nil, fmt.Errorf("compor %s: %w", source, err)
-		}
-	}
-	if misc != "" {
-		if err := copyFileAtomic(misc, filepath.Join(merged, "cfg", "misc.kdl")); err != nil {
-			cleanup()
-			return "", nil, err
-		}
-	}
-	return merged, cleanup, nil
-}
-
-func copyConfigDirectoryWithBackup(setupDir, destination string, now time.Time, elements ...string) error {
-	source, cleanup, err := materializeConfigDirectory(setupDir, elements...)
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	return copyDirectoryWithBackup(source, destination, now)
-}
-
-func assetPath(dotfiles string, elements ...string) string {
-	local := filepath.Join(append([]string{dotfiles, "assets"}, elements...)...)
-	if len(elements) == 0 {
-		return local
-	}
-	var relative string
-	switch elements[0] {
-	case "face.jpg":
-		if len(elements) == 1 {
-			relative = "fastfetch/face.jpg"
-		}
-	case "wallpapers":
-		relative = filepath.Join(elements...)
-	}
-	if relative == "" {
-		return local
-	}
-	if _, err := os.Lstat(local); os.IsNotExist(err) {
-		if migrated := migratedCachyOSAsset(dotfiles, relative); migrated != "" {
-			return migrated
 		}
 	}
 	return local

@@ -59,42 +59,13 @@ func TestMainMenuOptions(t *testing.T) {
 func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	model := newModel(t.TempDir())
 	categories := map[screen][]string{
-		screenSystem:      nil,
-		screenSSH:         nil,
-		screenFirewall:    nil,
 		screenDevelopment: {"Android CLI", "Proton VPN CLI"},
-		screenDesktop:     nil,
 		screenAIAgents:    {"Ollama"},
-		screenBackup:      nil,
-		screenCleanup:     nil,
-		screenDocker:      nil,
-		screenGit:         nil,
-		screenGPG:         nil,
-		screenPiAgent:     nil,
-		screenNoctalia:    nil,
 	}
 	for category, want := range categories {
 		model.screen = category
 		if titles := itemTitles(model.items()); !slices.Equal(titles, want) {
 			t.Fatalf("submenu %s inesperado: %v", screenTitles[category], titles)
-		}
-	}
-}
-
-func TestNotebookMenuContainsOnlySelectedActions(t *testing.T) {
-	model := newModelForDevice(t.TempDir(), deviceNotebook)
-	categories := map[screen][]string{
-		screenSystem:      {"SSH", "Firewall", "Docker", "Aplicativos pré-instalados"},
-		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Linear CLI", "Android CLI", "Ferramentas de terminal"},
-		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Mozilla Firefox", "Wallpapers", "Foto de perfil"},
-		screenAIAgents:    {"Pi Agent"},
-		screenCleanup:     {"Remover aplicativos"},
-		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
-	}
-	for category, want := range categories {
-		model.screen = category
-		if titles := itemTitles(model.items()); !slices.Equal(titles, want) {
-			t.Fatalf("submenu %s do Notebook inesperado: %v", screenTitles[category], titles)
 		}
 	}
 }

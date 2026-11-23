@@ -20,6 +20,14 @@ func commandTail(t *testing.T, current step, length int) []string {
 	return args[len(args)-length:]
 }
 
+func jobStepLabels(current job) []string {
+	labels := make([]string, 0, len(current.steps))
+	for _, step := range current.steps {
+		labels = append(labels, step.label)
+	}
+	return labels
+}
+
 func TestJobSkipsConfiguredStepAtExecutionTime(t *testing.T) {
 	configured := false
 	called := false

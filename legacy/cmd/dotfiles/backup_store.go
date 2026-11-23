@@ -12,6 +12,8 @@ import (
 )
 
 // The override is a process boundary for isolated runs, not a fallback on errors.
+const backupDestination = "/mnt/backups/dotfiles"
+
 func localBackupRoot() string {
 	if root, ok := os.LookupEnv("DOTFILES_BACKUP_DIR"); ok {
 		return root

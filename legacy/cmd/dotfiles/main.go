@@ -19,37 +19,15 @@ type screen int
 
 const (
 	screenMain screen = iota
-	screenSystem
 	screenDevelopment
-	screenDesktop
 	screenAIAgents
-	screenBackup
-	screenPiAgent
-	screenSSH
-	screenFirewall
-	screenDocker
-	screenGit
-	screenGPG
-	screenNoctalia
-	screenCleanup
 	screenJob
 )
 
 var screenTitles = map[screen]string{
 	screenMain:        "Menu principal",
-	screenSystem:      "Sistema",
 	screenDevelopment: "Desenvolvimento",
-	screenDesktop:     "Desktop",
 	screenAIAgents:    "Agentes de IA",
-	screenBackup:      "Backup",
-	screenPiAgent:     "Pi Agent",
-	screenSSH:         "SSH",
-	screenFirewall:    "Firewall",
-	screenDocker:      "Docker",
-	screenGit:         "Git",
-	screenGPG:         "GPG",
-	screenNoctalia:    "Noctalia",
-	screenCleanup:     "Aplicativos pré-instalados",
 }
 
 type item struct {
@@ -57,13 +35,11 @@ type item struct {
 	goTo        screen
 	job         func() job
 	quit        bool
-	disabled    bool
 }
 
 type tickMsg time.Time
 
 type model struct {
-	dotfiles string
 	setupDir string
 	start    time.Time
 	now      time.Time
@@ -72,13 +48,6 @@ type model struct {
 	screen   screen
 	stack    []screen
 	cursor   map[screen]int
-	ssh      sshStatus
-	fw       fwStatus
-	docker   dockerStatus
-	git      gitStatus
-	gpg      gpgStatus
-	noctalia noctaliaStatus
-	piAgent  piAgentStatus
 	device   deviceProfile
 	exitOnly bool
 	job      *jobRun
@@ -91,6 +60,7 @@ var (
 	colDescSel = lipgloss.Color("#B8B4D8")
 	colOK      = lipgloss.Color("#4ADE80")
 	colErr     = lipgloss.Color("#F87171")
+	colWarn    = lipgloss.Color("#FACC15")
 )
 
 func newModel(dotfiles string) model {
@@ -100,7 +70,6 @@ func newModel(dotfiles string) model {
 func newModelForDevice(dotfiles string, device deviceProfile) model {
 	now := time.Now()
 	return model{
-		dotfiles: dotfiles,
 		setupDir: setupDirectory(dotfiles, device),
 		start:    now,
 		now:      now,
@@ -127,118 +96,26 @@ func (m model) items() []item {
 	if m.exitOnly {
 		return []item{{title: "Sair", desc: "Até a próxima!", quit: true}}
 	}
-	switch m.device {
-	case deviceDesktop, deviceNotebook:
-	default:
+	if m.device != deviceDesktop {
 		return nil
 	}
 	switch m.screen {
 	case screenMain:
-		developmentDescription := "Git, ambientes e IDEs"
-		if m.device == deviceDesktop {
-			developmentDescription = "Ambientes e ferramentas de desenvolvimento"
-		}
-		var items []item
-		if m.device == deviceNotebook {
-			items = append(items, item{title: "Sistema", desc: "SSH, firewall e Docker", goTo: screenSystem})
-		}
-		items = append(items,
-			item{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
-		)
-		if m.device == deviceNotebook {
-			items = append(items, item{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop})
-		}
-		items = append(items, item{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents})
-		if m.device == deviceNotebook {
-			items = append(items, item{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups/dotfiles", goTo: screenBackup})
-		}
-		return append(items, item{title: "Sair", desc: "Até a próxima!", quit: true})
-	case screenSystem:
-		if m.device == deviceNotebook {
-			return []item{
-				{title: "SSH", desc: "Configurar cliente e servidor permanente com acesso pela LAN", goTo: screenSSH},
-				{title: "Firewall", desc: "Ativar o UFW e liberar o SSH somente na LAN", goTo: screenFirewall},
-				{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
-				{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup},
-			}
+		return []item{
+			{title: "Desenvolvimento", desc: "Ambientes e ferramentas de desenvolvimento", goTo: screenDevelopment},
+			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
+			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenDevelopment:
-		var items []item
-		if m.device == deviceNotebook {
-			items = append(items,
-				item{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
-				item{title: "GPG", desc: "Gerar chave GPG por dispositivo após configurar o Git", goTo: screenGPG},
-				item{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }},
-			)
-		}
-		if m.device == deviceNotebook {
-			items = append(items, item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob})
-		}
-		items = append(items, item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob})
-		if m.device == deviceDesktop {
-			return append(items, item{title: "Proton VPN CLI", desc: "Instalar pelo yay", job: protonVPNJob})
-		}
-		return append(items, item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }})
-	case screenDesktop:
-		if m.device == deviceNotebook {
-			return []item{
-				{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
-				{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
-				{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-				{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
-				{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
-				{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
-			}
+		return []item{
+			{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob},
+			{title: "Proton VPN CLI", desc: "Instalar pelo yay", job: protonVPNJob},
 		}
 	case screenAIAgents:
-		if m.device == deviceDesktop {
-			return []item{{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }}}
-		}
-		return []item{{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent}}
-	case screenBackup:
-		if m.device != deviceNotebook {
-			return nil
-		}
-		return []item{
-			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
-			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", job: projectsBackupJob},
-			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/dotfiles/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
-			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/dotfiles/gpg", job: gpgBackupJob},
-		}
-	case screenPiAgent:
-		if m.device == deviceNotebook {
-			return m.piAgentItems()
-		}
-	case screenSSH:
-		if m.device == deviceNotebook {
-			return m.sshItems()
-		}
-	case screenFirewall:
-		if m.device == deviceNotebook {
-			return m.fwItems()
-		}
-	case screenDocker:
-		if m.device == deviceNotebook {
-			return m.dockerItems()
-		}
-	case screenGit:
-		if m.device == deviceNotebook {
-			return m.gitItems()
-		}
-	case screenGPG:
-		if m.device == deviceNotebook {
-			return m.gpgItems()
-		}
-	case screenNoctalia:
-		if m.device == deviceNotebook {
-			return m.noctaliaItems()
-		}
-	case screenCleanup:
-		if m.device == deviceNotebook {
-			return m.cleanupItems()
-		}
+		return []item{{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }}}
+	default:
+		return nil
 	}
-	return nil
 }
 
 func tick() tea.Cmd {
@@ -293,29 +170,8 @@ func (m model) back() model {
 	if len(m.stack) > 0 {
 		m.screen = m.stack[len(m.stack)-1]
 		m.stack = m.stack[:len(m.stack)-1]
-		m.refresh()
 	}
 	return m
-}
-
-// refresh relê o estado usado pela tela atual.
-func (m *model) refresh() {
-	switch m.screen {
-	case screenSSH:
-		m.ssh = loadSSHStatus()
-	case screenFirewall:
-		m.fw = loadFWStatus(loadSSHStatus().port())
-	case screenDocker:
-		m.docker = loadDockerStatus()
-	case screenGit:
-		m.git = loadGitStatus(m.setupDir)
-	case screenGPG:
-		m.gpg = loadGPGStatus(m.setupDir)
-	case screenNoctalia:
-		m.noctalia = loadNoctaliaStatus(m.setupDir)
-	case screenPiAgent:
-		m.piAgent = loadPiAgentStatus(m.setupDir)
-	}
 }
 
 func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -352,9 +208,6 @@ func (m model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) selectItem(it item) (tea.Model, tea.Cmd) {
-	if it.disabled {
-		return m, nil
-	}
 	switch {
 	case it.quit:
 		return m, tea.Quit
@@ -366,7 +219,6 @@ func (m model) selectItem(it item) (tea.Model, tea.Cmd) {
 	default:
 		m.stack = append(m.stack, m.screen)
 		m.screen = it.goTo
-		m.refresh()
 	}
 	return m, nil
 }
@@ -376,26 +228,10 @@ func (m model) View() string {
 	boxW := min(max(m.width-4, 30), 66)
 
 	inner := boxW - 4
-	divider := lipgloss.NewStyle().Foreground(colDimmer).Render(strings.Repeat("─", inner))
 	var body string
-	switch m.screen {
-	case screenJob:
+	if m.screen == screenJob {
 		body = m.job.view(inner, elapsed)
-	case screenSSH:
-		body = m.ssh.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	case screenFirewall:
-		body = m.fw.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	case screenDocker:
-		body = m.docker.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	case screenGit:
-		body = m.git.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	case screenGPG:
-		body = m.gpg.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	case screenNoctalia:
-		body = m.noctalia.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	case screenPiAgent:
-		body = m.piAgent.card(inner) + "\n\n" + divider + "\n\n" + m.viewMenu(inner, elapsed)
-	default:
+	} else {
 		body = m.viewMenu(inner, elapsed)
 	}
 
@@ -470,12 +306,7 @@ func (m model) viewMenu(width int, elapsed time.Duration) string {
 	for i, it := range items {
 		num := fmt.Sprintf("%d", i+1)
 		desc := ansi.Truncate(it.desc, width-4, "…")
-		if it.disabled {
-			dim := lipgloss.NewStyle().Foreground(colDimmer)
-			rows = append(rows,
-				"  "+dim.Render(it.title+" "+num),
-				"  "+dim.Render(desc))
-		} else if i == cur {
+		if i == cur {
 			bar := renderGradientText("▌", elapsed, true)
 			title := renderGradientText(it.title, elapsed, true)
 			rows = append(rows,

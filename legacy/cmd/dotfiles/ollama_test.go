@@ -268,18 +268,17 @@ func TestOllamaMissingStorageMountStopsJob(t *testing.T) {
 }
 
 func TestOllamaServiceConfiguration(t *testing.T) {
-	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
-		content, err := os.ReadFile(configPath(setupDir, "ollama", "amd.conf"))
-		if err != nil {
-			t.Fatal(err)
+	setupDir := setupDirectory(filepath.Join("..", ".."), deviceDesktop)
+	content, err := os.ReadFile(configPath(setupDir, "ollama", "amd.conf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"[Unit]", "RequiresMountsFor=/mnt/storage/ollama/models", "ConditionPathIsMountPoint=/mnt/storage", "[Service]", "SupplementaryGroups=render video", "Environment=\"OLLAMA_HOST=127.0.0.1:11434\"", "Environment=\"OLLAMA_MODELS=/mnt/storage/ollama/models\""} {
+		if !strings.Contains(string(content), required) {
+			t.Fatalf("configuração ausente: %s", required)
 		}
-		for _, required := range []string{"[Unit]", "RequiresMountsFor=/mnt/storage/ollama/models", "ConditionPathIsMountPoint=/mnt/storage", "[Service]", "SupplementaryGroups=render video", "Environment=\"OLLAMA_HOST=127.0.0.1:11434\"", "Environment=\"OLLAMA_MODELS=/mnt/storage/ollama/models\""} {
-			if !strings.Contains(string(content), required) {
-				t.Fatalf("configuração ausente: %s", required)
-			}
-		}
-		if strings.Contains(string(content), "HSA_OVERRIDE_GFX_VERSION") {
-			t.Fatal("override de arquitetura não deve ser forçado")
-		}
-	}, deviceDesktop)
+	}
+	if strings.Contains(string(content), "HSA_OVERRIDE_GFX_VERSION") {
+		t.Fatal("override de arquitetura não deve ser forçado")
+	}
 }
