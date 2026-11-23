@@ -68,14 +68,6 @@ As duas ações pedem confirmação antes de copiar a configuração e guardam a
 
 **Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` do legado em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
 
-## Backup
-
-O menu **Backup** aparece nos perfis Desktop e Laptop e pede confirmação antes de executar cada ação.
-
-- **Backup Btrfs da raiz** cria um snapshot temporário somente leitura do subvolume `/` e grava um stream completo com `btrfs send` em `/mnt/backups/dotfiles/Snapshots/root-*.btrfs`. O arquivo pode ficar em outro disco ou sistema de arquivos. Use um volume separado da raiz para manter os backups anteriores fora dos próximos snapshots. A operação cobre somente o subvolume raiz e é bloqueada se ele incluir a pasta `~/.ssh` do usuário. Para restaurar, use `sudo btrfs receive -f <arquivo.btrfs> <diretório-em-Btrfs>` em um destino de recuperação. [Documentação do Btrfs sobre envio e recebimento](https://btrfs.readthedocs.io/en/stable/Send-receive.html)
-- **Backup de projetos locais** encontra repositórios Git e worktrees em `/mnt/workspaces`. Para cada projeto com os três remotos configurados, envia primeiro ao GitHub (`origin`). Se esse envio funcionar, tenta o GitLab (`ogle`) e o Gitea (`backup`). A ação usa `git push` com as configurações de cada projeto e apresenta as falhas ao final.
-- **Backup das chaves GPG** exporta as chaves públicas e privadas em ASCII Armor. Cada geração fica em um diretório privado em `/mnt/backups/dotfiles/GPG`, com permissão `0600` para o arquivo de chaves privadas.
-
 ## Programas
 
 **Programas → Ferramentas Essenciais** instala `base-devel`, `curl`, `wget` e `rate-mirrors`.
@@ -125,10 +117,6 @@ No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prep
 ## Navegador Web
 
 **Navegador Web → Instalar Firefox** instala `firefox` e `xdg-utils` pelo Pacman e define o Firefox como navegador padrão após confirmação.
-
-**Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/dotfiles/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.
-
-O tar é privado e contém dados sensíveis. A senha principal do Firefox, quando configurada, continua necessária para abrir os logins salvos. Sites ainda podem expirar sessões ou exigir nova autenticação. [Dados armazenados nos perfis do Firefox](https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data)
 
 ## Instalação
 

@@ -34,7 +34,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if got := m.profile.sshKeyName(); got != tt.keyName {
 				t.Fatalf("nome da chave = %q, esperado %q", got, tt.keyName)
 			}
-			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Agentes de IA", "Programas", "Backup", "Sair"}
+			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Agentes de IA", "Programas", "Sair"}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}
@@ -69,10 +69,10 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				}
 				browser, _ := m.selectItem(m.items()[2])
 				browserItems := browser.(model).items()
-				if got := menuTitles(browserItems); !slices.Equal(got, []string{"Backup Completo", "Instalar Firefox"}) {
+				if got := menuTitles(browserItems); !slices.Equal(got, []string{"Instalar Firefox"}) {
 					t.Fatalf("menu de navegador = %v", got)
 				}
-				firefox := browserItems[1]
+				firefox := browserItems[0]
 				firefoxCommand, err := actionCommand(firefox.action, firefox.title)
 				if firefox.disabled || err != nil || !slices.Equal(firefoxCommand.Args[1:], []string{"--packages", "install-firefox"}) {
 					t.Fatalf("ação do Firefox: %v, %v", firefoxCommand, err)
@@ -194,8 +194,8 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 		security []string
 		ssh      []string
 	}{
-		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Programas", "Backup", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
-		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Programas", "Backup", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Programas", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Programas", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
 		{"homelab", []string{"Sistema Operacional", "Segurança", "CasaOS", "Programas", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
 		{"homeprod", []string{"Sair"}, nil, nil},
 		{"unknown", []string{"Sair"}, nil, nil},
@@ -255,7 +255,7 @@ func TestMenuNavigationSkipsUnavailableItems(t *testing.T) {
 		t.Fatal("Enter não abriu CasaOS")
 	}
 	menu = newMenu("homeprod")
-	if got := menu.menuCursor(menu.items()); got != 8 {
+	if got := menu.menuCursor(menu.items()); got != 7 {
 		t.Fatalf("seleção inicial deveria ser Sair: %d", got)
 	}
 	if next, command := menu.handleKey("2"); command != nil || next.(model).screen != screenMain {

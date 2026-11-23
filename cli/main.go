@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.33.1"
+const version = "1.33.2"
 
 type profile struct {
 	prefix      string
@@ -100,13 +100,6 @@ func main() {
 		}
 		return
 	}
-	if len(os.Args) == 3 && os.Args[1] == "--backup" {
-		if err := runBackupAction(identifyProfile(hostname), os.Args[2]); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		return
-	}
 	if len(os.Args) == 2 {
 		var action func(profile) error
 		switch os.Args[1] {
@@ -116,8 +109,6 @@ func main() {
 			action = runWallpapersAction
 		case "--setup-noctalia":
 			action = runNoctaliaSetup
-		case "--firefox-backup":
-			action = runFirefoxBackup
 		case "--sdk-links":
 			action = runSDKMigration
 		case "--storage-links":

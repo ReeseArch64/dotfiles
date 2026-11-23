@@ -58,7 +58,6 @@ const (
 	screenLoginGemini
 	screenLoginAntigravity
 	screenLoginNPM
-	screenBackup
 	screenJob
 )
 
@@ -88,7 +87,6 @@ var screenTitles = map[screen]string{
 	screenCasaOS:        "CasaOS",
 	screenWebBrowser:    "Navegador Web",
 	screenMiseLogins:    "Login das CLIs",
-	screenBackup:        "Backup",
 }
 
 type tickMsg time.Time
@@ -285,16 +283,7 @@ func screenItems(page screen, device profile) []menuItem {
 	case screenCasaOS:
 		return []menuItem{{title: "Instalar CasaOS", desc: "Executar o instalador oficial e preparar o acesso ao Docker", action: "homelab-casaos"}}
 	case screenWebBrowser:
-		return []menuItem{
-			{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"},
-			{title: "Instalar Firefox", desc: "Instalar e definir como navegador padrão", action: "install-firefox"},
-		}
-	case screenBackup:
-		return []menuItem{
-			{title: "Backup Btrfs da raiz", desc: "Salvar o subvolume raiz em um arquivo Btrfs", action: "backup-snapshot"},
-			{title: "Backup de projetos locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", action: "backup-projects"},
-			{title: "Backup das chaves GPG", desc: "Exportar as chaves públicas e privadas", action: "backup-gpg"},
-		}
+		return []menuItem{{title: "Instalar Firefox", desc: "Instalar e definir como navegador padrão", action: "install-firefox"}}
 	case screenJob:
 		return nil
 	}
@@ -304,12 +293,11 @@ func screenItems(page screen, device profile) []menuItem {
 	return []menuItem{
 		{title: "Sistema Operacional", desc: "Configurar o sistema e a aparência", goTo: screenSystem},
 		{title: "Segurança", desc: "Configurar SSH, firewall e Proton Pass", goTo: screenSecurity},
-		{title: "Navegador Web", desc: "Instalar o Firefox e fazer backup dos perfis", goTo: screenWebBrowser},
+		{title: "Navegador Web", desc: "Instalar e definir o Firefox como navegador padrão", goTo: screenWebBrowser},
 		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
 		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},
 		{title: screenTitles[screenPrograms], desc: "Instalar programas e remover aplicativos pré-instalados", goTo: screenPrograms},
-		{title: screenTitles[screenBackup], desc: "Salvar a raiz Btrfs, enviar projetos e exportar chaves GPG", goTo: screenBackup},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}
 }

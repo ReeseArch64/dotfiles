@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -18,6 +19,11 @@ type backupLocation struct {
 	path string
 	base string
 	sudo func(...string) error
+}
+
+func pathInside(parent, path string) bool {
+	relative, err := filepath.Rel(parent, path)
+	return err == nil && relative != ".." && !strings.HasPrefix(relative, "../")
 }
 
 func managedBackup(name string, sudo func(...string) error) backupLocation {

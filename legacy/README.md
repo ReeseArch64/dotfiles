@@ -27,7 +27,7 @@ A [CLI atual](../README.md) reúne os instaladores e as configurações migradas
 | Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go), [Obsidian com suas configurações](#obsidian) e [Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren](#turing-smart-screen-somente-desktop). |
 | Desenvolvimento e IA | [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
 
-O backup Btrfs, o envio de projetos e a exportação de chaves GPG estão no menu **Backup** da CLI atual. O backup dedicado de chaves SSH saiu do Desktop e permanece arquivado no Notebook. O ambiente Sandbox passou a usar Docker e está em **Programação → Docker → Ambiente Sandbox** na CLI atual.
+As ações de backup do Notebook estão descritas na seção de código arquivado. O ambiente Sandbox passou a usar Docker e está em **Programação → Docker → Ambiente Sandbox** na CLI atual.
 
 Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
 
@@ -858,7 +858,7 @@ git push backup
 
 Os remotos devem estar previamente configurados: `origin` para o GitHub, `ogle` para o GitLab e `backup` para o Gitea. A CLI não cria nem altera URLs de remotos. Projetos com qualquer um desses remotos ausente são reportados como falha, sem envio parcial. Se o envio ao GitHub falhar, a CLI não envia esse projeto aos demais serviços. Após sucesso no GitHub, tenta GitLab e Gitea independentemente. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
 
-No Desktop, **Sistema Operacional → Armazenamento e projetos** da CLI atual prepara `/mnt/workspaces` e o link `~/Projects`. O envio está em **Backup → Backup de projetos locais**. A ação arquivada do Notebook prepara o destino e o link antes do envio.
+No Desktop, **Sistema Operacional → Armazenamento e projetos** da CLI atual prepara `/mnt/workspaces` e o link `~/Projects`. A ação arquivada do Notebook prepara o destino e o link antes do envio.
 
 A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
 

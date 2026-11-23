@@ -310,10 +310,6 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--wallpapers"}
 	case "setup-noctalia":
 		args = []string{"--setup-noctalia"}
-	case "firefox-backup":
-		args = []string{"--firefox-backup"}
-	case "backup-snapshot", "backup-projects", "backup-gpg":
-		args = []string{"--backup", strings.TrimPrefix(action, "backup-")}
 	case "sdk-links":
 		args = []string{"--sdk-links"}
 	case "storage-links", "setup-workspaces", "setup-niri":
