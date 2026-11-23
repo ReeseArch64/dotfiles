@@ -61,7 +61,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	categories := map[screen][]string{
 		screenSystem:      {"SSH", "Firewall"},
 		screenDevelopment: {"Instalar Zed", "Android CLI", "Proton VPN CLI"},
-		screenDesktop:     {"Discord", "Obsidian", "Turing Smart Screen", "Foto de perfil"},
+		screenDesktop:     {"Discord", "Obsidian", "Turing Smart Screen"},
 		screenAIAgents:    {"Ollama"},
 		screenBackup:      nil,
 		screenCleanup:     nil,

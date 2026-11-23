@@ -232,9 +232,10 @@ func (m model) items() []item {
 				item{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 				item{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
 				item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
+				item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 			)
 		}
-		return append(items, item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }})
+		return items
 	case screenAIAgents:
 		if m.device == deviceDesktop {
 			return []item{{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }}}

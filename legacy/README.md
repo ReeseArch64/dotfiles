@@ -12,9 +12,9 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 | Área | Ações |
 | --- | --- |
-| Sistema | SSH, Firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
+| Sistema | SSH e firewall no Desktop e no Notebook, Docker e remoção de aplicativos pré-instalados no Notebook |
 | Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Zed e Proton VPN CLI no Desktop |
-| Desktop | Foto de perfil nos dois perfis, Niri, Noctalia, Firefox e papéis de parede no Notebook e Discord, Obsidian e Turing Smart Screen no Desktop |
+| Desktop | Foto de perfil, Niri, Noctalia, Firefox e papéis de parede no Notebook, Discord, Obsidian e Turing Smart Screen no Desktop |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG no Notebook |
 
@@ -26,16 +26,12 @@ A [CLI atual](../README.md) reúne os instaladores e as configurações migradas
 | --- | --- |
 | Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go), [Obsidian com suas configurações](#obsidian) e [Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren](#turing-smart-screen-somente-desktop). |
 | Desenvolvimento e IA | [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
+| Segurança | Definir se o Desktop ainda precisa dos aliases e das múltiplas identidades de SSH e de uma política somente cliente, com o servidor desativado e a porta bloqueada. A CLI atual usa uma identidade por dispositivo e permite configurar acesso pela LAN. |
+| Diretórios | Decidir se é necessário mover `~/.local` por inteiro para o SDK. A CLI atual move `~/.local/share/mise`, além de `~/go`, `~/.render` e `~/.maple`. |
 
-As ações de backup do Notebook estão descritas na seção de código arquivado. O ambiente Sandbox passou a usar Docker e está em **Programação → Docker → Ambiente Sandbox** na CLI atual.
+No Desktop, o Fastfetch da CLI atual cria `~/.face` quando a foto está ausente. O ambiente Sandbox usa Docker em **Programação → Docker → Ambiente Sandbox**. Os papéis de parede ficam em `../cachyos/wallpapers/`, que também é a fonte dos fluxos arquivados.
 
-Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
-
-- **SSH e firewall**. O Desktop legado usa aliases e várias identidades, mantém o servidor SSH desativado e bloqueia SSH de entrada. A CLI atual usa uma identidade por dispositivo e configura o acesso SSH pela LAN.
-- **Foto de perfil**. A ação legada substitui `~/.face`. O Fastfetch atual cria a foto quando ela está ausente.
-- **Diretórios SDK**. A CLI atual migra o estado do Mise em `~/.local/share/mise`, além de `~/go`, `~/.render` e `~/.maple`. A migração de `~/.local` por inteiro e o mapeamento histórico de `~/.vscode` continuam arquivados.
-
-O Proton VPN CLI ficou fora da migração por escolha do usuário. A migração da lixeira para `~/.trash` foi descartada. O login automático e o Thunderbird foram retirados do Desktop. VS Code, Android Studio e Better Stack também foram retirados.
+Ficaram fora da migração do Desktop o Proton VPN CLI, a lixeira `~/.trash`, o login automático, o Thunderbird, o VS Code, o Android Studio, o Better Stack e as ações de backup de Btrfs, projetos, chaves SSH/GPG e perfis de navegador. O mapeamento histórico de `~/.vscode` e as ações de backup do Notebook estão descritos nas seções do código arquivado.
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -728,7 +724,7 @@ A instalação não inicia o programa automaticamente. A configuração do Niri 
 
 ### Wallpapers
 
-No perfil Notebook do legado, `Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`. No Desktop, use `Sistema Operacional > Papéis de parede` na CLI atual.
+No perfil Notebook do legado, `Desktop > Wallpapers` copia `../cachyos/wallpapers/` para `~/.wallpapers`. No Desktop, use `Sistema Operacional > Papéis de parede` na CLI atual.
 
 A pasta contém onze imagens destinadas a diferentes telas:
 
@@ -746,7 +742,7 @@ A pasta contém onze imagens destinadas a diferentes telas:
 
 ### Foto de perfil
 
-`Desktop > Foto de perfil` copia `../cachyos/fastfetch/face.jpg` para `~/.face`.
+No Notebook, `Desktop > Foto de perfil` copia `../cachyos/fastfetch/face.jpg` para `~/.face`.
 
 A ação substitui o destino existente. Faça uma cópia manual quando quiser preservar a foto atual.
 
@@ -887,8 +883,6 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 
 ```text
 .
-├── assets/
-│   └── wallpapers/
 ├── cmd/dotfiles/          # Código e testes da CLI
 ├── setup/
 │   ├── desktop/          # Configurações ainda arquivadas do Desktop

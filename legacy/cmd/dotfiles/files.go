@@ -132,11 +132,24 @@ func copyConfigDirectoryWithBackup(setupDir, destination string, now time.Time, 
 
 func assetPath(dotfiles string, elements ...string) string {
 	local := filepath.Join(append([]string{dotfiles, "assets"}, elements...)...)
-	if len(elements) == 1 && elements[0] == "face.jpg" {
-		if _, err := os.Lstat(local); os.IsNotExist(err) {
-			if migrated := migratedCachyOSAsset(dotfiles, "fastfetch/face.jpg"); migrated != "" {
-				return migrated
-			}
+	if len(elements) == 0 {
+		return local
+	}
+	var relative string
+	switch elements[0] {
+	case "face.jpg":
+		if len(elements) == 1 {
+			relative = "fastfetch/face.jpg"
+		}
+	case "wallpapers":
+		relative = filepath.Join(elements...)
+	}
+	if relative == "" {
+		return local
+	}
+	if _, err := os.Lstat(local); os.IsNotExist(err) {
+		if migrated := migratedCachyOSAsset(dotfiles, relative); migrated != "" {
+			return migrated
 		}
 	}
 	return local

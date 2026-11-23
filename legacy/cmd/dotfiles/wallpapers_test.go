@@ -64,6 +64,25 @@ func TestInstallWallpapersCopiesRegularDirectory(t *testing.T) {
 	}
 }
 
+func TestLegacyWallpapersUseSharedCachyOSAssets(t *testing.T) {
+	testBackupStore(t)
+	dotfiles := filepath.Join("..", "..")
+	home := t.TempDir()
+	if err := installWallpapers(dotfiles, home, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range wallpaperNames {
+		source := filepath.Join(dotfiles, "..", "cachyos", "wallpapers", name)
+		if !regularFileMatches(source, filepath.Join(home, ".wallpapers", name)) {
+			t.Fatalf("papel de parede compartilhado ausente ou diferente: %s", name)
+		}
+	}
+	want := filepath.Join(dotfiles, "..", "cachyos", "wallpapers", "laptop.jpg")
+	if got := assetPath(dotfiles, "wallpapers", "laptop.jpg"); got != want {
+		t.Fatalf("papel de parede do Laptop: %q, esperado %q", got, want)
+	}
+}
+
 func TestInstallWallpapersPreservesExistingDirectory(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, home := prepareWallpapersTest(t)
