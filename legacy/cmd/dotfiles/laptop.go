@@ -71,6 +71,37 @@ func (m model) laptopSSHJob(action, title string) job {
 	return job{title: title, steps: steps}
 }
 
+func validateLaptopFirewall(port, lan, connection string) error {
+	n, err := strconv.Atoi(port)
+	if err != nil || n < 1 || n > 65535 {
+		return fmt.Errorf("porta SSH inválida: %q", port)
+	}
+	ip, subnet, err := net.ParseCIDR(lan)
+	if err != nil || ip.To4() == nil || !ip.IsPrivate() || !subnet.IP.IsPrivate() {
+		return fmt.Errorf("LAN IPv4 privada não detectada: %q; configure a rede antes de ativar o firewall", lan)
+	}
+	last := append(net.IP(nil), subnet.IP...)
+	for i := range last {
+		last[i] |= ^subnet.Mask[i]
+	}
+	if !last.IsPrivate() {
+		return fmt.Errorf("LAN contém endereços públicos: %q", lan)
+	}
+	if connection != "" {
+		fields := strings.Fields(connection)
+		if len(fields) != 4 || net.ParseIP(fields[0]) == nil || net.ParseIP(fields[2]) == nil {
+			return fmt.Errorf("SSH_CONNECTION inválida; firewall não foi alterado")
+		}
+		for _, p := range []string{fields[1], fields[3]} {
+			n, err := strconv.Atoi(p)
+			if err != nil || n < 1 || n > 65535 {
+				return fmt.Errorf("porta em SSH_CONNECTION inválida")
+			}
+		}
+	}
+	return nil
+}
+
 func (m model) laptopItems() []item {
 	switch m.screen {
 	case screenWebBrowser:
@@ -116,11 +147,11 @@ func (m model) laptopItems() []item {
 					if err := laptopSSHRequirement(current, home); err != nil {
 						return err
 					}
-					if current.port() != m.fw.port || profileLANSubnet(deviceLaptop) != m.fw.lan {
+					if current.port() != m.fw.port || lanSubnet() != m.fw.lan {
 						return fmt.Errorf("porta SSH ou LAN mudou; reabra a tela Firewall antes de configurar")
 					}
 					connection := os.Getenv("SSH_CONNECTION")
-					if err := validateServerFirewall(m.fw.port, m.fw.lan, connection); err != nil {
+					if err := validateLaptopFirewall(m.fw.port, m.fw.lan, connection); err != nil {
 						return err
 					}
 					if connection != "" {

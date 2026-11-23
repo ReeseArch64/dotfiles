@@ -29,8 +29,6 @@ func requiredSSHIdentityFiles(device deviceProfile) []string {
 			"id_trabalho_notebook", "id_trabalho_notebook.pub",
 			"id_trabalho_desktop.pub",
 		}
-	case deviceServer:
-		return []string{"id_pessoal_desktop.pub"}
 	default:
 		return nil
 	}
@@ -52,8 +50,6 @@ func incomingSSHIdentities(device deviceProfile) ([]string, error) {
 	switch device {
 	case deviceNotebook:
 		return []string{"id_trabalho_desktop.pub"}, nil
-	case deviceServer:
-		return []string{"id_pessoal_desktop.pub"}, nil
 	default:
 		return nil, fmt.Errorf("perfil sem identidades SSH de entrada: %s", device)
 	}

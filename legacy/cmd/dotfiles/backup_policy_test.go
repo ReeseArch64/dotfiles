@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -121,35 +120,5 @@ func TestBackupExportsRetainEveryGeneration(t *testing.T) {
 				t.Fatalf("old/new contents not retained: %v", values)
 			}
 		})
-	}
-}
-
-func TestDNSBackupStoreDoesNotChangeRootOwnershipOrMode(t *testing.T) {
-	f := prepareDNS(t, "[Resolve]\nDNSStubListener=yes\n", "stub")
-	before, err := os.Stat(f.backups)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if out, err := f.run(t); err != nil {
-		t.Fatalf("%v: %s", err, out)
-	}
-	after, err := os.Stat(f.backups)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if before.Mode() != after.Mode() || !os.SameFile(before, after) || before.Sys().(*syscall.Stat_t).Uid != after.Sys().(*syscall.Stat_t).Uid || before.Sys().(*syscall.Stat_t).Gid != after.Sys().(*syscall.Stat_t).Gid {
-		t.Fatal("DNS script changed shared root")
-	}
-	for _, origin := range []string{f.config, f.resolver} {
-		backup := testBackupAt(t, f.backups, "dns", origin)
-		for path := filepath.Dir(backup); path != f.backups; path = filepath.Dir(path) {
-			info, err := os.Stat(path)
-			if err != nil || info.Mode().Perm() != 0700 {
-				t.Fatalf("non-private root-run backup category: %s %v", path, err)
-			}
-		}
-		if _, err := os.Lstat(origin + ".dotfiles-backup"); !os.IsNotExist(err) {
-			t.Fatalf("adjacent DNS backup retained: %v", err)
-		}
 	}
 }

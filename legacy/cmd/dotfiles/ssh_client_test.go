@@ -46,7 +46,6 @@ func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 			"id_trabalho_notebook", "id_trabalho_notebook.pub", "id_trabalho_desktop.pub",
 			"id_gitlab", "id_gitlab.pub", "id_github", "id_github.pub", "id_gitea", "id_gitea.pub",
 		},
-		deviceServer: {"id_pessoal_desktop.pub"},
 	} {
 		if got := requiredSSHIdentityFiles(device); !slices.Equal(got, want) {
 			t.Fatalf("%s: identidades SSH inesperadas: %v", device, got)
@@ -57,7 +56,6 @@ func TestRequiredSSHIdentityFilesAreScopedByDevice(t *testing.T) {
 func TestIncomingSSHIdentitiesMatchDeviceRole(t *testing.T) {
 	for device, want := range map[deviceProfile][]string{
 		deviceNotebook: {"id_trabalho_desktop.pub"},
-		deviceServer:   {"id_pessoal_desktop.pub"},
 	} {
 		if got, err := incomingSSHIdentities(device); err != nil || !slices.Equal(got, want) {
 			t.Fatalf("%s: identidade=%q erro=%v", device, got, err)
@@ -73,7 +71,11 @@ func TestSSHConfigsUseKeysFromTheirOriginDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	notebook := readHomelabFile(t, configPath(setupDirectory(root, deviceNotebook), "ssh", "config"))
+	contents, err := os.ReadFile(configPath(setupDirectory(root, deviceNotebook), "ssh", "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	notebook := string(contents)
 	for _, forbidden := range []string{"id_pessoal_notebook", "Host 192.168.1.103", "Host 192.168.1.104", "Host 192.168.1.107"} {
 		if strings.Contains(notebook, forbidden) {
 			t.Fatalf("configuração notebook contém acesso não autorizado: %s", forbidden)

@@ -116,10 +116,8 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 
 func newExitMenu(hostname string) model {
 	profiles := map[string]deviceProfile{
-		"desktop":  deviceDesktop,
-		"laptop":   deviceLaptop,
-		"homeprod": deviceHomeProd,
-		"homelab":  deviceServer,
+		"desktop": deviceDesktop,
+		"laptop":  deviceLaptop,
 	}
 	device := deviceUnknown
 	for part := range strings.SplitSeq(strings.ToLower(hostname), "-") {
@@ -146,15 +144,9 @@ func (m model) items() []item {
 		return m.laptopItems()
 	}
 	switch m.device {
-	case deviceDesktop, deviceNotebook, deviceServer, deviceHomeProd:
+	case deviceDesktop, deviceNotebook:
 	default:
 		return nil
-	}
-	if m.device == deviceServer {
-		return m.serverItems()
-	}
-	if m.device == deviceHomeProd {
-		return m.homeProdItems()
 	}
 	switch m.screen {
 	case screenMain:
@@ -331,7 +323,7 @@ func (m *model) refresh() {
 	case screenSSH:
 		m.ssh = loadSSHStatusForDevice(m.device)
 	case screenFirewall:
-		m.fw = loadFWStatusForDevice(m.device, loadSSHStatusForDevice(m.device).port())
+		m.fw = loadFWStatus(loadSSHStatusForDevice(m.device).port())
 	case screenDocker:
 		m.docker = loadDockerStatus()
 	case screenGit:
@@ -475,8 +467,6 @@ func (m model) subtitle() string {
 		if !m.exitOnly {
 			environment = "Omarchy · Wayland"
 		}
-	case deviceServer, deviceHomeProd:
-		environment = "Ubuntu"
 	case deviceUnknown:
 		if m.exitOnly {
 			environment = "Sem suporte"

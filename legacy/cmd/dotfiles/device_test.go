@@ -68,7 +68,7 @@ func TestDetectDeviceByHostnameMarker(t *testing.T) {
 }
 
 func TestDetectDeviceRejectsUnknownOrAmbiguousHostname(t *testing.T) {
-	for _, hostname := range []string{"", "servidor", "mini-server", "desktop-notebook", "homelab-homeprod", "laptop-alan-desktop", "notebook-laptop-alan"} {
+	for _, hostname := range []string{"", "servidor", "mini-server", "homeprod", "homelab", "desktop-notebook", "homelab-homeprod", "laptop-alan-desktop", "notebook-laptop-alan"} {
 		device, err := detectDevice(hostname)
 		if err == nil || device != deviceUnknown {
 			t.Fatalf("hostname %q deveria retornar perfil desconhecido e erro", hostname)

@@ -2,7 +2,7 @@
 
 Esta pasta arquiva a versão anterior da CLI. Consulte o [README atual](../README.md) para instalar ou desenvolver a versão em uso.
 
-Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
+Configuração pessoal para CachyOS com Niri e Noctalia Shell e para Laptop com Omarchy.
 
 O executável legado abre apenas a opção **Sair**. As ações e os requisitos abaixo documentam o código arquivado para a migração.
 
@@ -62,8 +62,6 @@ Ao executar essas ações, a CLI identifica o perfil sem perguntar ao usuário. 
 
 - `desktop`: disponibiliza as ações legadas ainda associadas ao Desktop;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
-- `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
-- `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
 - `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH, Firewall UFW, Navegador Web > Firefox (exige `~/.config/mozilla` existente e prepara `/mnt/backups/dotfiles/Restore Firefox` com sudo para o usuário) e a ação manual Aparência (`~/.face` e wallpaper em `~/.config/omarchy/backgrounds/dracula/laptop.jpg`). Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root. A configuração aceita zero chaves autorizadas e não exige teste de login remoto: verifica o serviço ativo/habilitado e a porta SSH respondendo localmente. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não move pastas nem cria links simbólicos; cria apenas os diretórios necessários às ações solicitadas. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
 
@@ -77,8 +75,6 @@ Nos perfis Desktop e Notebook, a CLI exige este ambiente:
 
 Ela encerra a execução quando algum desses componentes está ausente.
 
-O perfil `homelab` exige Ubuntu (`ID=ubuntu` em `/etc/os-release`), sem exigir Niri ou Noctalia. Seus pacotes são instalados via APT, não Pacman/yay.
-
 Também são necessários:
 
 - Go compatível com `go.mod`
@@ -86,7 +82,7 @@ Também são necessários:
 - Bash
 - curl
 - Acesso à internet
-- Pacman (Desktop/Notebook) ou APT (Homelab Ubuntu)
+- Pacman
 - sudo
 - systemd
 
@@ -104,7 +100,7 @@ O Notebook mantém seu `ssh/config` e tem seus próprios arquivos do Niri, Fish,
 
 Ollama continua exclusivo de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
-Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
+O Laptop e o MacBook usam diretórios separados dos perfis CachyOS. O MacBook ainda não tem ações suportadas.
 
 A identidade do Git no Notebook fica definida em `setup/notebook/git/.gitconfig`.
 
@@ -174,188 +170,6 @@ O código do Notebook conserva estas ações:
 - Backup: todas as ações disponíveis.
 
 As demais ações ficam exclusivas do Desktop.
-
-### Fish nos servidores
-
-Homelab e HomeProd oferecem `Configurar Fish` no menu principal. Execute como o usuário que usará o shell, preferencialmente `alsgy`, sem iniciar a CLI com sudo. A ação usa sudo apenas para instalar pacotes e definir o shell de login. Executar como root configura o próprio root.
-
-A ação prepara o Fastfetch e `~/.face` pelo mesmo fluxo descrito abaixo, instala `fish`, `chafa`, `bat` e `bsdextrautils` via APT e copia `setup/server/fish/config.fish` para `~/.config/fish/config.fish`. Essa base é compartilhada explicitamente somente pelos dois servidores; as configurações Fastfetch continuam específicas de cada perfil. Cria também `~/.hushlogin` para silenciar o MOTD do Ubuntu e o aviso de último login somente para esse usuário, deixando o Fastfetch como saudação. Por último, define `/usr/bin/fish` como shell de login do usuário atual. Abra uma nova sessão SSH para ativar. Para voltar a exibir os avisos, remova `~/.hushlogin`.
-
-A configuração adapta do desktop o histórico com data, os atalhos `!!` e `!$`, os aliases de arquivos e systemd, o pager do man e os diretórios locais no PATH. Os aliases de pacotes usam APT. Eza e Mise são aproveitados somente se já estiverem instalados, com fallback para `ls` e sem exigir Mise. O Fastfetch aparece no greeting interativo com a foto renderizada pelo executável Chafa; se a imagem estiver ausente, usa o logo normal. Sessões não interativas permanecem silenciosas, inclusive comandos SSH e transferências.
-
-Não depende de `/usr/share/cachyos-fish-config`: os recursos portáveis necessários foram adaptados na base dos servidores. O plugin `done.fish` de notificações gráficas não é instalado, pois não é ativado por padrão no SSH. Também ficam fora os comandos de Pacman, Niri, mirrors do CachyOS, Yazi remoto e outros atalhos exclusivos do desktop. A instalação preserva `.bashrc`, `.bash_profile`, `.profile` e outras configurações Fish; somente `config.fish` é substituído, com o backup centralizado habitual.
-
-### Fastfetch e foto de perfil nos servidores
-
-Homelab e HomeProd oferecem a ação `Fastfetch e foto de perfil` no menu principal. Ela:
-
-1. Valida a configuração própria do servidor e `../cachyos/fastfetch/face.jpg` antes de instalar pacotes.
-2. Garante que Chafa esteja disponível para renderizar a foto; quando ausente, instala `chafa` via APT. Preserva um Fastfetch já disponível e funcional. Quando ausente, instala a release oficial 2.70.0 via pacote `.deb`, com SHA-256 fixado para Ubuntu amd64 ou arm64. Usa APT para dependências, sem PPA ou novos repositórios; requer internet. Outras arquiteturas são recusadas pelo instalador.
-3. Copia `setup/homelab/fastfetch/config.json` ou `setup/homeprod/fastfetch/config.json` para `~/.config/fastfetch/config.json`, sem herdar `setup/config/`. O sistema operacional é detectado automaticamente; não há módulos gráficos nem consulta de IP público. O logo usa `command-raw` para executar Chafa sobre `~/.face`, em blocos coloridos de até 30 colunas por 15 linhas. Isso funciona no SSH sem depender da detecção das dimensões em pixels do terminal pelo Fastfetch, que pode falhar no modo `chafa` interno.
-4. Copia `../cachyos/fastfetch/face.jpg` para `~/.face`, como nos perfis desktop/notebook.
-
-Execute como o usuário que receberá a configuração, preferencialmente `alsgy`; somente a instalação de pacotes usa sudo quando necessário. Executar como root configura `/root`, não `/home/alsgy`. A ação isolada `Fastfetch e foto de perfil` não altera o shell de login, não executa Fastfetch automaticamente. Para visualizar as informações com a foto, execute `fastfetch`. A ação `Configurar Fish` também instala o greeting que o executa ao abrir uma sessão interativa.
-
-### Ações do Homelab (Ubuntu)
-
-O perfil oferece instalação do CasaOS, Fastfetch e foto de perfil, além da configuração de DNS, SSH, firewall e swap, sem instalar ambiente gráfico.
-
-#### Ferramentas de administração (sem GUI)
-
-A ação `Ferramentas de Administração` instala LazyDocker, jq, ripgrep (`rg`), fd, fzf, bat, Git e ncdu no Ubuntu Server. Usa APT com os nomes Ubuntu (`fd-find` e `bat`) e disponibiliza `fd` e `bat` por links em `/usr/local/bin` para `fdfind` e `batcat` quando esses comandos ainda não existem. Não substitui comandos existentes.
-
-O LazyDocker 0.25.2 é baixado da release oficial, com SHA-256 fixado para amd64 ou arm64. Outras arquiteturas e sistemas diferentes de Ubuntu são recusados antes da instalação. Não instala GUI, não reinstala Docker e não altera o daemon ou o socket do CasaOS. Para usá-lo sem sudo, o usuário precisa ter acesso ao Docker (grupo `docker`, equivalente a privilégios administrativos); após alterar grupos, abra uma nova sessão.
-
-Também é possível executar `sudo bash setup/homelab/tools/install.sh`. A instalação requer internet e repositórios APT habilitados para os pacotes; não habilita repositórios automaticamente. Reexecutar reaplica a instalação e baixa novamente a versão fixada do LazyDocker. Esse conjunto não altera o perfil Desktop nem o HomeProd.
-
-#### Swap de 2 GiB
-
-A ação `Configurar Swap` cria `/swapfile-homelab` com 2 GiB, permissão `0600`, ativa a swap e registra sua ativação no `/etc/fstab` com backup prévio. Usa sudo no menu; para execução direta, use `sudo bash setup/homelab/swap/configure.sh`. Requer ext4 ou XFS e mantém pelo menos 4 GiB livres após a alocação. Preserva outras swaps, reutiliza o arquivo compatível sem duplicar a entrada no fstab e recusa arquivos incompatíveis em vez de sobrescrevê-los. Não altera `swappiness` nem configura hibernação. Arquivos temporários são preservados e informados em caso de falha na criação. O HomeProd continua com sua configuração independente de 8 GiB.
-
-#### SSH por chave no HomeLab
-
-Execute o menu como seu usuário administrador (por exemplo, `alsgy`). A ação instala e ativa OpenSSH e solicita que você cole o conteúdo de `id_pessoal_desktop.pub` em uma única linha no terminal; não exige arquivo de chave no HomeLab nem no repositório. Valida a pública Ed25519, mostra seu fingerprint, cria `authorized_keys` se necessário e adiciona a chave preservando as existentes durante o teste. Teste uma segunda conexão usando essa chave e `sudo -v`. Somente depois de digitar `CONFIRMO`, mantém apenas a chave colada e aplica uma política permitindo SSH apenas para esse usuário com chave pública, bloqueando senha, autenticação interativa e root. Valida a política com `sshd -t` e `sshd -T`, guarda backup em `/mnt/backups/dotfiles/Legacy-Homelab-SSH` e recarrega o serviço. Em caso de falha na aplicação, restaura a configuração e as chaves disponíveis durante o teste. Mantenha a sessão atual aberta até testar novamente. A chave privada permanece no desktop.
-
-O instalador do CasaOS executa o comando solicitado, com detecção de falhas no download:
-
-```bash
-curl -fsSL https://get.casaos.io | sudo bash
-```
-
-A configuração DNS altera `DNSStubListener=no` na seção `[Resolve]` de `/etc/systemd/resolved.conf` e reinicia `systemd-resolved` para liberar a porta 53. Se `/etc/resolv.conf` apontar para o stub do systemd, o link é ajustado para `/run/systemd/resolve/resolv.conf`, mantendo a resolução de nomes sem o listener local. Drop-ins que habilitem o stub são rejeitados antes de qualquer alteração; ajuste esses arquivos antes de repetir a ação.
-
-SSH usa os pacotes e unidades do Ubuntu. No Homelab, antes de ser ativado, o firewall UFW libera todas as portas e protocolos de entrada para a sub-rede LAN IPv4 privada detectada. A regra é adicionada no início para prevalecer sobre bloqueios anteriores. Todos os dispositivos dessa sub-rede passam a poder acessar serviços escutando na LAN: use apenas em uma rede confiável. A política padrão continua sendo negar entrada e permitir saída; a conexão SSH administrativa atual recebe uma exceção para preservar o acesso. Regras existentes não são apagadas, inclusive eventuais liberações externas anteriores. A ação não abre portas no roteador, não configura encaminhamento para containers e não expõe serviços vinculados somente a `127.0.0.1`. Esta política é exclusiva do Homelab, não do HomeProd.
-
-
-### Ações do HomeProd (Ubuntu)
-
-#### Acesso seguro (Tunnel + firewall)
-
-O menu HomeProd oferece uma única opção **Acesso seguro (Tunnel + firewall)**, executando `setup/homeprod/access/configure.sh` com sudo. Ela reúne as duas fases abaixo: prepara o Tunnel quando necessário e depois inicia o teste protegido do firewall. Se Tunnel e firewall já estiverem ativos, saudáveis e habilitados no boot, preserva a instalação sem pedir token nem reaplicar regras. Essa checagem local não substitui testes externos ou auditoria da política.
-
-Os menus separados de etapas, confirmação, reversão e status foram removidos. Os comandos manuais de recuperação continuam disponíveis; a unificação **não** confirma automaticamente um novo teste de firewall. Se houver teste pendente, a ação não altera os serviços e orienta confirmar em uma nova sessão SSH ou reverter. Para rotacionar o token ou reaplicar deliberadamente o firewall, execute diretamente os scripts específicos documentados abaixo.
-
-#### Tunnel — primeira fase (sem fechamento de portas)
-
-O componente `setup/homeprod/tunnel/configure.sh` substitui o antigo túnel exclusivo do Vaultwarden. Executado com sudo, instala o pacote oficial `cloudflared` no Ubuntu quando ausente e configura uma unidade systemd independente do CasaOS. Não instale os apps Cloudflared/Cloudflared Web do marketplace para este fluxo. A CLI `cloudflare`/`cf` não substitui o conector `cloudflared` e não é necessária aqui.
-
-**Numa instalação nova, esta fase sozinha ainda não fecha o acesso direto pelo IP.** O script do Tunnel não altera firewall, SSH, Samba, Docker ou Vaultwarden. O hostname `homeprod.reesearch64.com` encaminha apenas o painel CasaOS em `http://127.0.0.1:80`, não todas as portas da VPS. Outros aplicativos precisarão de rotas próprias. Não remova o acesso direto antes de testar Tunnel e Access.
-
-Antes de executar, configure no painel Cloudflare Zero Trust, nesta ordem:
-
-1. Crie uma aplicação Access self-hosted cobrindo todo o hostname `homeprod.reesearch64.com` (não apenas uma URL de login). Permita somente sua identidade, usando provedor de identidade com MFA ou código por e-mail combinado com MFA independente do Access. Não use políticas `Bypass` nem `Allow Everyone`. MFA/passkey da conta administrativa Cloudflare não protege automaticamente quem acessa a aplicação. Para MFA independente, habilite também o **App Launcher** com política restrita à mesma identidade, sem exigir um MFA já cadastrado nesse portal inicial; o HomeProd deve continuar exigindo MFA. Cadastre o dispositivo pelo portal `<equipe>.cloudflareaccess.com/AddMfaDevice` antes de testar o HomeProd.
-2. Crie um Tunnel gerenciado remotamente, dedicado ao HomeProd. Não execute o comando de instalação com token oferecido pelo painel; o script gerencia seu próprio serviço e pede apenas o token.
-3. Configure a rota publicada `homeprod.reesearch64.com` para HTTP `127.0.0.1:80`, com regra final sem hostname `http_status:404`. O DNS desse subdomínio deve apontar para o Tunnel; não reutilize os hostnames `vault` ou `homelab`. Não adicione rotas SSH/Samba.
-4. Com o CasaOS respondendo na porta 80 local, execute **Acesso seguro (Tunnel + firewall)** no menu ou diretamente:
-
-   ```bash
-   sudo bash setup/homeprod/access/configure.sh
-   ```
-
-   Para configurar/rotacionar somente o conector, sem iniciar o teste do firewall: `sudo bash setup/homeprod/tunnel/configure.sh`.
-
-5. Confirme a preparação de Access/DNS e cole **somente o token**, em entrada oculta. Não grave tokens no Git, vault, linha de comando ou histórico. O script não cria nem audita políticas na sua conta Cloudflare; a confirmação manual não é uma auditoria de segurança.
-
-Requer systemd com `LoadCredential` (247+, disponível no Ubuntu suportado), `curl`, `flock` e acesso aos repositórios APT. A instalação usa o [repositório oficial Cloudflare](https://pkg.cloudflare.com/), com chave dedicada e `signed-by`. Um binário existente em `/usr/bin/cloudflared` precisa suportar `--token-file` (2025.4.0+); versões antigas exigem atualização antes de repetir. Uma unidade `cloudflared.service` existente ou um conector em execução no Docker interrompem a configuração para evitar duplicação.
-
-A unidade `cloudflared-homeprod.service` inicia no boot, usa usuário dinâmico sem privilégios e recebe a credencial por `LoadCredential`. O token fica em `/etc/homeprod-cloudflared/tunnel-token` (`0600`, diretório `0700`, root), nunca no `ExecStart`. Backups privados ficam em `/mnt/backups/dotfiles/Legacy-HomeProd-Tunnel`; trate-os também como segredos. O endpoint de saúde fica apenas em `127.0.0.1:49312`. O script aguarda `/ready` responder com sucesso; isso comprova conexão do conector, **não** a configuração correta de DNS/Access ou a segurança da origem.
-
-Em falha após alterar unidade/token, o script tenta restaurar os arquivos e o estado anterior do serviço. Pacotes e repositório APT instalados permanecem. A repetição atualiza a unidade/credencial com novo backup. Para parar somente este conector: `sudo systemctl disable --now cloudflared-homeprod.service`; isso não remove a aplicação Access, o Tunnel ou o DNS na Cloudflare. Recursos legados de Vaultwarden/Caddy/Tunnel já existentes na VPS não são migrados nem apagados automaticamente.
-
-Validação manual obrigatória, usando outra rede e navegador privado:
-
-- Sem sessão Access, `https://homeprod.reesearch64.com` deve exigir autenticação antes de exibir qualquer conteúdo do CasaOS; uma identidade não autorizada deve ser recusada.
-- Após autenticar, testar login, navegação e terminal/WebSocket do CasaOS.
-- Repetir após `sudo systemctl restart cloudflared-homeprod.service`; posteriormente testar persistência após reboot, com console de recuperação disponível.
-- Diagnóstico: `sudo systemctl status cloudflared-homeprod.service` e `sudo journalctl -u cloudflared-homeprod.service -n 50 --no-pager`. Revise logs antes de compartilhar; nunca compartilhe token ou backups.
-
-#### Etapa 2 — firewall com teste temporário e rollback
-
-Após validar Tunnel + Access + MFA, o fluxo **Acesso seguro (Tunnel + firewall)** executa `setup/homeprod/firewall/configure.sh apply` com sudo quando ainda não encontra um firewall confirmado e ativo. Não altera porta, autenticação, chaves, configuração ou serviço SSH. O inventário inicial tinha SSH TCP 22, CasaOS TCP 80 e Samba TCP 139/445 e UDP 137/138; as portas SSH são detectadas novamente pelos sockets externos do `sshd`, sem presumir 22. Se não conseguir identificar SSH, o script recusa aplicar.
-
-**Pré-requisitos:** console/rescue do provedor funcionando, sessão SSH atual mantida aberta, `cloudflared-homeprod.service` ativo, CasaOS local e endpoint `/ready` respondendo. Requer `python3`, `ip`, `ss`, `curl`, `flock` e systemd; instala `nftables` via APT se necessário. Recusa UFW efetivamente ativo e unidades firewalld/nftables ativas ou habilitadas, sem desligá-las automaticamente. Não habilite outro gerenciador de firewall junto desta política. Pacotes instalados não são removidos por rollback.
-
-**Como funciona:** cria somente a tabela `inet homeprod_guard`. O filtro é aplicado nas interfaces com rota default IPv4/IPv6 e também nas interfaces com endereços globalmente roteáveis detectados. Confira os nomes apresentados; topologias com VPN, múltiplas interfaces, bridges públicas ou políticas de roteamento personalizadas precisam de revisão. Mudanças de interface/nome/porta SSH exigem novo teste e confirmação; a política persistida não redescobre interfaces no boot.
-
-A chain `prerouting` usa prioridade `-150`: depois do conntrack e antes do DNAT do Docker. Assim, portas Docker publicadas e acesso roteado direto a containers não contornam o bloqueio. Regras/chains do Docker e demais tabelas não são apagadas (`flush ruleset` nunca é usado). O tráfego de loopback e das interfaces internas não protegidas continua sujeito às regras existentes. Novas conexões de saída do host/containers e suas respostas permanecem permitidas por esta camada; não cria política de saída nem habilita encaminhamento de rede.
-
-Entradas públicas permitem apenas TCP nas portas SSH detectadas, destinado a endereços locais da VPS, respostas de conexões iniciadas de dentro, tráfego relacionado, DHCP v4/v6 e ICMP/ICMPv6 essencial (erros, descoberta de vizinhos, anúncios de roteador e consultas MLD link-local). Demais entradas são descartadas, inclusive conexões HTTP públicas já estabelecidas; não há liberação genérica de todo tráfego `established`. Ping de entrada pode deixar de responder. O IP continua conhecido e **SSH continua público por decisão explícita**. Um firewall do provedor pode adicionar outra barreira independente.
-
-##### Aplicar e testar antes de persistir
-
-1. Mantenha a sessão SSH atual e o console do provedor disponíveis. Numa nova instalação, o menu **Acesso seguro (Tunnel + firewall)** inicia este teste após o Tunnel. Para reaplicar deliberadamente somente o firewall, execute:
-
-   ```bash
-   sudo bash setup/homeprod/firewall/configure.sh apply
-   ```
-
-2. O script valida as regras com `nft --check`, salva o estado anterior e arma um timer systemd independente **antes** de aplicar o filtro. Sem confirmação em **10 minutos**, o rollback restaura o estado anterior. Perder o terminal não elimina o timer; falhas durante a aplicação também tentam reverter imediatamente.
-3. Abra uma **nova conexão SSH** com a mesma porta/chave de antes e teste `sudo -v`. Teste `https://homeprod.reesearch64.com` com Access/MFA, login CasaOS, navegação e terminal/WebSocket.
-4. **De outra rede/máquina**, não da própria VPS, confirme que o acesso direto falha:
-
-   ```bash
-   curl --noproxy '*' --connect-timeout 3 --max-time 5 http://209.50.240.34
-   curl --noproxy '*' --connect-timeout 3 --max-time 5 http://vps12431.integrator.host
-   nmap -Pn -sT --reason -p 22,80,443,139,445,18080 209.50.240.34
-   ```
-
-   SSH deve continuar acessível; portas sem serviço podem já estar fechadas antes do teste, portanto isso sozinho não comprova o filtro. Repita por IPv6 com `nmap -6 -Pn` se a VPS tiver IPv6 público. As portas UDP NetBIOS 137/138 também são descartadas; resultados UDP `open|filtered` não comprovam que um serviço esteja aberto.
-5. Para testar realmente o bypass Docker, publique temporariamente um serviço de teste **na VPS**, inclusive depois da aplicação do filtro:
-
-   ```bash
-   sudo docker run -d --rm --name homeprod-firewall-probe -p 18080:80 nginx:alpine
-   curl --noproxy '*' --max-time 5 http://127.0.0.1:18080
-   ```
-
-   O HTTP local deve responder; `http://209.50.240.34:18080` de fora deve falhar. Teste IPv6 externo se essa publicação também escutar em IPv6. Remova o teste com `sudo docker stop homeprod-firewall-probe`. A imagem baixada permanece no cache Docker. Confira também os contadores em `sudo nft list table inet homeprod_guard`. Não confirme se SSH, Tunnel ou os bloqueios não funcionarem.
-6. **Na nova sessão SSH**, antes do prazo, confirme pelo comando (não há mais menu separado):
-
-   ```bash
-   sudo bash /etc/homeprod-firewall/manage.sh confirm
-   ```
-
-   A confirmação exige atestar os testes manualmente; o script não consegue verificar seu login remoto nem varrer a VPS de outra rede. Depois instala `homeprod-firewall.service`, habilita no boot e cancela o rollback. A unidade carrega antes da rede/Docker e recarrega a tabela atomicamente; parar a unidade não apaga as regras, evitando abertura durante shutdown.
-7. Somente depois da confirmação, teste novamente após reboot, com console disponível. Durante o teste inicial não reinicie: o timer é transitório e a regra nova ainda não está persistida. Reboot nessa fase volta à política persistida anterior (ou ao estado sem este filtro na primeira execução).
-
-##### Status, rollback e recuperação
-
-Status e reversão permanecem disponíveis somente por comandos, fora do menu:
-
-```bash
-sudo bash /etc/homeprod-firewall/manage.sh status
-sudo bash /etc/homeprod-firewall/manage.sh rollback
-```
-
-O helper fica em caminho estável, root-only, independente da sessão/checkout. Estado e snapshots privados ficam em `/etc/homeprod-firewall/` (`0700`). Só pode existir um teste pendente; ele precisa ser confirmado ou revertido antes de repetir. Se reiniciou durante o teste ou o timer expirou, não tente confirmar: execute rollback e refaça o teste. Reverter um teste restaura a tabela/configuração/estado do serviço anteriores, sem alterar regras externas; uma atualização malsucedida preserva a política já confirmada anteriormente.
-
-Depois de confirmar, `rollback` sem teste pendente não desativa o firewall. Para remover **somente este filtro** em recuperação pelo console, sabendo que isso reabre a exposição permitida pelas outras regras:
-
-```bash
-sudo systemctl disable --now homeprod-firewall.service
-sudo nft delete table inet homeprod_guard
-```
-
-Nunca use `nft flush ruleset` para recuperar este fluxo. Se a restauração falhar, o snapshot `pending/` é preservado para diagnóstico; examine `sudo journalctl -u homeprod-firewall-rollback.service --no-pager`. A proteção só deve ser considerada concluída após validação externa e reboot, não apenas por o comando ter terminado com sucesso.
-
-#### Preparação da VPS, swap e SSH
-
-`Configurar Swap` executa como root a criação de `/swapfile-homeprod` com 8 GiB, permissão `0600`, ativa a swap e registra sua ativação no `/etc/fstab` com backup prévio. Requer ext4 ou XFS e espaço para manter pelo menos 4 GiB livres após a alocação. A ação preserva outras swaps e reutiliza seu arquivo se ele já tiver o tamanho e formato esperados; não redimensiona nem sobrescreve arquivos incompatíveis. Para optar por 12 GiB na primeira criação, execute `bash setup/homeprod/swap/configure.sh 12`. Não altera `swappiness` nem configura hibernação. Se houver falha durante a criação, o arquivo temporário é preservado e seu caminho é informado.
-
-O hostname da VPS deve conter `homeprod`. A preparação inicial deve ser executada na sessão temporária de `root`; esse perfil não prepara `/mnt`, SDKs, storage nem a lixeira do root.
-
-A primeira ação executa, nesta ordem, `apt-get update`, `apt-get upgrade --yes` e a instalação do pacote `sudo`. Em seguida cria interativamente o usuário `alsgy` com shell Bash e o adiciona ao grupo `sudo`. A senha é lida diretamente pelo `adduser`, não aparece em argumentos e não é armazenada pelo dotfiles. Se `alsgy` já existir, a execução preserva sua senha e apenas garante sua associação ao grupo administrativo.
-
-Após preparar o administrador, o bootstrap instala `curl` e `ca-certificates` e chama `setup/homeprod/casaos/install.sh`. A ação independente `Instalar CasaOS` permite repetir somente essa instalação; como root, também pode executar `bash setup/homeprod/casaos/install.sh` diretamente.
-
-O wrapper baixa o instalador oficial de `https://get.casaos.io` antes de executá-lo e verifica sua sintaxe. Para contornar o HTTP 500 de `/uninstall/v0.4.16`, baixa antecipadamente o desinstalador e, se o endpoint falhar, usa `uninstall.sh` do repositório oficial `IceWhaleTech/get`, fixado na revisão `15d5563aef5e3628f2b2ac65d619d81228ab2f3e` e validado por SHA-256. Esse arquivo é apenas armazenado, nunca executado pelo wrapper. A declaração exata de URL do instalador é substituída por uma referência ao arquivo local validado; se a declaração oficial mudar, o wrapper interrompe para revisão. Não se presume equivalência de versões entre o endpoint e a alternativa do repositório.
-
-O instalador continua executando suas demais etapas, incluindo Rclone e inicialização/verificação dos serviços. Seus arquivos e o log de execução ficam no diretório `/tmp/dotfiles-casaos.*` informado na tela (podem desaparecer após reiniciar). Falhas indicam a etapa e preservam o código de saída. Quando o terminfo do terminal atual não estiver disponível, a execução usa `TERM=xterm`. A instalação pode reiniciar Docker e outros serviços, assim como o instalador oficial; não é apenas uma atualização de pacotes ou criação de usuário.
-
-Mantenha a sessão root aberta até instalar a chave pública do desktop e confirmar, em outro terminal, o acesso SSH e o funcionamento de `sudo` como `alsgy`.
-
-Depois do bootstrap, a ação independente `Configurar SSH` do HomeProd deve ser executada como root. Cole o conteúdo de `id_pessoal_desktop.pub` diretamente no prompt do terminal, em uma única linha; nenhum arquivo de chave precisa ser colocado no repositório. Também é possível executar `bash setup/homeprod/ssh/configure.sh`. A ação aceita uma única pública Ed25519, valida seu formato, mostra seu fingerprint e adiciona a chave ao usuário `alsgy` para teste. A chave privada permanece no desktop. Em outro terminal, teste o acesso com a chave privada correspondente, `PasswordAuthentication=no` e `IdentityAgent=none`, seguido de `sudo -v`.
-
-Somente após digitar `CONFIRMO`, atestando o teste e a disponibilidade de recuperação, a ação restringe o SSH a `alsgy`, exige chave pública e proíbe login SSH de root e autenticação por senha. A única fonte de chaves passa a ser `/etc/ssh/homeprod_authorized_keys/alsgy`, gerenciada por root. A política é validada com `sshd -t` e `sshd -T` antes de recarregar o serviço. O backup fica em `/mnt/backups/dotfiles/Legacy-HomeProd-SSH`; falhas na aplicação restauram a configuração anterior. Teste uma nova conexão antes de encerrar a sessão administrativa. Console/rescue do provedor e backup da chave precisam ser providenciados separadamente. Essa ação não configura o firewall.
 
 ## Navegação
 
@@ -554,7 +368,6 @@ A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/do
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
-
 ### Android CLI
 
 `Desenvolvimento > Android CLI` executa o instalador:
@@ -689,7 +502,7 @@ Niri, o cursor FrierenBLZ, Obsidian e os wallpapers usam cópias regulares.
 
 Quando o destino é diferente, a CLI preserva a versão anterior em `/mnt/backups/dotfiles`, com identificação da origem e da data e sem sobrescrever backups anteriores. Conteúdo idêntico não gera outro backup. O backup é concluído antes da substituição, inclusive quando o destino fica em outro disco.
 
-Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent, às migrações SDK e storage e aos arquivos DNS do mini-servidor. Não são criados backups permanentes nos diretórios dos programas. Backups antigos já existentes nesses locais não são movidos nem apagados automaticamente.
+Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent, às migrações SDK e storage. Não são criados backups permanentes nos diretórios dos programas. Backups antigos já existentes nesses locais não são movidos nem apagados automaticamente.
 
 ## Pi Agent
 
@@ -825,8 +638,6 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 │   ├── desktop/          # Configurações ainda arquivadas do Desktop
 │   ├── notebook/         # Configurações específicas CachyOS
 │   ├── laptop/           # Laptop Omarchy (SSH implementado em Go)
-│   ├── homelab/          # Homelab Ubuntu
-│   ├── homeprod/         # Bootstrap da VPS Ubuntu
 │   └── macbook/          # Reservado para macOS
 ├── go.mod
 ├── go.sum
@@ -842,12 +653,7 @@ make install   # Instala o comando em ~/.local/bin
 make clean     # Remove bin/
 go test ./...
 go vet ./...
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/access -p 'test_*.py'
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/tunnel -p 'test_*.py'
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s setup/homeprod/firewall -p 'test_*.py'
 ```
-
-Os testes de firewall usam comandos simulados e namespaces descartáveis para tráfego real IPv4/IPv6, incluindo DNAT equivalente a portas Docker publicadas. Não alteram regras do host. O teste de rede exige `unshare`, `nsenter`, `ip`, `nft`, `sysctl` e user/network namespaces liberados; quando indisponíveis, ele é marcado como ignorado, não como validação de rede bem-sucedida. A execução na VPS e os testes externos continuam necessários.
 
 ## Solução de problemas
 
