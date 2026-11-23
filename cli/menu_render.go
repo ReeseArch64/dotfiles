@@ -26,6 +26,13 @@ func (m model) subtitle() string {
 	return m.profile.environment + " · by ReeseArch64 · " + m.profile.name + " · v" + version
 }
 
+func screenTitle(page screen) string {
+	if login, ok := miseLoginForScreen(page); ok {
+		return login.title
+	}
+	return screenTitles[page]
+}
+
 func (m model) View() string {
 	width, height := max(m.width, 1), max(m.height, 1)
 	elapsed := m.now.Sub(m.start)
@@ -34,13 +41,13 @@ func (m model) View() string {
 
 	var crumbs []string
 	for _, s := range m.stack {
-		crumbs = append(crumbs, screenTitles[s])
+		crumbs = append(crumbs, screenTitle(s))
 	}
 	switch m.screen {
 	case screenJob:
 		crumbs = append(crumbs, m.job.title)
 	default:
-		crumbs = append(crumbs, screenTitles[m.screen])
+		crumbs = append(crumbs, screenTitle(m.screen))
 	}
 	dim := lipgloss.NewStyle().Foreground(colDim)
 	breadcrumb := strings.Join(crumbs, " › ")
@@ -54,6 +61,7 @@ func (m model) View() string {
 	if lipgloss.Width(help) > width {
 		help = m.viewHelp(true)
 	}
+	menuLimit := 0
 	layout := func(compactBanner, compactMenu, selectedDescriptionOnly bool) string {
 		var body string
 		switch m.screen {
@@ -69,9 +77,9 @@ func (m model) View() string {
 			if compactMenu {
 				gap = "\n"
 			}
-			body = card + gap + divider + gap + m.viewMenu(inner, elapsed, compactMenu, selectedDescriptionOnly)
+			body = card + gap + divider + gap + m.viewMenu(inner, elapsed, compactMenu, selectedDescriptionOnly, menuLimit)
 		default:
-			body = m.viewMenu(inner, elapsed, compactMenu, selectedDescriptionOnly)
+			body = m.viewMenu(inner, elapsed, compactMenu, selectedDescriptionOnly, menuLimit)
 		}
 		box := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -91,38 +99,51 @@ func (m model) View() string {
 	if lipgloss.Height(content) > height {
 		content = layout(true, true, true)
 	}
+	if m.screen == screenMiseLogins && lipgloss.Height(content) > height {
+		menuLimit = max(1, len(miseLogins)-(lipgloss.Height(content)-height))
+		content = layout(true, true, true)
+	}
 	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
 }
 
-func (m model) viewMenu(width int, elapsed time.Duration, compact, selectedDescriptionOnly bool) string {
+func (m model) viewMenu(width int, elapsed time.Duration, compact, selectedDescriptionOnly bool, limit int) string {
 	items := m.items()
 	if len(items) == 0 {
 		return lipgloss.NewStyle().Foreground(colDim).Render("Nenhuma opção disponível.")
 	}
 	cur := m.menuCursor(items)
+	start, end := 0, len(items)
+	if limit > 0 && limit < end {
+		start = min(max(cur-limit/2, 0), end-limit)
+		end = start + limit
+	}
 	var rows []string
-	for i, it := range items {
-		num := fmt.Sprintf("%d", i+1)
+	for i := start; i < end; i++ {
+		it := items[i]
+		var shortcut string
+		if i < 9 {
+			shortcut = fmt.Sprintf(" %d", i+1)
+		}
 		desc := ansi.Truncate(it.desc, width-4, "…")
 		var title, description string
 		if it.disabled {
 			dim := lipgloss.NewStyle().Foreground(colDimmer)
-			title = "  " + dim.Render(it.title+" "+num)
+			title = "  " + dim.Render(it.title+shortcut)
 			description = "  " + dim.Render(desc)
 		} else if i == cur {
 			bar := renderGradientText("▌", elapsed, true)
 			title = bar + " " + renderGradientText(it.title, elapsed, true)
 			description = bar + " " + lipgloss.NewStyle().Foreground(colDescSel).Render(desc)
 		} else {
-			title = "  " + lipgloss.NewStyle().Foreground(colTitle).Render(it.title) + " " +
-				lipgloss.NewStyle().Foreground(colDimmer).Render(num)
+			title = "  " + lipgloss.NewStyle().Foreground(colTitle).Render(it.title) +
+				lipgloss.NewStyle().Foreground(colDimmer).Render(shortcut)
 			description = "  " + lipgloss.NewStyle().Foreground(colDim).Render(desc)
 		}
 		rows = append(rows, title)
 		if !selectedDescriptionOnly || i == cur {
 			rows = append(rows, description)
 		}
-		if !compact && i < len(items)-1 {
+		if !compact && i < end-1 {
 			rows = append(rows, "")
 		}
 	}

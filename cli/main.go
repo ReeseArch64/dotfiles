@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.16.0"
+const version = "1.17.0"
 
 type profile struct {
 	prefix      string
@@ -88,6 +88,13 @@ func main() {
 	}
 	if len(os.Args) == 3 && os.Args[1] == "--terminal-config" {
 		if err := runTerminalConfig(identifyProfile(hostname), os.Args[2]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+	if len(os.Args) == 3 && os.Args[1] == "--mise-login" {
+		if err := runMiseLogin(identifyProfile(hostname), os.Args[2]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

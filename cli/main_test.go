@@ -45,6 +45,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if m.profile.prefix == "desktop" {
 					wantProgramming = append(wantProgramming, "Docker")
 				}
+				wantProgramming = append(wantProgramming, "Login das CLIs")
 				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, wantProgramming) {
 					t.Fatalf("menu de programação = %v", got)
 				}

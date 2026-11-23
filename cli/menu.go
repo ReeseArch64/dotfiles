@@ -28,6 +28,20 @@ const (
 	screenFirewall
 	screenCasaOS
 	screenWebBrowser
+	screenMiseLogins
+	screenLoginAWS
+	screenLoginGCloud
+	screenLoginAzure
+	screenLoginRailway
+	screenLoginGitHub
+	screenLoginFirebase
+	screenLoginCloudflare
+	screenLoginWrangler
+	screenLoginVercel
+	screenLoginNeon
+	screenLoginNPM
+	screenLoginPNPM
+	screenLoginUV
 	screenJob
 )
 
@@ -51,6 +65,7 @@ var screenTitles = map[screen]string{
 	screenFirewall:      "Firewall",
 	screenCasaOS:        "CasaOS",
 	screenWebBrowser:    "Navegador Web",
+	screenMiseLogins:    "Login das CLIs",
 }
 
 type tickMsg time.Time
@@ -181,6 +196,12 @@ func screenItems(page screen, device profile) []menuItem {
 		if device.prefix == "desktop" {
 			items = append(items, menuItem{title: "Docker", desc: "Instalar pacotes, ativar o serviço e autenticar", goTo: screenDocker})
 		}
+		return append(items, menuItem{title: screenTitles[screenMiseLogins], desc: "Autenticar nas ferramentas instaladas pelo Mise", goTo: screenMiseLogins})
+	case screenMiseLogins:
+		items := make([]menuItem, 0, len(miseLogins))
+		for _, login := range miseLogins {
+			items = append(items, menuItem{title: login.title, desc: login.commandLine(), goTo: login.page})
+		}
 		return items
 	case screenGit:
 		return []menuItem{{title: "Configurar Git", desc: "Instalar ferramentas e aplicar a configuração global", action: "setup-git"}}
@@ -212,6 +233,9 @@ func screenItems(page screen, device profile) []menuItem {
 		return []menuItem{{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"}}
 	case screenJob:
 		return nil
+	}
+	if login, ok := miseLoginForScreen(page); ok {
+		return []menuItem{{title: "Fazer login", desc: login.commandLine(), action: "mise-login-" + login.argv[0]}}
 	}
 	return []menuItem{
 		{title: "Sistema Operacional", desc: "Configurar o sistema e instalar ferramentas", goTo: screenSystem},

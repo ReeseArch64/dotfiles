@@ -72,7 +72,9 @@ As duas ações pedem confirmação antes de copiar a configuração e guardam a
 
 O `~/.gitconfig` recebe o fingerprint local em `user.signingkey` e habilita GPG para commits e tags. A CLI reaproveita a chave configurada se ela puder assinar pelo e-mail da identidade Git. Se não houver uma chave de assinatura para esse e-mail, gera uma Ed25519 com senha e validade de dois anos e exibe a chave pública.
 
-**Programação → Mise → Configurar Mise e instalar ferramentas** instala o Mise e as dependências de compilação, copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A autenticação em cada ferramenta fica a cargo do usuário. Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
+**Programação → Mise → Configurar Mise e instalar ferramentas** instala o Mise e as dependências de compilação, copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A lista inclui a CLI do GitHub (`gh`). Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
+
+No Desktop e Laptop, **Programação → Login das CLIs** tem um submenu por ferramenta: AWS, Google Cloud, Azure, Railway, GitHub, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon, npm, pnpm e uv. Cada ação abre o login oficial da ferramenta instalada pelo Mise. O uv pede o domínio ou a URL do serviço. Após atualizar a CLI, execute a configuração do Mise para instalar o `gh`, ou adicione `gh` à sua configuração do Mise se você usa uma lista personalizada.
 
 No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/etc/docker/dotfiles-backup-*/daemon.json`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
 
@@ -86,7 +88,7 @@ O tar é privado e contém dados sensíveis. A senha principal do Firefox, quand
 
 ## Instalação
 
-O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` quando ele ainda tem o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
+O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` e o modelo do Mise das versões `1.10` a `1.16` quando ainda têm o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh
