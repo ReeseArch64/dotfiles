@@ -98,9 +98,11 @@ func TestConfigurePiAgentBacksUpLegacySettings(t *testing.T) {
 }
 
 func TestPiAgentSettingsDropsThemeFromOldTemplate(t *testing.T) {
-	source := filepath.Join("..", "legacy", "setup", "config", "pi", "agent", "settings.json")
-	settings, err := piAgentSettings(source, filepath.Join(t.TempDir(), "settings.json"))
-	if err != nil || bytes.Contains(settings, []byte(`"theme"`)) {
+	directory := t.TempDir()
+	source := filepath.Join(directory, "legacy-settings.json")
+	sdkTestFile(t, source, `{"theme":"noctalia","packages":["npm:example-extension"]}`)
+	settings, err := piAgentSettings(source, filepath.Join(directory, "settings.json"))
+	if err != nil || bytes.Contains(settings, []byte(`"theme"`)) || !bytes.Contains(settings, []byte(`"npm:example-extension"`)) {
 		t.Fatalf("configuração para instalação nova: %s, %v", settings, err)
 	}
 }
