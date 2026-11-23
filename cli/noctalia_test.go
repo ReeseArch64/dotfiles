@@ -8,7 +8,9 @@ import (
 )
 
 func TestNoctaliaRequiresPluginsAndBacksUpChangedFiles(t *testing.T) {
-	source := filepath.Join("..", "cachyos", "noctalia")
+	source := t.TempDir()
+	sdkTestFile(t, filepath.Join(source, "settings.toml"), "[wallpaper.default]\npath = \"@DOTFILES_HOME@/.wallpapers/desktop-4k.jpg\"\n")
+	sdkTestFile(t, filepath.Join(source, "state.toml"), "[wallpaper]\npath = \"@DOTFILES_HOME@/.wallpapers/desktop-4k.jpg\"\n")
 	home := filepath.Join(t.TempDir(), `a"b`)
 	directory := filepath.Join(t.TempDir(), "noctalia")
 	location := backupLocation{path: filepath.Join(t.TempDir(), "Noctalia")}
@@ -16,15 +18,27 @@ func TestNoctaliaRequiresPluginsAndBacksUpChangedFiles(t *testing.T) {
 	state := filepath.Join(directory, "state.toml")
 	sdkTestFile(t, settings, "previous settings")
 	sdkTestFile(t, state, "previous state")
-	if _, err := configureNoctalia(source, directory, home, location); err == nil {
-		t.Fatal("a configuração foi aplicada com plugins ausentes")
+	community := []string{
+		"androidconnect", "github-activity", "godot-provider", "kuma-status", "kumacat", "pomodoro-heatmap",
+		"process-manager", "proton-pass", "shipyard", "ufw", "zed-provider",
+	}
+	const missingPrefix = "baixe os plugins ausentes no Noctalia: "
+	if _, err := configureNoctalia(source, directory, home, location); err == nil || err.Error() != missingPrefix+strings.Join(community, ", ")+", world_clock" {
+		t.Fatalf("lista de plugins ausentes incorreta: %v", err)
 	}
 	sdkTestContent(t, settings, "previous settings")
 	sdkTestContent(t, state, "previous state")
-	for _, plugin := range []string{"containers", "github-kanban", "zed-provider"} {
-		if err := os.MkdirAll(filepath.Join(directory, "plugins", "materialized", "community", plugin), 0755); err != nil {
+	plugins := filepath.Join(directory, "plugins", "materialized")
+	for _, plugin := range append(community, "world_clock") {
+		if err := os.MkdirAll(filepath.Join(plugins, "community", plugin), 0755); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if _, err := configureNoctalia(source, directory, home, location); err == nil || err.Error() != missingPrefix+"world_clock" {
+		t.Fatalf("a configuração deve exigir o World Clock oficial: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(plugins, "official", "world_clock"), 0755); err != nil {
+		t.Fatal(err)
 	}
 	backup, err := configureNoctalia(source, directory, home, location)
 	if err != nil || !pathInside(location.path, backup) {
@@ -32,10 +46,11 @@ func TestNoctaliaRequiresPluginsAndBacksUpChangedFiles(t *testing.T) {
 	}
 	sdkTestContent(t, filepath.Join(backup, "settings.toml"), "previous settings")
 	sdkTestContent(t, filepath.Join(backup, "state.toml"), "previous state")
-	data, err := os.ReadFile(settings)
-	if err != nil || !strings.Contains(string(data), `a\"b/.wallpapers/desktop-4k.jpg`) ||
-		strings.Contains(string(data), "noctaproton-vpn") || strings.Contains(string(data), "@DOTFILES_HOME@") {
-		t.Fatalf("configuração do Noctalia inválida: %v", err)
+	for _, path := range []string{settings, state} {
+		data, err := os.ReadFile(path)
+		if err != nil || !strings.Contains(string(data), `a\"b/.wallpapers/desktop-4k.jpg`) || strings.Contains(string(data), "@DOTFILES_HOME@") {
+			t.Fatalf("configuração do Noctalia inválida em %s: %v", path, err)
+		}
 	}
 	if backup, err := configureNoctalia(source, directory, home, location); err != nil || backup != "" {
 		t.Fatalf("reaplicação com backup %q: %v", backup, err)

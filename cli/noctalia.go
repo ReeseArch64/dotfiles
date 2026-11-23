@@ -57,12 +57,25 @@ func configureNoctalia(source, directory, home string, location backupLocation) 
 		return "", err
 	}
 	defer unlock()
-	plugins := filepath.Join(directory, "plugins", "materialized", "community")
+	plugins := filepath.Join(directory, "plugins", "materialized")
 	var missing []string
-	for _, name := range []string{"containers", "github-kanban", "zed-provider"} {
-		info, err := os.Stat(filepath.Join(plugins, name))
+	for _, path := range []string{
+		"community/androidconnect",
+		"community/github-activity",
+		"community/godot-provider",
+		"community/kuma-status",
+		"community/kumacat",
+		"community/pomodoro-heatmap",
+		"community/process-manager",
+		"community/proton-pass",
+		"community/shipyard",
+		"community/ufw",
+		"community/zed-provider",
+		"official/world_clock",
+	} {
+		info, err := os.Stat(filepath.Join(plugins, path))
 		if err != nil || !info.IsDir() {
-			missing = append(missing, name)
+			missing = append(missing, filepath.Base(path))
 		}
 	}
 	if len(missing) != 0 {

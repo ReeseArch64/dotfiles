@@ -60,7 +60,7 @@ No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /m
 
 As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
 
-**Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` do legado em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins `containers`, `github-kanban` e `zed-provider`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
+**Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` do legado em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
 
 ## Programas
 

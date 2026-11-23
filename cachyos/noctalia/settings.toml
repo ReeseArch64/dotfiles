@@ -1,47 +1,122 @@
-config_version = 14
+config_version = 20
 
 [bar.default]
-background_opacity = 0.32999999262392521
-end = [ "group:g1", "mini-docker", "network", "volume", "battery" ]
-start = [ "workspaces", "spacer_2", "weather", "spacer_3", "media" ]
-thickness = 35
+background_opacity = 0.59999998658895493
+center = [ "clock", "spacer_5", "privacy", "spacer_4", "status" ]
+end = [
+    "tray",
+    "spacer_2",
+    "notifications",
+    "shipyard",
+    "bar_3",
+    "widget",
+    "bar_2",
+    "widget_2",
+    "kuma-status",
+    "caffeine",
+    "bar",
+    "bluetooth",
+    "clipboard",
+    "network",
+    "brightness",
+    "battery",
+    "spacer_3",
+    "input_volume",
+    "volume",
+    "session",
+    "control-center"
+]
+margin_edge = 2
+margin_ends = "1%"
+scale = 0.95000000670552254
+start = [ "workspaces", "spacer_6", "weather", "kumacat" ]
+thickness = 36
 
-    [[bar.default.capsule_group]]
-    accordion = false
-    accordion_direction = "end"
-    border_width = 1.0
-    enabled = true
-    fill = "surface_variant"
-    id = "g1"
-    members = [ "tray", "bar", "github", "bluetooth", "notifications", "clipboard" ]
-    opacity = 1.0
-    padding = 6.0
+[bluetooth]
+connect_when_enabled = true
+connection_notifications = true
 
 [brightness]
 sync_all_monitors = true
 
 [calendar]
-enabled = true
+dedupe_events = true
+
+    [calendar.reminders]
+    enabled = false
+
+[control_center.calendar]
+show_events_card = false
 
 [desktop_widgets]
 enabled = false
 schema_version = 2
-widget_order = []
+widget_order = [ "desktop-widget-0000000000000001", "desktop-widget-0000000000000003", "desktop-widget-0000000000000004" ]
 
     [desktop_widgets.grid]
     cell_size = 16
     major_interval = 4
     visible = true
 
-    [desktop_widgets.widget]
+    [desktop_widgets.widget.desktop-widget-0000000000000001]
+    box_height = 256.0
+    box_width = 608.0
+    cx = 400.0
+    cy = 332.0
+    output = "DP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "clock"
 
-[dock]
-active_monitor_only = true
-background_opacity = 0.20999999530613422
-layer = "overlay"
-pinned = [ "firefox", "dev.noctalia.Noctalia", "md.obsidian.Obsidian" ]
-show_instance_count = false
-smart_auto_hide = true
+        [desktop_widgets.widget.desktop-widget-0000000000000001.settings]
+        background = false
+        background_opacity = 0.0
+        shadow = true
+        timezone = "Europe/Lisbon"
+
+    [desktop_widgets.widget.desktop-widget-0000000000000003]
+    box_height = 160.0
+    box_width = 480.0
+    cx = 1520.0
+    cy = 492.0
+    output = "DP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "label"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000003.settings]
+        background = false
+        background_opacity = 0.39000000000000001
+        font_family = "Z003"
+        opacity = 1.0
+        shadow = true
+        title = "ReeseArch64"
+
+    [desktop_widgets.widget.desktop-widget-0000000000000004]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 944.0
+    cy = 982.0
+    output = "DP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "audio_visualizer"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000004.settings]
+        background = false
+        background_opacity = 0.54000000000000004
+        bands = 64
+        show_wave = false
+        show_when_idle = true
+
+[hot_corners.bottom_right]
+action = "window_switcher"
+
+[hot_corners.top_right]
+action = "launcher"
 
 [idle]
 behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
@@ -65,12 +140,13 @@ behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
 auto_locate = true
 
 [lockscreen]
-blurred_desktop = true
+dnd = true
+wallpaper = "/home/alsgy/Pictures/Wallpapers/ScreenLock/Wallpaper Alchemy - Papel de Parede Anime Cidade Antiga Frieren - 4K.jpg"
 
 [lockscreen_widgets]
 enabled = false
 schema_version = 2
-widget_order = [ "lockscreen-login-box@DP-1", "lockscreen-login-box@DP-2", "lockscreen-login-box@DP-3" ]
+widget_order = [ "lockscreen-login-box@DP-1" ]
 
     [lockscreen_widgets.grid]
     cell_size = 16
@@ -89,7 +165,7 @@ widget_order = [ "lockscreen-login-box@DP-1", "lockscreen-login-box@DP-2", "lock
     type = "login_box"
 
         [lockscreen_widgets.widget."lockscreen-login-box@DP-1".settings]
-        background_color = "surface_variant"
+        background_color = "surface_container"
         background_opacity = 0.88
         background_radius = 12.0
         center_password_text = false
@@ -100,175 +176,199 @@ widget_order = [ "lockscreen-login-box@DP-1", "lockscreen-login-box@DP-2", "lock
         show_keyboard_layout = true
         show_login_button = true
         show_media = true
+        show_media_controls = true
+        show_password_reveal = true
         show_session_buttons = true
         show_unlock_hint = true
         show_weather = true
 
-    [lockscreen_widgets.widget."lockscreen-login-box@DP-2"]
-    box_height = 196.0
-    box_width = 810.0
-    cx = 960.0
-    cy = 898.0
-    output = "DP-2"
-    placement_height = 1080.0
-    placement_width = 1920.0
-    rotation = 0.0
-    type = "login_box"
-
-        [lockscreen_widgets.widget."lockscreen-login-box@DP-2".settings]
-        background_color = "surface_variant"
-        background_opacity = 0.88
-        background_radius = 12.0
-        center_password_text = false
-        input_opacity = 1.0
-        input_radius = 6.0
-        layout = "regular"
-        show_caps_lock = true
-        show_keyboard_layout = true
-        show_login_button = true
-        show_media = true
-        show_session_buttons = true
-        show_unlock_hint = true
-        show_weather = true
-
-    [lockscreen_widgets.widget."lockscreen-login-box@DP-3"]
-    box_height = 196.0
-    box_width = 810.0
-    cx = 960.0
-    cy = 898.0
-    output = "DP-3"
-    placement_height = 1080.0
-    placement_width = 1920.0
-    rotation = 0.0
-    type = "login_box"
-
-        [lockscreen_widgets.widget."lockscreen-login-box@DP-3".settings]
-        background_color = "surface_variant"
-        background_opacity = 0.88
-        background_radius = 12.0
-        center_password_text = false
-        input_opacity = 1.0
-        input_radius = 6.0
-        layout = "regular"
-        show_caps_lock = true
-        show_keyboard_layout = true
-        show_login_button = true
-        show_media = true
-        show_session_buttons = true
-        show_unlock_hint = true
-        show_weather = true
-
-[plugin_settings."davemhammer/obsidian"]
-vault_name = "MegaBrain"
-vault_path = "@DOTFILES_HOME@/.obsidian"
-
-[plugin_settings."nightwatch75/file-search"]
-exclude_dirs = "orca, Android, .git, go, node_modules, .cache, .venv, .local, .config"
-panel_open_near_click = false
-panel_placement = "floating"
-panel_position = "center"
-
-[plugin_settings."noctalia/mpvpaper"]
-video_directory = "@DOTFILES_HOME@/Pictures/Wallpapers/Wallpapers Live"
-
-[plugin_settings."shangshui0302/github-kanban"]
-bar_display_mode = "icon"
-kanban_open_near_click = false
+[nightlight]
+enabled = true
 
 [plugins]
-enabled = [ "cleboost/zed-provider", "shangshui0302/github-kanban", "davinci13/containers" ]
+enabled = [
+    "demencia89/androidconnect",
+    "davinci13/containers",
+    "ishan0121/shipyard",
+    "tylorismusic/gamepad-display",
+    "ramosdetrigo/godot-provider",
+    "nightwatch75/kuma-status",
+    "mhdomer/kumacat",
+    "8bury/mini-docker",
+    "adam-gassem/pomodoro-heatmap",
+    "omerfuyar/process-manager",
+    "lucasoe/proton-pass",
+    "3dprogramin/ufw",
+    "noctalia/world_clock",
+    "cleboost/zed-provider"
+]
 
 [shell]
-external_ip_enabled = true
-font_family = "Open Sans"
+font_family = "Adwaita Mono"
+lang = "pt-BR"
+panel_anchor_bar = "default"
 screen_time_enabled = true
+show_close_buttons = false
+
+    [shell.animation]
+    speed = 0.90000001341104507
+
+    [shell.launcher]
+    categories = false
+    compact = true
+    layout = "simple"
+
+        [shell.launcher.providers.calculator]
+        prefix = ""
+
+        [shell.launcher.providers.emoji]
+        prefix = ""
+
+    [shell.panel]
+    control_center_placement = "floating"
+    session_placement = "floating"
+    session_position = "center"
+    transparency_mode = "glass"
+
+    [shell.screen_corners]
+    enabled = true
 
     [shell.screenshot]
-    annotate = true
     confirm_region = true
-    directory = "@DOTFILES_HOME@/Pictures/Screenshots"
-    remember_last_region = true
-    show_cursor = true
+    directory = "/home/alsgy/Pictures/Screenshots"
 
-    [shell.window_switcher]
-    mru = true
+    [[shell.session.actions]]
+    action = "lock"
+    countdown_seconds = 0.0
+    enabled = true
+    shortcut = "1"
+    variant = "default"
+
+    [[shell.session.actions]]
+    action = "logout"
+    countdown_seconds = 0.0
+    enabled = true
+    shortcut = "2"
+    variant = "default"
+
+    [[shell.session.actions]]
+    action = "lock_and_suspend"
+    countdown_seconds = 0.0
+    enabled = true
+    label = "Suspender"
+    shortcut = "3"
+    variant = "default"
+
+    [[shell.session.actions]]
+    action = "reboot"
+    countdown_seconds = 0.0
+    enabled = true
+    shortcut = "4"
+    variant = "default"
+
+    [[shell.session.actions]]
+    action = "reboot_uefi"
+    command = "notify-send 'Noctalia' 'Custom session entry'"
+    countdown_seconds = 0.0
+    enabled = true
+    label = "UEFI"
+    variant = "default"
+
+    [[shell.session.actions]]
+    action = "shutdown"
+    countdown_seconds = 0.0
+    enabled = true
+    shortcut = "5"
+    variant = "destructive"
 
 [theme]
-builtin = "Dracula"
+builtin = "Catppuccin"
+wallpaper_scheme = "m3-content"
 
     [theme.templates]
-    builtin_ids = [ "alacritty", "gtk3", "gtk4", "kcolorscheme", "kitty", "niri", "qt" ]
+    builtin_ids = [ "btop", "kitty", "niri", "qt" ]
     community_ids = [
         "antigravity",
         "claude-code",
         "codex",
         "opencode",
         "pi-agent",
-        "firefox",
         "discord",
         "telegram",
+        "lazyvim",
         "micro",
         "neovim",
         "obsidian",
-        "vscode",
         "zed",
         "fastfetch",
         "obs",
+        "thunderbird",
         "fcitx5",
+        "ibus",
         "bat",
+        "fzf",
+        "herdr",
+        "herdr-app",
+        "lazydocker",
         "lazygit",
-        "tmux",
         "yazi"
     ]
 
 [wallpaper]
-directory = "@DOTFILES_HOME@/.wallpapers"
-fill_mode = "stretch"
-transition_on_startup = true
+directory = "/home/alsgy/Pictures/Wallpapers"
+directory_dark = "/home/alsgy/Pictures/Wallpapers/Dark"
+directory_light = "/home/alsgy/Pictures/Wallpapers/Light"
+fill_mode = "span"
+transition_duration = 900
 
     [wallpaper.default]
-    path = "@DOTFILES_HOME@/.wallpapers/desktop-4k.jpg"
+    path = "/home/alsgy/Pictures/Wallpapers/Dark/frieren-beyond-3840x2160-15146.jpg"
 
     [wallpaper.last]
-    path = "@DOTFILES_HOME@/.wallpapers/desktop-4k.jpg"
+    path = "/home/alsgy/Pictures/Wallpapers/Dark/frieren-beyond-3840x2160-15146.jpg"
 
     [wallpaper.monitors.DP-1]
-    path = "@DOTFILES_HOME@/.wallpapers/desktop-4k.jpg"
+    path = "/home/alsgy/Pictures/Wallpapers/Dark/frieren-beyond-3840x2160-15146.jpg"
 
 [widget.bar]
+type = "demencia89/androidconnect:bar"
+
+[widget.bar_2]
+type = "noctalia/world_clock:bar"
+
+[widget.bar_3]
+enabled = false
 glyph = "brand-docker"
 show_label = false
 type = "davinci13/containers:bar"
 
-[widget.brightness]
-enabled = false
-
-[widget.clock]
-timezone = "America/Sao_Paulo"
-
 [widget.control-center]
 enabled = false
 
-[widget.github]
-type = "shangshui0302/github-kanban:github"
+[widget.kuma-status]
+bar_label = ""
+type = "nightwatch75/kuma-status:kuma-status"
+
+[widget.kumacat]
+runner_style = "classic-cat"
+type = "mhdomer/kumacat:kumacat"
 
 [widget.launcher]
 enabled = false
 
 [widget.media]
-album_art_only = true
+hide_when_no_media = true
 
-[widget.mini-docker]
-enable_scroll = false
-show_count = false
-status_mode = "hidden"
-type = "8bury/mini-docker:mini-docker"
+[widget.network]
+show_label = false
 
 [widget.privacy]
-enabled = false
+active_color = "error"
+inactive_color = "primary"
 
-[widget.session]
-enabled = false
+[widget.shipyard]
+glyph = "brand-docker"
+type = "ishan0121/shipyard:shipyard"
 
 [widget.spacer_2]
 type = "spacer"
@@ -276,9 +376,26 @@ type = "spacer"
 [widget.spacer_3]
 type = "spacer"
 
-[widget.sysmon]
-stat = "gpu_vram"
-visualization = "none"
+[widget.spacer_4]
+type = "spacer"
+
+[widget.spacer_5]
+type = "spacer"
+
+[widget.spacer_6]
+type = "spacer"
+
+[widget.status]
+type = "3dprogramin/ufw:status"
 
 [widget.wallpaper]
 enabled = false
+
+[widget.weather]
+show_condition = false
+
+[widget.widget]
+type = "omerfuyar/process-manager:widget"
+
+[widget.widget_2]
+type = "adam-gassem/pomodoro-heatmap:widget"
