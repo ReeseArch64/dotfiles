@@ -69,12 +69,17 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor", "Instalar ArtCraft Launcher",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
 				if height := lipgloss.Height(osMenu.View()); height != osMenu.height {
 					t.Fatalf("menu do sistema ocupa %d linhas em terminal com %d", height, osMenu.height)
+				}
+				launcher := osMenu.items()[9]
+				launcherCommand, err := actionCommand(launcher.action, launcher.title)
+				if launcher.disabled || err != nil || !slices.Equal(launcherCommand.Args[1:], []string{"--packages", "install-artcraft-launcher"}) {
+					t.Fatalf("ação do ArtCraft Launcher: %v, %v", launcherCommand, err)
 				}
 				terminal, _ := osMenu.handleKey("8")
 				terminalItems := terminal.(model).items()

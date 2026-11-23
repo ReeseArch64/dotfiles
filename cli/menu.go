@@ -176,6 +176,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
 			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
 			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
+			{title: "Instalar ArtCraft Launcher", desc: "Instalar artcraft-launcher-bin pelo yay", action: "install-artcraft-launcher"},
 		}
 	case screenEssentials:
 		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}

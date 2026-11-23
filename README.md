@@ -60,6 +60,8 @@ No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /m
 
 **Sistema Operacional → Terminal → Instalar Kitty** instala o pacote `kitty` pelo Pacman após confirmação.
 
+**Sistema Operacional → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay após confirmação no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
+
 **Sistema Operacional → Fish → Configurar Fish** instala `fish`, `mise`, `eza`, `bat`, `util-linux` e `man-db` e aplica `~/.config/fish/config.fish`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.
 
 **Sistema Operacional → Fastfetch → Configurar Fastfetch** instala `fastfetch` e `chafa` quando necessário. Usa a foto em `~/.face` ou copia a imagem do repositório se ainda não houver uma. Aplica `~/.config/fastfetch/config.jsonc` para que o comando `fastfetch` encontre a configuração e renderize a foto com Chafa.

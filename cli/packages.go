@@ -60,6 +60,8 @@ func (installer packageInstaller) run(action, modules string) error {
 		aur = "viddy"
 	case "install-kitty":
 		official = []string{"kitty"}
+	case "install-artcraft-launcher":
+		aur = "artcraft-launcher-bin"
 	case "drivers":
 		headers, err := installer.kernelHeaders(modules)
 		if err != nil {
