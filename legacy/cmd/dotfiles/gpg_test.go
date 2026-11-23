@@ -58,7 +58,7 @@ func TestGPGDeviceIdentityUsesSelectedProfileAndHostname(t *testing.T) {
 		if err != nil || got != "Alan Guerra (notebook-test) <dev@reesearch64.com>" {
 			t.Fatalf("identidade inesperada: %q, %v", got, err)
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestGPGDeviceIdentityRejectsInvalidConfiguration(t *testing.T) {
@@ -168,7 +168,7 @@ func TestGPGGeneratesProtectedLocalKeyAndConfiguresSigning(t *testing.T) {
 }
 
 func TestDevelopmentMenuPlacesGPGAfterGit(t *testing.T) {
-	model := newModel("/dotfiles")
+	model := newModelForDevice("/dotfiles", deviceNotebook)
 	model.screen = screenDevelopment
 	items := model.items()
 	for i := range items {

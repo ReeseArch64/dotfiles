@@ -27,12 +27,12 @@ func runPiAgentSetup(device profile) error {
 	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup("Pi", console.commands.interactive)
 	printActionHeader()
-	fmt.Fprintln(console.output, "Aplicar settings.json e o tema Noctalia em", agentDir)
+	fmt.Fprintln(console.output, "Aplicar settings.json em", agentDir)
 	fmt.Fprintln(console.output, "Preparar o Pi pelo Mise e instalar ou atualizar as extensões do modelo.")
 	fmt.Fprintln(console.output, "Arquivos substituídos recebem backup em", location.path)
 	err = console.confirm("Digite CONFIRMO para configurar o Pi Agent: ", "CONFIRMO")
 	if err == nil {
-		err = configurePiAgent(console, cachyosAsset(home, "pi", "agent"), agentDir, location)
+		err = configurePiAgent(console, cachyosAsset(home, "pi", "agent/settings.json"), agentDir, location)
 	}
 	if err != nil {
 		fmt.Fprintln(console.output, err)
@@ -44,15 +44,16 @@ func runPiAgentSetup(device profile) error {
 }
 
 func configurePiAgent(console sshConsole, source, agentDir string, location backupLocation) error {
-	files, err := piAgentConfigFiles(source, agentDir)
-	if err != nil {
-		return err
-	}
 	unlock, err := lockOperation(filepath.Join(console.home, ".dotfiles-pi.lock"), "configuração do Pi Agent")
 	if err != nil {
 		return err
 	}
 	defer unlock()
+	destination := filepath.Join(agentDir, "settings.json")
+	settings, err := piAgentSettings(source, destination)
+	if err != nil {
+		return err
+	}
 	if err := console.ensurePackages("mise", "git"); err != nil {
 		return fmt.Errorf("instalar dependências do Pi Agent: %w", err)
 	}
@@ -60,7 +61,7 @@ func configurePiAgent(console sshConsole, source, agentDir string, location back
 	if err := console.commands.interactive(append(command, "--version")...); err != nil {
 		return fmt.Errorf("preparar o Pi com o Mise: %w", err)
 	}
-	backup, err := applyConfigFiles(files, location, "pi")
+	backup, err := applyConfigFiles([]configFile{{destination, settings, 0600}}, location, "pi")
 	if backup != "" {
 		fmt.Fprintln(console.output, "Backup do Pi:", backup)
 	}
@@ -73,36 +74,33 @@ func configurePiAgent(console sshConsole, source, agentDir string, location back
 	return nil
 }
 
-func piAgentConfigFiles(source, agentDir string) ([]configFile, error) {
-	const themeName = "noctalia"
-	var settings struct {
-		Theme    string   `json:"theme"`
-		Packages []string `json:"packages"`
+func piAgentSettings(source, destination string) ([]byte, error) {
+	data, err := os.ReadFile(source)
+	if err != nil {
+		return nil, fmt.Errorf("ler configuração do Pi: %w", err)
 	}
-	var theme struct {
-		Name   string            `json:"name"`
-		Colors map[string]string `json:"colors"`
+	var settings map[string]json.RawMessage
+	if err := json.Unmarshal(data, &settings); err != nil {
+		return nil, fmt.Errorf("validar configuração do Pi: %w", err)
 	}
-	var files []configFile
-	for _, file := range []struct {
-		name string
-		mode os.FileMode
-		data any
-	}{
-		{"settings.json", 0600, &settings},
-		{filepath.Join("themes", themeName+".json"), 0644, &theme},
-	} {
-		data, err := os.ReadFile(filepath.Join(source, file.name))
-		if err != nil {
-			return nil, fmt.Errorf("ler configuração do Pi %s: %w", file.name, err)
+	var packages []string
+	if err := json.Unmarshal(settings["packages"], &packages); err != nil || len(packages) == 0 {
+		return nil, errors.New("a configuração do Pi deve declarar os pacotes de extensões")
+	}
+	_, rewrite := settings["theme"]
+	delete(settings, "theme")
+	if info, err := os.Stat(destination); err == nil && info.Mode().IsRegular() {
+		var current struct {
+			Theme json.RawMessage `json:"theme"`
 		}
-		if err := json.Unmarshal(data, file.data); err != nil {
-			return nil, fmt.Errorf("validar configuração do Pi %s: %w", file.name, err)
+		if original, err := os.ReadFile(destination); err == nil && json.Unmarshal(original, &current) == nil && current.Theme != nil {
+			settings["theme"] = current.Theme
+			rewrite = true
 		}
-		files = append(files, configFile{filepath.Join(agentDir, file.name), data, file.mode})
 	}
-	if settings.Theme != themeName || theme.Name != themeName || len(theme.Colors) == 0 || len(settings.Packages) == 0 {
-		return nil, errors.New("a configuração do Pi deve declarar o tema Noctalia e os pacotes de extensões")
+	if !rewrite {
+		return data, nil
 	}
-	return files, nil
+	output, err := json.MarshalIndent(settings, "", "  ")
+	return append(output, '\n'), err
 }

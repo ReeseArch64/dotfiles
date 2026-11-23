@@ -90,7 +90,7 @@ A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador 
 
 ## Agentes de IA
 
-No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prepara o Pi, Bun e Node.js pelo Mise. A ação aplica o `settings.json` e o tema Noctalia do legado em `~/.pi/agent`, ou em `PI_CODING_AGENT_DIR` se estiver definido, e instala ou atualiza os pacotes declarados com `pi update --extensions`. Arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Pi`. [Pacotes do Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
+No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prepara o Pi, Bun e Node.js pelo Mise. A ação aplica o `settings.json` derivado do legado em `~/.pi/agent`, ou em `PI_CODING_AGENT_DIR` se estiver definido, e instala ou atualiza os pacotes declarados com `pi update --extensions`. A escolha de tema fica a cargo do usuário. O arquivo substituído recebe backup em `/mnt/backups/dotfiles/Pi`. [Pacotes do Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
 
 ## Navegador Web
 

@@ -158,9 +158,15 @@ func (m model) items() []item {
 	}
 	switch m.screen {
 	case screenMain:
+		systemDescription := "SSH, firewall e Docker"
+		developmentDescription := "Git, ambientes e IDEs"
+		if m.device == deviceDesktop {
+			systemDescription = "SSH, firewall e remoção de aplicativos pré-instalados"
+			developmentDescription = "Ambientes e ferramentas de desenvolvimento"
+		}
 		return []item{
-			{title: "Sistema", desc: "SSH, firewall e Docker", goTo: screenSystem},
-			{title: "Desenvolvimento", desc: "Git, ambientes e IDEs", goTo: screenDevelopment},
+			{title: "Sistema", desc: systemDescription, goTo: screenSystem},
+			{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
 			{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
 			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
 			{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups", goTo: screenBackup},
@@ -176,26 +182,30 @@ func (m model) items() []item {
 		items := []item{
 			{title: "SSH", desc: sshDescription, goTo: screenSSH},
 			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall},
-			{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
 		}
-		if m.device == deviceDesktop {
-			items = append(items, item{title: "Drivers", desc: "Instalar base-devel, Vulkan, glxinfo e headers do Linux", job: driversJob})
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker})
 		}
 		return append(items, item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup})
 	case screenDevelopment:
-		items := []item{
-			{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
-			{title: "GPG", desc: "Gerar chave GPG por dispositivo após configurar o Git", goTo: screenGPG},
-			{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }},
+		var items []item
+		if m.device == deviceNotebook {
+			items = append(items,
+				item{title: "Git", desc: "Instalar ferramentas e configurar os arquivos globais", goTo: screenGit},
+				item{title: "GPG", desc: "Gerar chave GPG por dispositivo após configurar o Git", goTo: screenGPG},
+			)
 		}
+		items = append(items, item{title: "Ambiente de Desenvolvimento", desc: "Configurar mise, linguagens, Rust e autenticação npm", job: func() job { return developmentEnvironmentJob(m.setupDir) }})
 		if m.device == deviceDesktop {
 			items = append(items,
 				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
 				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code, Android Studio e Zed via yay", job: idesJob},
 			)
 		}
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob})
+		}
 		return append(items,
-			item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob},
 			item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob},
 			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }},
 		)
@@ -219,11 +229,10 @@ func (m model) items() []item {
 			item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
 		)
 	case screenAIAgents:
-		items := []item{{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent}}
 		if m.device == deviceDesktop {
-			items = append(items, item{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }})
+			return []item{{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }}}
 		}
-		return items
+		return []item{{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent}}
 	case screenBackup:
 		return []item{
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
@@ -232,17 +241,25 @@ func (m model) items() []item {
 			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/gpg", job: gpgBackupJob},
 		}
 	case screenPiAgent:
-		return m.piAgentItems()
+		if m.device == deviceNotebook {
+			return m.piAgentItems()
+		}
 	case screenSSH:
 		return m.sshItems()
 	case screenFirewall:
 		return m.fwItems()
 	case screenDocker:
-		return m.dockerItems()
+		if m.device == deviceNotebook {
+			return m.dockerItems()
+		}
 	case screenGit:
-		return m.gitItems()
+		if m.device == deviceNotebook {
+			return m.gitItems()
+		}
 	case screenGPG:
-		return m.gpgItems()
+		if m.device == deviceNotebook {
+			return m.gpgItems()
+		}
 	case screenNoctalia:
 		return m.noctaliaItems()
 	case screenCleanup:

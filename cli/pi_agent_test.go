@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -42,18 +43,23 @@ func TestConfigurePiAgentBacksUpLegacySettings(t *testing.T) {
 	sdkTestFile(t, settings, `{"theme":"anterior"}`)
 	sdkTestFile(t, theme, `{"name":"tema anterior"}`)
 	sdkTestFile(t, filepath.Join(agent, "auth.json"), "credencial de teste")
-	source := filepath.Join("..", "cachyos", "pi", "agent")
+	source := filepath.Join("..", "cachyos", "pi", "agent", "settings.json")
 	location := backupLocation{path: filepath.Join(home, "backups")}
 	var calls []string
 	verifyConfig := func() {
 		t.Helper()
-		for _, name := range []string{"settings.json", filepath.Join("themes", "noctalia.json")} {
-			want, err := os.ReadFile(filepath.Join(source, name))
-			if err != nil {
-				t.Fatal(err)
-			}
-			sdkTestContent(t, filepath.Join(agent, name), string(want))
+		got, err := os.ReadFile(settings)
+		if err != nil {
+			t.Fatal(err)
 		}
+		var config struct {
+			Theme    string   `json:"theme"`
+			Packages []string `json:"packages"`
+		}
+		if err := json.Unmarshal(got, &config); err != nil || config.Theme != "anterior" || len(config.Packages) == 0 {
+			t.Fatalf("configuração do Pi: %+v, %v", config, err)
+		}
+		sdkTestContent(t, theme, `{"name":"tema anterior"}`)
 	}
 	console := sshConsole{home: home, output: &bytes.Buffer{}, commands: sshCommands{
 		capture: func(_ string, args ...string) (string, error) {
@@ -85,8 +91,18 @@ func TestConfigurePiAgentBacksUpLegacySettings(t *testing.T) {
 		t.Fatalf("backup gerado: %v, %v", backups, err)
 	}
 	sdkTestContent(t, filepath.Join(backups[0], "settings.json"), `{"theme":"anterior"}`)
-	sdkTestContent(t, filepath.Join(backups[0], "noctalia.json"), `{"name":"tema anterior"}`)
+	if _, err := os.Stat(filepath.Join(backups[0], "noctalia.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("backup inesperado do tema: %v", err)
+	}
 	sdkTestContent(t, filepath.Join(agent, "auth.json"), "credencial de teste")
+}
+
+func TestPiAgentSettingsDropsThemeFromOldTemplate(t *testing.T) {
+	source := filepath.Join("..", "legacy", "setup", "config", "pi", "agent", "settings.json")
+	settings, err := piAgentSettings(source, filepath.Join(t.TempDir(), "settings.json"))
+	if err != nil || bytes.Contains(settings, []byte(`"theme"`)) {
+		t.Fatalf("configuração para instalação nova: %s, %v", settings, err)
+	}
 }
 
 func TestConfigurePiAgentStopsWhenMiseFails(t *testing.T) {
@@ -97,7 +113,7 @@ func TestConfigurePiAgentStopsWhenMiseFails(t *testing.T) {
 		capture:     func(string, ...string) (string, error) { return "instalado", nil },
 		interactive: func(...string) error { return failure },
 	}}
-	source := filepath.Join("..", "cachyos", "pi", "agent")
+	source := filepath.Join("..", "cachyos", "pi", "agent", "settings.json")
 	if err := configurePiAgent(console, source, agent, backupLocation{}); !errors.Is(err, failure) {
 		t.Fatalf("erro = %v, esperava %v", err, failure)
 	}

@@ -12,11 +12,26 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 | Área | Ações |
 | --- | --- |
-| Sistema | SSH, Firewall, Docker, Drivers e remoção de aplicativos pré-instalados |
-| Desenvolvimento | Git, GPG, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
+| Sistema | SSH, Firewall, Docker no Notebook e remoção de aplicativos pré-instalados |
+| Desenvolvimento | Git, GPG e Linear CLI no Notebook, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
 | Desktop | Niri, Noctalia, Mozilla Firefox, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
-| Agentes de IA | Pi Agent e Ollama com GPU AMD |
+| Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
+
+### Migração do Desktop
+
+Drivers, Docker, Git/GPG, Linear CLI e Pi Agent saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
+
+A CLI atual também oferece a instalação do Mise e os logins das CLIs, a configuração do Fish e do Fastfetch e a instalação do cursor FrierenBLZ. No legado, alguns desses passos continuam dentro de ações que ainda têm etapas pendentes.
+
+| Área | O que ainda está no legado do Desktop |
+| --- | --- |
+| SSH e firewall | Configuração de cliente com aliases e identidades por destino, servidor SSH desativado e bloqueio de SSH de entrada. A CLI atual usa uma identidade por dispositivo e permite SSH pela LAN quando o firewall é configurado. |
+| Armazenamento e backup | Migração de pastas pessoais para `/mnt/storage`, lixeira em `~/.trash`, preparação de `/mnt/workspaces` com `~/Projects`, snapshot Btrfs e backup de projetos e chaves SSH/GPG. A ação de SDK atual cobre `~/.local/share/mise` e outros diretórios. `~/.local` inteiro, `~/.vscode` e `~/go` constam na lista legada. |
+| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia, login automático no SDDM, wallpapers, instalador do Firefox e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, backup do Firefox e preparação da foto pelo Fastfetch. |
+| Aplicativos | Thunderbird, Discord/BetterDiscord, Obsidian, Turing Smart Screen e remoção dos aplicativos pré-instalados. |
+| Desenvolvimento | Sandbox Podman/Distrobox, instaladores de IDEs e Android CLI, Rust estável, Better Stack CLI e utilitários como Posting, mprocs, LunarVim, usql e Proton VPN CLI. |
+| Agentes de IA | Configuração do Ollama para GPU AMD. |
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -48,7 +63,7 @@ Os requisitos abaixo se referem às ações de configuração em desenvolvimento
 
 Ao executar essas ações, a CLI identifica o perfil sem perguntar ao usuário. O hostname deve conter exatamente um destes termos, sem diferenciar maiúsculas de minúsculas:
 
-- `desktop`: disponibiliza todas as ações;
+- `desktop`: disponibiliza as ações legadas ainda associadas ao Desktop;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
@@ -88,15 +103,15 @@ CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos b
 
 Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
-A base compartilhada em `setup/config/` contém `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, os arquivos estáticos de Git, o Mise e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri e o `git/.gitconfig`, que recebe a chave GPG específica do dispositivo.
+A base compartilhada em `setup/config/` contém `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, o Mise e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri. O Notebook também mantém seu `git/.gitconfig`, que recebe a chave GPG específica do dispositivo, e usa os arquivos estáticos de Git de `../cachyos/`.
 
-Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. Após atualizar uma instalação anterior a essa estrutura, reaplique as ações de configuração: Git substitui os links antigos por cópias regulares e mise substitui o link antigo por uma cópia regular da configuração compartilhada.
+Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
 Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 
-A identidade do Git fica definida diretamente em `setup/<perfil>/git/.gitconfig`.
+A identidade do Git no Notebook fica definida em `setup/notebook/git/.gitconfig`.
 
-As chaves GPG são geradas localmente por dispositivo em `Desenvolvimento > GPG`; não é necessário fornecer arquivos de chaves externos.
+No Notebook, a ação `Desenvolvimento > GPG` gera as chaves GPG localmente.
 
 Somente nos perfis Desktop e Notebook, antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
 
@@ -367,17 +382,6 @@ Durante uma ação, aguarde todos os passos. A CLI entrega o terminal aos comand
 
 ## Sistema
 
-### Drivers
-
-`Sistema > Drivers` instala via Pacman:
-
-- `base-devel`
-- `vulkan-tools`
-- `mesa-utils`
-- `linux-headers`
-
-O pacote `mesa-utils` fornece o comando `glxinfo`.
-
 ### Aplicativos pré-instalados
 
 `Sistema > Aplicativos pré-instalados > Remover aplicativos` remove estes pacotes do CachyOS:
@@ -404,7 +408,7 @@ Esse conteúdo não recebe backup. Preserve manualmente qualquer dado necessári
 
 ### Docker
 
-`Sistema > Docker > Configurar Docker` executa estas etapas:
+No Notebook, `Sistema > Docker > Configurar Docker` executa estas etapas:
 
 1. Valida o executável `firefox`, sem exigir um perfil pré-existente.
 2. Instala Docker, Compose, Buildx e Lazydocker.
@@ -473,7 +477,7 @@ A ação instala `ufw` e `iptables-nft`, bloqueia entradas e permite saídas por
 
 ### Git
 
-`Desenvolvimento > Git > Configurar Git`:
+No Notebook, `Desenvolvimento > Git > Configurar Git`:
 
 1. Instala `git` e `github-cli` via Pacman.
 2. Instala `lazygit` e `glab` via yay.
@@ -499,7 +503,7 @@ Ela também declara os filtros do Git LFS, mas a CLI não instala `git-lfs`. Ins
 
 ### GPG
 
-`Desenvolvimento > GPG > Gerar chave por dispositivo` exige que a configuração do Git esteja pronta.
+No Notebook, `Desenvolvimento > GPG > Gerar chave por dispositivo` exige que a configuração do Git esteja pronta.
 
 A ação:
 
@@ -790,7 +794,7 @@ Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent
 
 ## Pi Agent
 
-`Agentes de IA > Pi Agent > Configurar Pi Agent`:
+No Notebook, `Agentes de IA > Pi Agent > Configurar Pi Agent`:
 
 1. Valida o settings e o tema Noctalia.
 2. Instala o Pi pelo script oficial quando necessário.

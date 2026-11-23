@@ -59,12 +59,16 @@ func TestMainMenuOptions(t *testing.T) {
 func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	model := newModel(t.TempDir())
 	categories := map[screen][]string{
-		screenSystem:      {"SSH", "Firewall", "Docker", "Drivers", "Aplicativos pré-instalados"},
-		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Linear CLI", "Android CLI", "Ferramentas de terminal"},
+		screenSystem:      {"SSH", "Firewall", "Aplicativos pré-instalados"},
+		screenDevelopment: {"Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Android CLI", "Ferramentas de terminal"},
 		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Mozilla Firefox", "Thunderbird", "Discord", "Obsidian", "Turing Smart Screen", "Wallpapers", "Foto de perfil"},
-		screenAIAgents:    {"Pi Agent", "Ollama"},
+		screenAIAgents:    {"Ollama"},
 		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
 		screenCleanup:     {"Remover aplicativos"},
+		screenDocker:      nil,
+		screenGit:         nil,
+		screenGPG:         nil,
+		screenPiAgent:     nil,
 	}
 	for category, want := range categories {
 		model.screen = category

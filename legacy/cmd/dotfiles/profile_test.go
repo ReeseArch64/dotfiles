@@ -73,6 +73,9 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 				{screenGit, "Configurar Git", "Copiar ~/.gitconfig"},
 				{screenDesktop, "Niri", "Copiar configuração para ~/.config/niri"},
 			} {
+				if action.screen == screenGit && device != deviceNotebook {
+					continue
+				}
 				m.screen = action.screen
 				found := false
 				for _, it := range m.items() {
@@ -92,11 +95,18 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 					t.Fatalf("ação ausente: %s / %s", action.title, action.label)
 				}
 			}
-			for _, path := range []string{".gitconfig", ".config/niri/config.kdl"} {
+			paths := []string{".config/niri/config.kdl"}
+			if device == deviceNotebook {
+				paths = append(paths, ".gitconfig")
+			}
+			for _, path := range paths {
 				content, err := os.ReadFile(filepath.Join(home, filepath.FromSlash(path)))
 				if err != nil || !strings.Contains(string(content), device.String()) {
 					t.Fatalf("perfil incorreto em %s: %s, %v", path, content, err)
 				}
+			}
+			if device != deviceNotebook {
+				return
 			}
 			m.screen = screenGit
 			m.refresh()
@@ -116,11 +126,7 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 			if err := applyGitSigningKey(m.setupDir, home, "new-key"); err != nil {
 				t.Fatal(err)
 			}
-			other := deviceDesktop
-			if device == deviceDesktop {
-				other = deviceNotebook
-			}
-			if key, err := readGitSigningKey(configPath(setupDirectory(root, other), "git", ".gitconfig")); err != nil || key != other.String() {
+			if key, err := readGitSigningKey(configPath(setupDirectory(root, deviceDesktop), "git", ".gitconfig")); err != nil || key != deviceDesktop.String() {
 				t.Fatalf("outro perfil alterado: %s, %v", key, err)
 			}
 		})
@@ -140,6 +146,9 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 			}
 		}
 		for _, name := range []string{"cursor", "fastfetch", "fish", "git", "mise", "niri", "noctalia", "pi", "ssh"} {
+			if name == "git" && filepath.Base(setupDir) == "desktop" {
+				continue
+			}
 			if info, err := os.Stat(configPath(setupDir, name)); err != nil || !info.IsDir() {
 				t.Fatalf("configuração %s ausente em %s: %v", name, setupDir, err)
 			}
@@ -176,6 +185,9 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 		}
 		installNoctaliaTestPlugins(t, pluginDir)
 		for _, screen := range []screen{screenNoctalia, screenPiAgent} {
+			if screen == screenPiAgent && device != deviceNotebook {
+				continue
+			}
 			m.screen = screen
 			for _, current := range m.items()[0].job().steps {
 				if current.run != nil {
@@ -186,7 +198,7 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 			}
 			m.refresh()
 		}
-		if !m.piAgent.settingsOK || !m.piAgent.themeOK || m.piAgent.configErr != nil {
+		if device == deviceNotebook && (!m.piAgent.settingsOK || !m.piAgent.themeOK || m.piAgent.configErr != nil) {
 			t.Fatalf("Pi não usa perfil selecionado: %#v", m.piAgent)
 		}
 		for _, file := range m.noctalia.files {

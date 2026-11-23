@@ -1,5 +1,4 @@
 {
-  "theme": "noctalia",
   "npmCommand": [
     "bun",
     "--ignore-scripts"

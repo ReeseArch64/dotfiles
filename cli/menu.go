@@ -214,9 +214,9 @@ func screenItems(page screen, device profile) []menuItem {
 		}
 		return append(items, menuItem{title: screenTitles[screenMiseLogins], desc: "Autenticar nas ferramentas instaladas pelo Mise", goTo: screenMiseLogins})
 	case screenAIAgents:
-		return []menuItem{{title: "Pi Agent", desc: "Configurar o tema e os pacotes do Pi", goTo: screenPiAgent}}
+		return []menuItem{{title: "Pi Agent", desc: "Configurar o Pi e seus pacotes", goTo: screenPiAgent}}
 	case screenPiAgent:
-		return []menuItem{{title: "Configurar Pi Agent", desc: "Aplicar settings.json, o tema Noctalia e as extensões", action: "setup-pi-agent"}}
+		return []menuItem{{title: "Configurar Pi Agent", desc: "Aplicar settings.json e instalar as extensões", action: "setup-pi-agent"}}
 	case screenMiseLogins:
 		items := make([]menuItem, 0, len(miseLogins))
 		for _, login := range miseLogins {

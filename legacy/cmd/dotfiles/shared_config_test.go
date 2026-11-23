@@ -232,9 +232,7 @@ func TestRepositorySharedFilesAreNotDuplicated(t *testing.T) {
 	if count == 0 {
 		t.Fatal("nenhum arquivo compartilhado encontrado")
 	}
-	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
-		if _, err := os.Stat(filepath.Join(setupDirectory(root, device), "git", ".gitconfig")); err != nil {
-			t.Fatalf(".gitconfig do dispositivo ausente: %v", err)
-		}
+	if _, err := os.Stat(filepath.Join(setupDirectory(root, deviceNotebook), "git", ".gitconfig")); err != nil {
+		t.Fatalf(".gitconfig do notebook ausente: %v", err)
 	}
 }
