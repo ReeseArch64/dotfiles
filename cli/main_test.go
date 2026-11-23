@@ -45,7 +45,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if m.profile.prefix == "desktop" {
 					wantProgramming = append(wantProgramming, "Docker")
 				}
-				wantProgramming = append(wantProgramming, "Login das CLIs", "Instalar Rust")
+				wantProgramming = append(wantProgramming, "Login das CLIs", "Instalar Rust", "Instalar Android CLI")
 				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, wantProgramming) {
 					t.Fatalf("menu de programação = %v", got)
 				}
@@ -62,10 +62,12 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if err != nil || !slices.Equal(miseCommand.Args[1:], []string{"--setup-mise"}) {
 					t.Fatalf("ação do Mise: %v, %v", miseCommand, err)
 				}
-				rust := programmingMenu.items()[len(wantProgramming)-1]
-				rustCommand, err := actionCommand(rust.action, rust.title)
-				if rust.disabled || err != nil || !slices.Equal(rustCommand.Args[1:], []string{"--packages", "install-rust"}) {
-					t.Fatalf("ação do Rust: %v, %v", rustCommand, err)
+				for index, action := range []string{"install-rust", "install-android-cli"} {
+					item := programmingMenu.items()[len(wantProgramming)-2+index]
+					command, err := actionCommand(item.action, item.title)
+					if item.disabled || err != nil || !slices.Equal(command.Args[1:], []string{"--packages", action}) {
+						t.Fatalf("ação de %s: %v, %v", action, command, err)
+					}
 				}
 				browser, _ := m.selectItem(m.items()[2])
 				browserItems := browser.(model).items()
@@ -112,7 +114,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				}
 				if got := menuTitles(programMenu.items()); !slices.Equal(got, []string{
 					"Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Terminal", "Instalar ArtCraft Launcher",
-					"Instalar Zed", "Configurar Obsidian", "Configurar Turing Smart Screen", "Aplicativos pré-instalados", "Configurar Discord e BetterDiscord",
+					"Instalar Zed", "Configurar Obsidian", "Configurar Turing Smart Screen", "Aplicativos pré-instalados", "Configurar Discord e BetterDiscord", "Instalar Android Studio",
 				}) {
 					t.Fatalf("menu Programas = %v", got)
 				}
@@ -129,10 +131,12 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 						t.Fatalf("ação de %s: %v, %v, %v", action, item, command, err)
 					}
 				}
-				discord := programMenu.items()[9]
-				discordCommand, err := actionCommand(discord.action, discord.title)
-				if discord.disabled || err != nil || !slices.Equal(discordCommand.Args[1:], []string{"--packages", "setup-discord"}) {
-					t.Fatalf("ação do Discord: %v, %v", discordCommand, err)
+				for index, action := range []string{"setup-discord", "install-android-studio"} {
+					item := programMenu.items()[9+index]
+					command, err := actionCommand(item.action, item.title)
+					if item.disabled || err != nil || !slices.Equal(command.Args[1:], []string{"--packages", action}) {
+						t.Fatalf("ação de %s: %v, %v", action, command, err)
+					}
 				}
 				wallpapers := osMenu.items()[5]
 				wallpapersCommand, err := actionCommand(wallpapers.action, wallpapers.title)

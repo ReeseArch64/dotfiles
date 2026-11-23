@@ -8,11 +8,11 @@ O executável legado abre apenas a opção **Sair**. As ações e os requisitos 
 
 ## Migração do Desktop
 
-O legado ainda arquiva o [Android CLI do Google](#android-cli) e o [Ollama com ROCm para GPU AMD](#ollama). A CLI atual já instala o pacote `android-tools`, que é separado do Android CLI.
+O [Android CLI do Google](#android-cli) e o [Ollama com ROCm para GPU AMD](#ollama) já estão disponíveis na [CLI atual](../README.md).
 
 O Proton VPN CLI ficou fora da migração. O código legado instala o pacote `proton-vpn-cli` pelo yay.
 
-Também ficaram fora da migração a lixeira `~/.trash`, o login automático, o Thunderbird, o VS Code, o Android Studio, o Better Stack e as antigas ações de backup de snapshots Btrfs, projetos, chaves SSH/GPG e perfis de navegador.
+Também ficaram fora da migração a lixeira `~/.trash`, o login automático, o Thunderbird, o VS Code, o Better Stack e as antigas ações de backup de snapshots Btrfs, projetos, chaves SSH/GPG e perfis de navegador.
 
 ## Android CLI
 

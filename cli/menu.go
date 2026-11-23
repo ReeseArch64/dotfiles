@@ -157,7 +157,7 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return workstation || homelab
 	case item.goTo == screenDocker || item.action == "setup-docker" || item.action == "setup-distrobox":
 		return m.profile.prefix == "desktop"
-	case item.action == "setup-turing":
+	case item.action == "setup-turing" || item.action == "setup-ollama":
 		return m.profile.prefix == "desktop"
 	case item.goTo == screenStorage || item.action == "sdk-links" || item.action == "storage-links" || item.action == "setup-workspaces":
 		return m.profile.canMigrateSDK(m.osID)
@@ -210,6 +210,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Configurar Turing Smart Screen", desc: "Preparar Python 3.13, suporte a GPU AMD e tema Frieren", action: "setup-turing"},
 			{title: screenTitles[screenPreinstalled], desc: "Remover Alacritty, Meld e Shelly", goTo: screenPreinstalled},
 			{title: "Configurar Discord e BetterDiscord", desc: "Instalar o Discord Stable e importar temas e plugins", action: "setup-discord"},
+			{title: "Instalar Android Studio", desc: "Instalar o binário oficial pelo yay", action: "install-android-studio"},
 		}
 	case screenEssentials:
 		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}
@@ -251,9 +252,14 @@ func screenItems(page screen, device profile) []menuItem {
 		return append(items,
 			menuItem{title: screenTitles[screenMiseLogins], desc: "Autenticar nas ferramentas instaladas pelo Mise", goTo: screenMiseLogins},
 			menuItem{title: "Instalar Rust", desc: "Configurar a toolchain estável com Rustup", action: "install-rust"},
+			menuItem{title: "Instalar Android CLI", desc: "Instalar o comando android do Google", action: "install-android-cli"},
 		)
 	case screenAIAgents:
-		return []menuItem{{title: "Pi Agent", desc: "Configurar o Pi e seus pacotes", goTo: screenPiAgent}}
+		items := []menuItem{{title: "Pi Agent", desc: "Configurar o Pi e seus pacotes", goTo: screenPiAgent}}
+		if device.prefix == "desktop" {
+			items = append(items, menuItem{title: "Configurar Ollama (AMD)", desc: "Ativar ROCm e armazenar os modelos em /mnt/storage", action: "setup-ollama"})
+		}
+		return items
 	case screenPiAgent:
 		return []menuItem{{title: "Configurar Pi Agent", desc: "Aplicar settings.json e instalar as extensões", action: "setup-pi-agent"}}
 	case screenMiseLogins:
@@ -302,7 +308,7 @@ func screenItems(page screen, device profile) []menuItem {
 		{title: "Navegador Web", desc: "Instalar e definir o Firefox como navegador padrão", goTo: screenWebBrowser},
 		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
-		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},
+		{title: "Agentes de IA", desc: "Configurar agentes e ferramentas de IA", goTo: screenAIAgents},
 		{title: screenTitles[screenPrograms], desc: "Instalar programas e remover aplicativos pré-instalados", goTo: screenPrograms},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}

@@ -88,6 +88,8 @@ No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados →
 
 **Programas → Instalar Zed** instala o pacote `zed` do repositório oficial pelo Pacman. [Pacote do Zed no Arch Linux](https://archlinux.org/packages/extra/x86_64/zed/)
 
+**Programas → Instalar Android Studio** instala a versão estável pelo yay. O pacote `android-studio` do AUR distribui o binário oficial do Google. [Pacote no AUR](https://aur.archlinux.org/packages/android-studio)
+
 **Programas → Configurar Discord e BetterDiscord** instala o Discord Stable pelo Pacman e usa a CLI oficial do BetterDiscord, fornecida pelo pacote `bdcli-bin` do AUR. Se a instalação nativa ainda estiver ausente, a ação abre o Discord para inicializá-la. Encerre o Discord pela bandeja quando a CLI solicitar. A ação encontra a versão nativa mais recente, importa os temas, plugins e preferências do legado para `$XDG_CONFIG_HOME/BetterDiscord` (por padrão, `~/.config/BetterDiscord`) e guarda arquivos substituídos em `/mnt/backups/dotfiles/BetterDiscord`. [CLI oficial do BetterDiscord](https://github.com/BetterDiscord/cli)
 
 **Programas → Configurar Obsidian** reaproveita o pacote `obsidian` se já estiver instalado ou instala `obsidian-bin` pelo yay. Aplica `appearance.json` e `snippets/noctalia.css` em `~/.obsidian`, preserva os demais arquivos do diretório e guarda as versões substituídas em `/mnt/backups/dotfiles/Obsidian`. [Pacote do Obsidian no AUR](https://aur.archlinux.org/packages/obsidian-bin)
@@ -97,6 +99,8 @@ No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados →
 ## Programação
 
 **Programação → Instalar Rust** reaproveita o Rustup disponível no `PATH` ou em `~/.cargo/bin` e usa o Pacman quando o executável está ausente. Seleciona a toolchain estável como padrão e verifica `rustc` e `cargo`. A ação roda como usuário normal após confirmação.
+
+**Programação → Instalar Android CLI** reaproveita o comando `android` quando já está disponível ou executa o instalador oficial do Google em `~/.local/bin/android`. O pacote `android-tools` continua disponível no lote de ferramentas de terminal. [Android CLI no Android Developers](https://developer.android.com/tools/agents/android-cli/download)
 
 **Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta`, `git-lfs`, `neovim`, `openssh` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. Após confirmação, a ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.
 
@@ -121,6 +125,8 @@ A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador 
 ## Agentes de IA
 
 No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prepara o Pi, Bun e Node.js pelo Mise. A ação aplica o `settings.json` derivado do legado em `~/.pi/agent`, ou em `PI_CODING_AGENT_DIR` se estiver definido, e instala ou atualiza os pacotes declarados com `pi update --extensions`. A escolha de tema fica a cargo do usuário. O arquivo substituído recebe backup em `/mnt/backups/dotfiles/Pi`. [Pacotes do Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
+
+No Desktop, **Agentes de IA → Configurar Ollama (AMD)** exige uma GPU com o driver `amdgpu`, o dispositivo `/dev/kfd` e uma montagem ativa em `/mnt/storage`. Reaproveita a instalação oficial com ROCm ou executa o instalador oficial quando ela está ausente. Se o Ollama veio do Pacman, instala `ollama-rocm` quando necessário. Os modelos ficam em `/mnt/storage/ollama/models` e a API escuta em `127.0.0.1:11434`. A ação guarda a configuração systemd substituída em `/mnt/backups/dotfiles/Ollama`. Modelos existentes em outros caminhos precisam ser movidos separadamente. [Ollama no Linux](https://docs.ollama.com/linux)
 
 ## Navegador Web
 

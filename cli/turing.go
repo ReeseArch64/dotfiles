@@ -131,14 +131,6 @@ func configureTuringPython(commands sshCommands, mise, venv, requirements string
 	return nil
 }
 
-const turingInstallFile = `set -eu
-tmp=$(mktemp -- "$(dirname -- "$2")/.dotfiles-turing-XXXXXXXX")
-trap 'rm -- "$tmp"' EXIT
-install -m "$3" -g "$4" -- "$1" "$tmp"
-mv -Tf -- "$tmp" "$2"
-trap - EXIT
-`
-
 func applyTuringAssets(commands sshCommands, root string, assets []turingAsset, location backupLocation) (string, error) {
 	var changed []turingAsset
 	originals := make(map[string][]byte)
@@ -208,7 +200,7 @@ func applyTuringAssets(commands sshCommands, root string, assets []turingAsset, 
 		if asset.relative == "config.yaml" {
 			mode, group = "0664", turingGroup
 		}
-		if err := commands.interactive("sudo", "--", "sh", "-c", turingInstallFile, "dotfiles-turing",
+		if err := commands.interactive("sudo", "--", "sh", "-c", installRootConfigAtomically, "dotfiles-turing",
 			asset.source, destination, mode, group); err != nil {
 			return backup, err
 		}

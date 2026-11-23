@@ -69,7 +69,7 @@ func TestApplyTuringAssetsBacksUpConfigBeforeInstalling(t *testing.T) {
 	sdkTestFile(t, config, "new configuration")
 	sdkTestFile(t, filepath.Join(target, "config.yaml"), "previous configuration")
 	commands := sshCommands{interactive: func(args ...string) error {
-		if !slices.Equal(args[0:6], []string{"sudo", "--", "sh", "-c", turingInstallFile, "dotfiles-turing"}) ||
+		if !slices.Equal(args[0:6], []string{"sudo", "--", "sh", "-c", installRootConfigAtomically, "dotfiles-turing"}) ||
 			!slices.Equal(args[6:], []string{config, filepath.Join(target, "config.yaml"), "0664", turingGroup}) {
 			t.Fatalf("instalação privilegiada inesperada: %v", args)
 		}

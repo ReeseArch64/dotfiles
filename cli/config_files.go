@@ -120,3 +120,11 @@ func (file stagedConfigFile) restore() error {
 	}
 	return os.Rename(file.staged, file.target)
 }
+
+const installRootConfigAtomically = `set -eu
+tmp=$(mktemp -- "$(dirname -- "$2")/.dotfiles-config-XXXXXXXX")
+trap 'rm -- "$tmp"' EXIT
+install -m "$3" -g "$4" -- "$1" "$tmp"
+mv -Tf -- "$tmp" "$2"
+trap - EXIT
+`

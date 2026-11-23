@@ -54,6 +54,7 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 		{"essential-tools", []string{"sudo pacman -S --needed -- base-devel curl wget rate-mirrors"}},
 		{"install-kitty", []string{"sudo pacman -S --needed -- kitty"}},
 		{"install-artcraft-launcher", []string{"yay -S --needed -- artcraft-launcher-bin"}},
+		{"install-android-studio", []string{"yay -S --needed -- android-studio"}},
 		{"install-zed", []string{"sudo pacman -S --needed -- zed"}},
 		{"install-firefox", []string{
 			"sudo pacman -S --needed -- firefox xdg-utils",

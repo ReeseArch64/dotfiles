@@ -33,6 +33,9 @@ func runPackageAction(profile profile, action string) error {
 	if action == "setup-turing" && profile.prefix != "desktop" {
 		return errors.New("Turing Smart Screen está disponível no perfil Desktop")
 	}
+	if action == "setup-ollama" && profile.prefix != "desktop" {
+		return errors.New("Ollama com ROCm está disponível no perfil Desktop")
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -88,6 +91,14 @@ func (installer packageInstaller) run(action, modules string) error {
 		return installer.setupTuring()
 	case "setup-discord":
 		return installer.setupDiscord()
+	case "install-android-cli":
+		return installer.installAndroidCLI()
+	case "install-android-studio":
+		if !installer.installed("android-studio-bin") {
+			aur = []string{"android-studio"}
+		}
+	case "setup-ollama":
+		return installer.setupOllama()
 	case "install-firefox":
 		official = []string{"firefox", "xdg-utils"}
 	case "install-rust":

@@ -24,6 +24,18 @@ func TestPiAgentMenu(t *testing.T) {
 		}
 		next, _ := menu.handleKey("6")
 		group := next.(model)
+		items := group.items()
+		if hostname == "desktop" {
+			if len(items) != 2 || items[1].disabled || items[1].title != "Configurar Ollama (AMD)" {
+				t.Fatalf("ação do Ollama ausente: %v", items)
+			}
+			command, err := actionCommand(items[1].action, items[1].title)
+			if err != nil || !slices.Equal(command.Args[1:], []string{"--packages", "setup-ollama"}) {
+				t.Fatalf("ação do Ollama: %v, %v", command, err)
+			}
+		} else if len(items) != 1 {
+			t.Fatalf("agentes de IA no Laptop = %v", items)
+		}
 		next, _ = group.handleKey("1")
 		page := next.(model)
 		if group.screen != screenAIAgents || page.screen != screenPiAgent {
