@@ -28,6 +28,8 @@ var miseLogins = []miseLogin{
 	{screenLoginHeroku, "Heroku", "heroku", []string{"heroku", "login"}},
 	{screenLoginRender, "Render", "github:render-oss/cli", []string{"render", "login"}},
 	{screenLoginSentry, "Sentry", "github:getsentry/cli", []string{"sentry", "auth", "login"}},
+	{screenLoginMaple, "Maple", "github:MapleTechLabs/maple", []string{"maple", "auth", "login"}},
+	{screenLoginAxiom, "Axiom", "github:axiomhq/cli", []string{"axiom", "auth", "login", "--auto-login=false"}},
 	{screenLoginLinear, "Linear", "github:schpet/linear-cli", []string{"linear", "auth", "login"}},
 	{screenLoginFirebase, "Firebase", "firebase", []string{"firebase", "login"}},
 	{screenLoginCloudflare, "Cloudflare CLI", "npm:cf", []string{"cf", "auth", "login"}},

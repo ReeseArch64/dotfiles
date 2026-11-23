@@ -10,6 +10,8 @@ heroku = { version = "latest" }
 "github:render-oss/cli" = { version = "latest", rename_exe = "render" }
 "github:getsentry/cli" = { version = "latest", asset_pattern = 'sentry-linux-{{ arch(x64="x64", arm64="arm64") }}', format = "raw", bin = "sentry" }
 "github:schpet/linear-cli" = { version = "latest", asset_pattern = 'linear-{{ arch(x64="x86_64", arm64="aarch64") }}-unknown-linux-gnu.tar.xz' }
+"github:MapleTechLabs/maple" = { version = "latest", asset_pattern = 'maple-v{{ version }}-{{ arch(x64="x86_64", arm64="aarch64") }}-unknown-linux-gnu.tar.gz' }
+"github:axiomhq/cli" = { version = "latest", rename_exe = "axiom" }
 k9s = { version = "latest" }
 kind = { version = "latest" }
 kubectl = { version = "latest" }

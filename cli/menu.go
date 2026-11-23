@@ -38,6 +38,8 @@ const (
 	screenLoginHeroku
 	screenLoginRender
 	screenLoginSentry
+	screenLoginMaple
+	screenLoginAxiom
 	screenLoginLinear
 	screenLoginFirebase
 	screenLoginCloudflare
