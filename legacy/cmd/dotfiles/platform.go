@@ -27,13 +27,6 @@ func checkPlatform(osReleasePath string, lookPath func(string) (string, error)) 
 }
 
 func checkPlatformForDevice(device deviceProfile, path string, lookPath func(string) (string, error)) error {
-	if device == deviceLaptop {
-		id, err := osReleaseID(path)
-		if err != nil || id != "omarchy" {
-			return errors.New("ambiente incompatível: Laptop (Omarchy Linux) requer ID=omarchy em /etc/os-release")
-		}
-		return nil
-	}
 	if device == deviceMacBook {
 		return errors.New("MacBook ainda não é suportado")
 	}

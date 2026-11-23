@@ -42,7 +42,7 @@ func TestConfigPathSharedFallbackAndProfilePriority(t *testing.T) {
 func TestConfigPathDoesNotInheritForOtherProfiles(t *testing.T) {
 	root := t.TempDir()
 	writeSharedConfigTestFile(t, filepath.Join(root, "setup", "config", "app", "config"), "shared")
-	for _, device := range []deviceProfile{deviceMacBook, deviceLaptop} {
+	for _, device := range []deviceProfile{deviceMacBook} {
 		profile := setupDirectory(root, device)
 		local := filepath.Join(profile, "app", "config")
 		if got := configPath(profile, "app", "config"); got != local {
@@ -93,7 +93,7 @@ func TestSharedDirectoryCompositionPreservesOverridesAndBackups(t *testing.T) {
 	writeSharedConfigTestFile(t, filepath.Join(shared, "cfg", "display.kdl"), "common display")
 	profile := setupDirectory(root, deviceNotebook)
 	localDisplay := filepath.Join(profile, "niri", "cfg", "display.kdl")
-	writeSharedConfigTestFile(t, localDisplay, "laptop display")
+	writeSharedConfigTestFile(t, localDisplay, "notebook display")
 	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	destination := filepath.Join(home, ".config", "niri")
 	for range 2 {
@@ -102,7 +102,7 @@ func TestSharedDirectoryCompositionPreservesOverridesAndBackups(t *testing.T) {
 		}
 	}
 	for name, want := range map[string]string{
-		"config.kdl": "common root", "cfg/input.kdl": "common input", "cfg/display.kdl": "laptop display",
+		"config.kdl": "common root", "cfg/input.kdl": "common input", "cfg/display.kdl": "notebook display",
 	} {
 		content, err := os.ReadFile(filepath.Join(destination, filepath.FromSlash(name)))
 		if err != nil || string(content) != want {
@@ -112,12 +112,12 @@ func TestSharedDirectoryCompositionPreservesOverridesAndBackups(t *testing.T) {
 	if matches, err := testBackupPaths(localBackupRoot(), "files", destination); err != nil || len(matches) != 0 {
 		t.Fatalf("reinstalação idêntica criou backups: %v, %v", matches, err)
 	}
-	writeSharedConfigTestFile(t, localDisplay, "updated laptop display")
+	writeSharedConfigTestFile(t, localDisplay, "updated notebook display")
 	if err := installNiri(profile, home, now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	backup := testBackupFor(t, destination)
-	if content, err := os.ReadFile(filepath.Join(backup, "cfg", "display.kdl")); err != nil || string(content) != "laptop display" {
+	if content, err := os.ReadFile(filepath.Join(backup, "cfg", "display.kdl")); err != nil || string(content) != "notebook display" {
 		t.Fatalf("backup não preservou a composição anterior: %q, %v", content, err)
 	}
 	if content, err := os.ReadFile(filepath.Join(shared, "cfg", "display.kdl")); err != nil || string(content) != "common display" {

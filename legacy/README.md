@@ -2,7 +2,7 @@
 
 Esta pasta arquiva a versão anterior da CLI. Consulte o [README atual](../README.md) para instalar ou desenvolver a versão em uso.
 
-Configuração pessoal para CachyOS com Niri e Noctalia Shell e para Laptop com Omarchy.
+Configuração pessoal para CachyOS com Niri e Noctalia Shell.
 
 O executável legado abre apenas a opção **Sair**. As ações e os requisitos abaixo documentam o código arquivado para a migração.
 
@@ -63,7 +63,6 @@ Ao executar essas ações, a CLI identifica o perfil sem perguntar ao usuário. 
 - `desktop`: disponibiliza as ações legadas ainda associadas ao Desktop;
 - `notebook`: disponibiliza somente o conjunto específico para o portátil;
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
-- `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH, Firewall UFW, Navegador Web > Firefox (exige `~/.config/mozilla` existente e prepara `/mnt/backups/dotfiles/Restore Firefox` com sudo para o usuário) e a ação manual Aparência (`~/.face` e wallpaper em `~/.config/omarchy/backgrounds/dracula/laptop.jpg`). Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root. A configuração aceita zero chaves autorizadas e não exige teste de login remoto: verifica o serviço ativo/habilitado e a porta SSH respondendo localmente. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não move pastas nem cria links simbólicos; cria apenas os diretórios necessários às ações solicitadas. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
 
@@ -100,7 +99,7 @@ O Notebook mantém seu `ssh/config` e tem seus próprios arquivos do Niri, Fish,
 
 Ollama continua exclusivo de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
-O Laptop e o MacBook usam diretórios separados dos perfis CachyOS. O MacBook ainda não tem ações suportadas.
+O MacBook é um perfil reservado, sem ações suportadas.
 
 A identidade do Git no Notebook fica definida em `setup/notebook/git/.gitconfig`.
 
@@ -637,7 +636,6 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 ├── setup/
 │   ├── desktop/          # Configurações ainda arquivadas do Desktop
 │   ├── notebook/         # Configurações específicas CachyOS
-│   ├── laptop/           # Laptop Omarchy (SSH implementado em Go)
 │   └── macbook/          # Reservado para macOS
 ├── go.mod
 ├── go.sum

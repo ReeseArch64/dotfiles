@@ -23,28 +23,6 @@ func TestUnknownDeviceHasNoOptions(t *testing.T) {
 	assertNoDeviceOptions(t, deviceProfile(999))
 }
 
-func TestLaptopOnlyHasSSHAndFirewall(t *testing.T) {
-	m := newModelForDevice("/repo", deviceLaptop)
-	if m.setupDir != "/repo/setup/laptop" {
-		t.Fatalf("diretório do laptop incorreto: %q", m.setupDir)
-	}
-	for screen := screenMain; screen <= screenJob; screen++ {
-		m.screen = screen
-		if screen == screenMain || screen == screenFirewall || screen == screenSSH || screen == screenSSHKeys || screen == screenWebBrowser {
-			continue
-		}
-		if items := m.items(); len(items) != 0 {
-			t.Fatalf("laptop recebeu opções na tela %v: %v", screen, itemTitles(items))
-		}
-	}
-	if err := checkPlatformForDevice(deviceLaptop, "/nonexistent", func(string) (string, error) {
-		t.Fatal("laptop não deve verificar ferramentas do CachyOS")
-		return "", nil
-	}); err == nil {
-		t.Fatal("laptop não deve aceitar plataforma desconhecida")
-	}
-}
-
 func TestDetectDeviceByHostnameMarker(t *testing.T) {
 	tests := []struct {
 		hostname string
@@ -53,8 +31,6 @@ func TestDetectDeviceByHostnameMarker(t *testing.T) {
 		{"desktop-alan", deviceDesktop},
 		{"meu-NOTEBOOK", deviceNotebook},
 		{"MacBook-Pro", deviceMacBook},
-		{"laptop-alan", deviceLaptop},
-		{"LAPTOP-ALAN", deviceLaptop},
 	}
 	for _, test := range tests {
 		got, err := detectDevice(test.hostname)
@@ -68,7 +44,7 @@ func TestDetectDeviceByHostnameMarker(t *testing.T) {
 }
 
 func TestDetectDeviceRejectsUnknownOrAmbiguousHostname(t *testing.T) {
-	for _, hostname := range []string{"", "servidor", "mini-server", "homeprod", "homelab", "desktop-notebook", "homelab-homeprod", "laptop-alan-desktop", "notebook-laptop-alan"} {
+	for _, hostname := range []string{"", "servidor", "mini-server", "homeprod", "homelab", "desktop-notebook", "homelab-homeprod", "laptop", "laptop-alan"} {
 		device, err := detectDevice(hostname)
 		if err == nil || device != deviceUnknown {
 			t.Fatalf("hostname %q deveria retornar perfil desconhecido e erro", hostname)

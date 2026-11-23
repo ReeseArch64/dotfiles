@@ -139,7 +139,7 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 					t.Fatalf("configuração exclusiva %s ausente no desktop: %v", name, err)
 				}
 			} else if !os.IsNotExist(err) {
-				t.Fatalf("configuração exclusiva %s não deve existir no laptop: %v", name, err)
+				t.Fatalf("configuração exclusiva %s não deve existir neste perfil: %v", name, err)
 			}
 		}
 		var names []string

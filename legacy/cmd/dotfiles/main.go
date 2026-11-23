@@ -32,8 +32,6 @@ const (
 	screenGPG
 	screenNoctalia
 	screenCleanup
-	screenSSHKeys
-	screenWebBrowser
 	screenJob
 )
 
@@ -46,8 +44,6 @@ var screenTitles = map[screen]string{
 	screenBackup:      "Backup",
 	screenPiAgent:     "Pi Agent",
 	screenSSH:         "SSH",
-	screenSSHKeys:     "Chaves autorizadas",
-	screenWebBrowser:  "Navegador Web",
 	screenFirewall:    "Firewall",
 	screenDocker:      "Docker",
 	screenGit:         "Git",
@@ -115,21 +111,12 @@ func newModelForDevice(dotfiles string, device deviceProfile) model {
 }
 
 func newExitMenu(hostname string) model {
-	profiles := map[string]deviceProfile{
-		"desktop": deviceDesktop,
-		"laptop":  deviceLaptop,
-	}
 	device := deviceUnknown
 	for part := range strings.SplitSeq(strings.ToLower(hostname), "-") {
-		profile := profiles[part]
-		if profile == deviceUnknown {
-			continue
-		}
-		if device != deviceUnknown && device != profile {
-			device = deviceUnknown
+		if part == "desktop" {
+			device = deviceDesktop
 			break
 		}
-		device = profile
 	}
 	menu := newModelForDevice("", device)
 	menu.exitOnly = true
@@ -139,9 +126,6 @@ func newExitMenu(hostname string) model {
 func (m model) items() []item {
 	if m.exitOnly {
 		return []item{{title: "Sair", desc: "Até a próxima!", quit: true}}
-	}
-	if m.device == deviceLaptop {
-		return m.laptopItems()
 	}
 	switch m.device {
 	case deviceDesktop, deviceNotebook:
@@ -316,14 +300,11 @@ func (m model) back() model {
 
 // refresh relê o estado usado pela tela atual.
 func (m *model) refresh() {
-	if m.device == deviceLaptop {
-		m.ssh = loadSSHStatusForDevice(deviceLaptop)
-	}
 	switch m.screen {
 	case screenSSH:
-		m.ssh = loadSSHStatusForDevice(m.device)
+		m.ssh = loadSSHStatus()
 	case screenFirewall:
-		m.fw = loadFWStatus(loadSSHStatusForDevice(m.device).port())
+		m.fw = loadFWStatus(loadSSHStatus().port())
 	case screenDocker:
 		m.docker = loadDockerStatus()
 	case screenGit:
@@ -463,10 +444,6 @@ func (m model) View() string {
 func (m model) subtitle() string {
 	environment := "CachyOS · Niri · Noctalia Shell"
 	switch m.device {
-	case deviceLaptop:
-		if !m.exitOnly {
-			environment = "Omarchy · Wayland"
-		}
 	case deviceUnknown:
 		if m.exitOnly {
 			environment = "Sem suporte"
@@ -474,7 +451,7 @@ func (m model) subtitle() string {
 	}
 
 	parts := []string{environment}
-	if m.exitOnly || m.device == deviceLaptop {
+	if m.exitOnly {
 		parts = append(parts, "by ReeseArch64")
 	}
 	if !m.exitOnly || m.device != deviceUnknown {

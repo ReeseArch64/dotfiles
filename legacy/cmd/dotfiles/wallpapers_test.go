@@ -77,10 +77,6 @@ func TestLegacyWallpapersUseSharedCachyOSAssets(t *testing.T) {
 			t.Fatalf("papel de parede compartilhado ausente ou diferente: %s", name)
 		}
 	}
-	want := filepath.Join(dotfiles, "..", "cachyos", "wallpapers", "laptop.jpg")
-	if got := assetPath(dotfiles, "wallpapers", "laptop.jpg"); got != want {
-		t.Fatalf("papel de parede do Laptop: %q, esperado %q", got, want)
-	}
 }
 
 func TestInstallWallpapersPreservesExistingDirectory(t *testing.T) {

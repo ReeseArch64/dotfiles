@@ -39,11 +39,9 @@ func renderCard(rows []cardRow, width int) string {
 
 type sshStatus struct {
 	missing         []string
-	device          deviceProfile
 	service, socket unitState
 	cfg             map[string]string
 	partial         bool
-	listening       bool
 	keys            int
 	addrs           []ifaceAddr
 }
@@ -53,20 +51,17 @@ const (
 	sshSocket  = "sshd.socket"
 )
 
-func loadSSHStatusForDevice(device deviceProfile) sshStatus {
+func loadSSHStatus() sshStatus {
 	units := unitStates(sshService, sshSocket)
 	cfg, partial := readSSHDConfig()
-	listening := device == deviceLaptop && units[sshService].isActive() && probeLaptopSSHPort(cfg["port"]) == nil
 	return sshStatus{
-		listening: listening,
-		missing:   missingPkgs("openssh"),
-		device:    device,
-		service:   units[sshService],
-		socket:    units[sshSocket],
-		cfg:       cfg,
-		partial:   partial,
-		keys:      authorizedKeys(),
-		addrs:     lanAddrs(),
+		missing: missingPkgs("openssh"),
+		service: units[sshService],
+		socket:  units[sshSocket],
+		cfg:     cfg,
+		partial: partial,
+		keys:    authorizedKeys(),
+		addrs:   lanAddrs(),
 	}
 }
 
@@ -101,7 +96,7 @@ func (s sshStatus) card(width int) string {
 	}
 	rows = append(rows, cardRow{loginColor, "Login", fmt.Sprintf("porta %s · senha: %s · root: %s", s.port(), yesNo(pw), s.cfg["permitrootlogin"])})
 	keyColor := colOK
-	if s.keys == 0 && s.device != deviceLaptop {
+	if s.keys == 0 {
 		keyColor = colWarn
 	}
 	rows = append(rows, cardRow{keyColor, "Chaves", fmt.Sprintf("%d em ~/.ssh/authorized_keys", s.keys)})
@@ -172,12 +167,12 @@ func configureSSHJob(setupDir, port, lan string, device deviceProfile) job {
 	setup = append(setup, sudoStep("Habilitar e iniciar sshd.service", false, "systemctl", "enable", "--now", "sshd.service"))
 	steps = append(steps, withSudo(setup...)...)
 	return job{title: "Configurar SSH", steps: steps, result: func() string {
-		return sshResultForDevice(device)
+		return sshResult()
 	}}
 }
 
-func sshResultForDevice(device deviceProfile) string {
-	s := loadSSHStatusForDevice(device)
+func sshResult() string {
+	s := loadSSHStatus()
 	user := os.Getenv("USER")
 	cmd := lipgloss.NewStyle().Foreground(colTitle).Bold(true)
 	lines := []string{lipgloss.NewStyle().Foreground(colDim).Render("Conecte com:")}

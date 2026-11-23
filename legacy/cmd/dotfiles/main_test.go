@@ -22,15 +22,15 @@ func TestExitMenuIdentifiesHostname(t *testing.T) {
 		{"desktop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
 		{"desktop-alan", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
 		{"DESKTOP-ALAN", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
-		{"laptop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Laptop"},
-		{"laptop-alan", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Laptop"},
+		{"laptop", "Sem suporte · by ReeseArch64"},
+		{"laptop-alan", "Sem suporte · by ReeseArch64"},
 		{"homeprod", "Sem suporte · by ReeseArch64"},
 		{"homeprod-alan", "Sem suporte · by ReeseArch64"},
 		{"homelab", "Sem suporte · by ReeseArch64"},
 		{"homelab-alan", "Sem suporte · by ReeseArch64"},
 		{"notebook", "Sem suporte · by ReeseArch64"},
 		{"laptopish", "Sem suporte · by ReeseArch64"},
-		{"desktop-laptop", "Sem suporte · by ReeseArch64"},
+		{"desktop-laptop", "CachyOS · Niri · Noctalia Shell · by ReeseArch64 · Desktop"},
 		{"", "Sem suporte · by ReeseArch64"},
 	}
 	for _, tt := range tests {
