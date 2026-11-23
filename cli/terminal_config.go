@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -37,6 +38,9 @@ func runTerminalConfig(p profile, app string) error {
 	location := managedBackup(name, console.commands.interactive)
 	lock := filepath.Join(home, app)
 	packages := terminalConfigPackages(app, console.commands)
+	if app == "fish" && findMise(home, exec.LookPath) == "" {
+		packages = append(packages, "mise")
+	}
 	printActionHeader()
 	fmt.Fprintln(console.output, "Aplicar a configuração em", destination)
 	fmt.Fprintln(console.output, "Instalar se estiverem ausentes:", strings.Join(packages, ", "))
@@ -86,7 +90,7 @@ func terminalConfigPackages(app string, commands sshCommands) []string {
 	if app == "fastfetch" {
 		return []string{"fastfetch", "chafa"}
 	}
-	packages := []string{"fish", "mise", "eza", "bat", "util-linux", "man-db"}
+	packages := []string{"fish", "eza", "bat", "util-linux", "man-db"}
 	for _, name := range []string{"cachyos-fish-config", "cachyos-rate-mirrors"} {
 		if _, err := commands.capture("", "pacman", "-Si", "--", name); err == nil {
 			packages = append(packages, name)

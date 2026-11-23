@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -32,8 +33,15 @@ func TestConfigureMiseCopiesConfigBeforeInstallingTools(t *testing.T) {
 	var output bytes.Buffer
 	installer.console.output = &output
 	run := installer.console.commands.interactive
+	mise := filepath.Join(home, ".local", "bin", "mise")
+	lookup := func(name string) (string, error) {
+		if name == mise {
+			return mise, nil
+		}
+		return "", exec.ErrNotFound
+	}
 	installer.console.commands.interactive = func(args ...string) error {
-		if args[0] == "mise" {
+		if args[0] == mise {
 			contents, err := os.ReadFile(destination)
 			if err != nil || !bytes.Equal(contents, want) {
 				t.Fatalf("configuração indisponível antes do mise trust: %v", err)
@@ -41,13 +49,13 @@ func TestConfigureMiseCopiesConfigBeforeInstallingTools(t *testing.T) {
 		}
 		return run(args...)
 	}
-	if err := configureMise(*installer.console, source, destination, location); err != nil {
+	if err := configureMise(*installer.console, source, destination, location, lookup); err != nil {
 		t.Fatal(err)
 	}
 	commands := []string{
 		"sudo pacman -S --needed -- " + strings.Join(misePackages, " "),
-		"mise trust " + destination,
-		"env MISE_GLOBAL_CONFIG_FILE=" + destination + " mise --cd / install",
+		mise + " trust " + destination,
+		"env MISE_GLOBAL_CONFIG_FILE=" + destination + " " + mise + " --cd / install",
 	}
 	if !slices.Equal(*calls, commands) {
 		t.Fatalf("comandos = %q, esperados %q", *calls, commands)
@@ -76,7 +84,8 @@ func TestConfigureMiseStopsWhenPackageInstallationFails(t *testing.T) {
 	}
 	source := filepath.Join("..", "cachyos", "mise", "mise.toml")
 	destination := filepath.Join(installer.console.home, ".config", "mise", "config.toml")
-	if err := configureMise(*installer.console, source, destination, backupLocation{}); !errors.Is(err, failure) {
+	lookup := func(string) (string, error) { return "", exec.ErrNotFound }
+	if err := configureMise(*installer.console, source, destination, backupLocation{}, lookup); !errors.Is(err, failure) {
 		t.Fatalf("erro = %v, esperado %v", err, failure)
 	}
 	if _, err := os.Stat(destination); !errors.Is(err, os.ErrNotExist) {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -69,9 +68,13 @@ func runMiseLogin(device profile, name string) error {
 		if login.argv[0] != name {
 			continue
 		}
-		console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 		printActionHeader()
-		err := login.run(&console)
+		err = login.run(&console)
 		if err != nil {
 			fmt.Fprintln(console.output, err)
 		}
@@ -82,7 +85,7 @@ func runMiseLogin(device profile, name string) error {
 }
 
 func (login miseLogin) run(console *sshConsole) error {
-	args, err := login.command(console.commands)
+	args, err := login.command(console, exec.LookPath)
 	if err != nil {
 		return err
 	}
@@ -103,50 +106,14 @@ func (login miseLogin) run(console *sshConsole) error {
 	return nil
 }
 
-func (login miseLogin) command(commands sshCommands) ([]string, error) {
+func (login miseLogin) command(console *sshConsole, lookup func(string) (string, error)) ([]string, error) {
 	name := login.argv[0]
-	prefix := []string{"env", "MISE_AUTO_INSTALL=0", "mise", "--cd", "/"}
-	find := func(tool ...string) string {
-		args := append(prefix, "--quiet", "which", name)
-		path, err := commands.capture("", append(args, tool...)...)
-		path = strings.TrimSpace(path)
-		if err != nil || !filepath.IsAbs(path) || strings.ContainsAny(path, "\r\n") {
-			return ""
-		}
-		return path
+	mise := findMise(console.home, lookup)
+	if args := installedMiseTool(console.commands, mise, name, login.tool); args != nil {
+		return args, nil
 	}
-	if path := find(); path != "" {
-		return append(prefix, "exec", "--", path), nil
-	}
-	version, err := commands.capture("", append(prefix, "--quiet", "latest", "--installed", login.tool)...)
-	if fields := strings.Fields(version); err == nil && len(fields) == 1 {
-		tool := login.tool + "@" + fields[0]
-		if path := find("--tool", tool); path != "" {
-			return append(prefix, "exec", tool, "--", path), nil
-		}
-	}
-	if path := loginExecutableOnPath(name); path != "" {
+	if path := findExecutable(lookup, name, mise); path != "" {
 		return []string{path}, nil
 	}
 	return nil, fmt.Errorf("executável %s não encontrado no Mise nem no PATH. Verifique Programação → Mise", name)
-}
-
-func loginExecutableOnPath(name string) string {
-	mise, _ := exec.LookPath("mise")
-	miseInfo, _ := os.Stat(mise)
-	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
-		if !filepath.IsAbs(dir) {
-			continue
-		}
-		path, err := exec.LookPath(filepath.Join(dir, name))
-		if err != nil {
-			continue
-		}
-		// Mise shims can remain on PATH after a tool stops being active.
-		info, err := os.Stat(path)
-		if err == nil && !os.SameFile(info, miseInfo) {
-			return path
-		}
-	}
-	return ""
 }

@@ -12,7 +12,7 @@ const lunarVimBranch = "release-1.4/neovim-0.9"
 const lunarVimInstallerURL = "https://raw.githubusercontent.com/LunarVim/LunarVim/" + lunarVimBranch + "/utils/installer/install.sh"
 const lunarVimNeovim = "aqua:neovim/neovim@0.9.5"
 
-func installLunarVim(console *sshConsole) error {
+func installLunarVim(console *sshConsole, mise string) error {
 	launcher := filepath.Join(console.home, ".local", "bin", "lvim")
 	unlock, err := lockOperation(launcher, "instalação do LunarVim")
 	if err != nil {
@@ -31,16 +31,16 @@ func installLunarVim(console *sshConsole) error {
 	if !filepath.IsAbs(config) {
 		return fmt.Errorf("o diretório de configuração do LunarVim precisa ser absoluto")
 	}
-	if err := console.commands.interactive("mise", "--cd", "/", "install", lunarVimNeovim); err != nil {
-		return fmt.Errorf("instalar o Neovim do LunarVim: %w", err)
-	}
-	output, err := console.commands.capture("", "mise", "--cd", "/", "--quiet", "which", "--tool", lunarVimNeovim, "nvim")
-	if err != nil {
-		return err
-	}
-	nvim := strings.TrimSpace(output)
-	if !filepath.IsAbs(nvim) {
-		return fmt.Errorf("o Mise não retornou um caminho absoluto para o Neovim: %q", nvim)
+	prefix := []string{"env", "MISE_AUTO_INSTALL=0", mise, "--cd", "/"}
+	nvim := miseLookup(console.commands, prefix, "nvim", lunarVimNeovim)
+	if nvim == "" {
+		if err := console.commands.interactive(mise, "--cd", "/", "install", lunarVimNeovim); err != nil {
+			return fmt.Errorf("instalar o Neovim do LunarVim: %w", err)
+		}
+		nvim = miseLookup(console.commands, prefix, "nvim", lunarVimNeovim)
+		if nvim == "" {
+			return errors.New("o Mise não retornou o executável do Neovim 0.9.5")
+		}
 	}
 
 	parent := filepath.Join(console.home, ".local", "share", "dotfiles")

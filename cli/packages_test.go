@@ -84,15 +84,120 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 	}
 }
 
-func TestInstallPostingUsesPython313(t *testing.T) {
-	installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
-	installer.which = func(string) (string, error) { return "", exec.ErrNotFound }
-	if err := installer.run("install-posting", ""); err != nil {
-		t.Fatal(err)
+func TestInstallPostingReusesUV(t *testing.T) {
+	const install = " tool install --python 3.13 posting<3"
+	const pacman = "sudo pacman -S --needed -- uv"
+	const mise = "/opt/mise/bin/mise"
+	const uv = "/opt/mise/installs/uv/0.13.9/bin/uv"
+	const prefix = "env MISE_AUTO_INSTALL=0 " + mise + " --cd /"
+	for _, tc := range []struct {
+		name, answer string
+		mise, active bool
+		path         bool
+		want         []string
+	}{
+		{name: "mise ativo sem uv no PATH", mise: true, active: true, want: []string{prefix + " exec -- " + uv + install}},
+		{name: "mise instalado e inativo", mise: true, want: []string{prefix + " exec uv@0.13.9 -- " + uv + install}},
+		{name: "uv no PATH", path: true, want: []string{"/opt/uv/bin/uv" + install}},
+		{name: "instalar uv ausente", want: []string{pacman, "/usr/bin/uv" + install}},
+		{name: "cancelamento", answer: "CANCELAR", mise: true, active: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			answer := tc.answer
+			if answer == "" {
+				answer = "CONFIRMO"
+			}
+			installer, commands := newPackageInstallerTest(t, answer+"\n")
+			installer.which = func(name string) (string, error) {
+				switch {
+				case name == "mise" && tc.mise:
+					return mise, nil
+				case name == "uv" && tc.path:
+					return "/opt/uv/bin/uv", nil
+				case name == "/usr/bin/uv" && slices.Contains(*commands, pacman):
+					return name, nil
+				}
+				return "", exec.ErrNotFound
+			}
+			capture := installer.console.commands.capture
+			installer.console.commands.capture = func(input string, args ...string) (string, error) {
+				switch strings.Join(args, " ") {
+				case prefix + " --quiet which uv":
+					if tc.active {
+						return uv + "\n", nil
+					}
+					return "", exec.ErrNotFound
+				case prefix + " --quiet latest --installed uv":
+					return "0.13.9\n", nil
+				case prefix + " --quiet which uv --tool uv@0.13.9":
+					return uv + "\n", nil
+				default:
+					if tc.mise || tc.path || tc.answer != "" {
+						t.Fatalf("consulta de pacote indevida: %v", args)
+					}
+					return capture(input, args...)
+				}
+			}
+			err := installer.run("install-posting", "")
+			if (err != nil) != (tc.answer == "CANCELAR") || !slices.Equal(*commands, tc.want) {
+				t.Fatalf("comandos = %v, esperado %v, erro = %v", *commands, tc.want, err)
+			}
+		})
 	}
-	want := []string{"sudo pacman -S --needed -- uv", "/usr/bin/uv tool install --python 3.13 posting<3"}
-	if !slices.Equal(*commands, want) {
-		t.Fatalf("comandos = %v, esperado %v", *commands, want)
+}
+
+func TestInstallPostingRespectsCustomToolBinDir(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("UV_TOOL_BIN_DIR", dir)
+	installer, commands := newPackageInstallerTest(t, "")
+	installer.which = func(name string) (string, error) {
+		if name == filepath.Join(dir, "posting") {
+			return name, nil
+		}
+		return "", exec.ErrNotFound
+	}
+	if err := installer.run("install-posting", ""); err != nil || len(*commands) != 0 {
+		t.Fatalf("Posting já instalado: %v, %v", *commands, err)
+	}
+}
+
+func TestInstallLunarVimReusesMiseAndPinnedNeovim(t *testing.T) {
+	installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+	mise := filepath.Join(installer.console.home, ".local", "bin", "mise")
+	installer.which = func(name string) (string, error) {
+		if name == mise {
+			return name, nil
+		}
+		return "", exec.ErrNotFound
+	}
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	capture := installer.console.commands.capture
+	installer.console.commands.capture = func(input string, args ...string) (string, error) {
+		switch {
+		case slices.Equal(args, []string{"env", "MISE_AUTO_INSTALL=0", mise, "--cd", "/", "--quiet", "which", "nvim", "--tool", lunarVimNeovim}):
+			return "/opt/mise/neovim/bin/nvim\n", nil
+		case slices.Equal(args, []string{"pacman", "-Q", "mise"}):
+			t.Fatal("Mise existente não deve ser consultado no Pacman")
+		}
+		return capture(input, args...)
+	}
+	download := errors.New("download interrompido para o teste")
+	interactive := installer.console.commands.interactive
+	installer.console.commands.interactive = func(args ...string) error {
+		if args[0] == mise {
+			t.Fatalf("Neovim existente não deve ser reinstalado: %v", args)
+		}
+		if err := interactive(args...); err != nil {
+			return err
+		}
+		if args[0] == "curl" {
+			return download
+		}
+		return nil
+	}
+	err := installer.run("install-lunarvim", "")
+	if !errors.Is(err, download) || len(*commands) != 2 || (*commands)[0] != "sudo pacman -S --needed -- git curl base-devel ripgrep fd" {
+		t.Fatalf("comandos = %v, erro = %v", *commands, err)
 	}
 }
 

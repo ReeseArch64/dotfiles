@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
 var misePackages = []string{
-	"mise", "base-devel", "curl", "git", "unzip", "re2c",
+	"base-devel", "curl", "git", "unzip", "re2c",
 	"openssl", "bzip2", "zlib", "readline", "libyaml", "libffi", "sqlite", "tk",
 	"libxml2", "libxslt", "libzip", "oniguruma", "icu", "gmp", "libsodium",
 	"libpng", "libjpeg-turbo", "freetype2", "libwebp", "libsecret",
@@ -40,7 +41,7 @@ func runMiseSetup(p profile) error {
 	fmt.Fprintln(console.output, "A configuração anterior recebe backup em", location.path)
 	err = console.confirm("Digite CONFIRMO para configurar o Mise: ", "CONFIRMO")
 	if err == nil {
-		err = configureMise(console, source, destination, location)
+		err = configureMise(console, source, destination, location, exec.LookPath)
 	}
 	if err != nil {
 		fmt.Fprintln(console.output, err)
@@ -51,7 +52,7 @@ func runMiseSetup(p profile) error {
 	return err
 }
 
-func configureMise(console sshConsole, source, destination string, location backupLocation) error {
+func configureMise(console sshConsole, source, destination string, location backupLocation, lookup func(string) (string, error)) error {
 	contents, err := os.ReadFile(source)
 	if err != nil {
 		return fmt.Errorf("ler mise.toml do Dotfiles: %w", err)
@@ -61,7 +62,8 @@ func configureMise(console sshConsole, source, destination string, location back
 		return err
 	}
 	defer unlock()
-	if err := console.ensurePackages(misePackages...); err != nil {
+	mise, err := ensureMise(&console, lookup, misePackages...)
+	if err != nil {
 		return fmt.Errorf("instalar pacotes do Mise: %w", err)
 	}
 	backup, err := applyConfigFiles([]configFile{{destination, contents, 0600}}, location, "mise")
@@ -71,10 +73,10 @@ func configureMise(console sshConsole, source, destination string, location back
 	if err != nil {
 		return err
 	}
-	if err := console.commands.interactive("mise", "trust", destination); err != nil {
+	if err := console.commands.interactive(mise, "trust", destination); err != nil {
 		return fmt.Errorf("confiar na configuração do Mise: %w", err)
 	}
-	if err := console.commands.interactive("env", "MISE_GLOBAL_CONFIG_FILE="+destination, "mise", "--cd", "/", "install"); err != nil {
+	if err := console.commands.interactive("env", "MISE_GLOBAL_CONFIG_FILE="+destination, mise, "--cd", "/", "install"); err != nil {
 		return fmt.Errorf("executar mise install: %w", err)
 	}
 	return nil

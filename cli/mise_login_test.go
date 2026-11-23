@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -86,8 +87,13 @@ func TestMiseLoginDispatch(t *testing.T) {
 			if !ok {
 				t.Fatal("login ausente")
 			}
-			t.Setenv("PATH", t.TempDir())
-			prefix := []string{"env", "MISE_AUTO_INSTALL=0", "mise", "--cd", "/"}
+			bin := t.TempDir()
+			t.Setenv("PATH", bin)
+			mise := filepath.Join(bin, "mise")
+			if err := os.WriteFile(mise, []byte("#!/bin/sh\nexit 0\n"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			prefix := []string{"env", "MISE_AUTO_INSTALL=0", mise, "--cd", "/"}
 			var invoked []string
 			console := sshConsole{
 				commands: sshCommands{
@@ -127,12 +133,19 @@ func TestMiseLoginDispatch(t *testing.T) {
 
 func TestGeminiLoginStartsInTemporaryWorkspace(t *testing.T) {
 	login, _ := miseLoginForScreen(screenLoginGemini)
+	home := t.TempDir()
+	mise := filepath.Join(home, ".local", "bin", "mise")
+	sdkTestFile(t, mise, "#!/bin/sh\nexit 0\n")
+	if err := os.Chmod(mise, 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", t.TempDir())
 	var output bytes.Buffer
 	var workspace string
-	console := sshConsole{output: &output, commands: sshCommands{
+	console := sshConsole{home: home, output: &output, commands: sshCommands{
 		capture: func(string, ...string) (string, error) { return "/mise/bin/gemini\n", nil },
 		interactive: func(args ...string) error {
-			if len(args) != 10 || !slices.Equal(args[5:8], []string{"exec", "--", "env"}) || args[9] != "/mise/bin/gemini" {
+			if len(args) != 10 || args[2] != mise || !slices.Equal(args[5:8], []string{"exec", "--", "env"}) || args[9] != "/mise/bin/gemini" {
 				t.Fatalf("comando Gemini: %v", args)
 			}
 			workspace = strings.TrimPrefix(args[8], "--chdir=")
@@ -163,9 +176,10 @@ func TestMiseLoginFallsBackToRealExecutableOnPATH(t *testing.T) {
 		t.Fatal(err)
 	}
 	login, _ := miseLoginForScreen(screenLoginAzure)
-	args, err := login.command(sshCommands{capture: func(string, ...string) (string, error) {
+	console := &sshConsole{commands: sshCommands{capture: func(string, ...string) (string, error) {
 		return "", errors.New("ferramenta ausente no Mise")
-	}})
+	}}}
+	args, err := login.command(console, exec.LookPath)
 	if err != nil || !slices.Equal(args, []string{executable}) {
 		t.Fatalf("execução pelo PATH: %v, erro %v", args, err)
 	}

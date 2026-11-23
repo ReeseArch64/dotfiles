@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -46,6 +47,13 @@ func TestConfigurePiAgentBacksUpLegacySettings(t *testing.T) {
 	source := filepath.Join("..", "cachyos", "pi", "agent", "settings.json")
 	location := backupLocation{path: filepath.Join(home, "backups")}
 	var calls []string
+	mise := filepath.Join(home, ".local", "bin", "mise")
+	lookup := func(name string) (string, error) {
+		if name == mise {
+			return mise, nil
+		}
+		return "", exec.ErrNotFound
+	}
 	verifyConfig := func() {
 		t.Helper()
 		got, err := os.ReadFile(settings)
@@ -63,7 +71,7 @@ func TestConfigurePiAgentBacksUpLegacySettings(t *testing.T) {
 	}
 	console := sshConsole{home: home, output: &bytes.Buffer{}, commands: sshCommands{
 		capture: func(_ string, args ...string) (string, error) {
-			if !slices.Equal(args, []string{"pacman", "-Q", "mise"}) && !slices.Equal(args, []string{"pacman", "-Q", "git"}) {
+			if !slices.Equal(args, []string{"pacman", "-Q", "git"}) {
 				t.Fatalf("consulta de pacote inesperada: %v", args)
 			}
 			return "instalado", nil
@@ -77,12 +85,12 @@ func TestConfigurePiAgentBacksUpLegacySettings(t *testing.T) {
 		},
 	}}
 	for range 2 {
-		if err := configurePiAgent(console, source, agent, location); err != nil {
+		if err := configurePiAgent(console, source, agent, location, lookup); err != nil {
 			t.Fatal(err)
 		}
 	}
 	verifyConfig()
-	prefix := "mise --cd / exec pi bun node -- env PI_CODING_AGENT_DIR=" + agent + " pi "
+	prefix := mise + " --cd / exec pi bun node -- env PI_CODING_AGENT_DIR=" + agent + " pi "
 	if want := []string{prefix + "--version", prefix + "update --extensions", prefix + "--version", prefix + "update --extensions"}; !slices.Equal(calls, want) {
 		t.Fatalf("comandos = %v, esperava %v", calls, want)
 	}
@@ -116,7 +124,8 @@ func TestConfigurePiAgentStopsWhenMiseFails(t *testing.T) {
 		interactive: func(...string) error { return failure },
 	}}
 	source := filepath.Join("..", "cachyos", "pi", "agent", "settings.json")
-	if err := configurePiAgent(console, source, agent, backupLocation{}); !errors.Is(err, failure) {
+	lookup := func(string) (string, error) { return "/usr/bin/mise", nil }
+	if err := configurePiAgent(console, source, agent, backupLocation{}, lookup); !errors.Is(err, failure) {
 		t.Fatalf("erro = %v, esperava %v", err, failure)
 	}
 	if _, err := os.Stat(agent); !errors.Is(err, os.ErrNotExist) {

@@ -53,6 +53,7 @@ func runPackageAction(profile profile, action string) error {
 func (installer packageInstaller) run(action, modules string) error {
 	var official []string
 	var aur []string
+	var executable string
 	switch action {
 	case "essential-tools":
 		official = essentialPackages
@@ -60,15 +61,16 @@ func (installer packageInstaller) run(action, modules string) error {
 		official = terminalPackages
 		aur = []string{"viddy", "ventoy", "scc", "usql-bin", "mprocs"}
 	case "install-posting":
-		if installer.userToolInstalled("posting") {
-			return nil
-		}
-		official = []string{"uv"}
+		return installer.installPosting()
 	case "install-lunarvim":
 		if installer.userToolInstalled("lvim") {
 			return nil
 		}
-		official = []string{"mise", "git", "curl", "base-devel", "ripgrep", "fd"}
+		executable = findMise(installer.console.home, installer.which)
+		official = []string{"git", "curl", "base-devel", "ripgrep", "fd"}
+		if executable == "" {
+			official = append([]string{"mise"}, official...)
+		}
 	case "install-kitty":
 		official = []string{"kitty"}
 	case "install-artcraft-launcher":
@@ -76,7 +78,8 @@ func (installer packageInstaller) run(action, modules string) error {
 	case "install-firefox":
 		official = []string{"firefox", "xdg-utils"}
 	case "install-rust":
-		if _, err := installer.which("rustup"); err != nil {
+		executable = installer.rustupExecutable()
+		if executable == "" {
 			official = []string{"rustup"}
 		}
 	case "drivers":
@@ -142,23 +145,37 @@ func (installer packageInstaller) run(action, modules string) error {
 	case "install-firefox":
 		return setFirefoxDefault(installer.console.commands)
 	case "install-rust":
-		return configureRust(installer.console)
-	case "install-posting":
-		return installer.console.commands.interactive("/usr/bin/uv", "tool", "install", "--python", "3.13", "posting<3")
+		if executable == "" {
+			executable = installer.rustupExecutable()
+			if executable == "" {
+				return errors.New("executável do Rustup indisponível após a instalação")
+			}
+		}
+		return configureRust(installer.console, executable)
 	case "install-lunarvim":
-		return installLunarVim(installer.console)
+		if executable == "" {
+			executable = findMise(installer.console.home, installer.which)
+			if executable == "" {
+				return errors.New("executável do Mise indisponível após a instalação")
+			}
+		}
+		return installLunarVim(installer.console, executable)
 	}
 	return nil
 }
 
-func (installer packageInstaller) userToolInstalled(name string) bool {
-	for _, path := range []string{name, filepath.Join(installer.console.home, ".local", "bin", name)} {
-		if _, err := installer.which(path); err == nil {
-			fmt.Fprintln(installer.console.output, name, "já está instalado.")
-			return true
-		}
+func (installer packageInstaller) userToolInstalled(name string, candidates ...string) bool {
+	candidates = append(candidates, filepath.Join(installer.console.home, ".local", "bin", name))
+	if findExecutable(installer.which, name, "", candidates...) != "" {
+		fmt.Fprintln(installer.console.output, name, "já está instalado.")
+		return true
 	}
 	return false
+}
+
+func (installer packageInstaller) rustupExecutable() string {
+	return findExecutable(installer.which, "rustup", "",
+		filepath.Join(installer.console.home, ".cargo", "bin", "rustup"), "/usr/bin/rustup")
 }
 
 func setFirefoxDefault(commands sshCommands) error {

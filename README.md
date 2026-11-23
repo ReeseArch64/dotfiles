@@ -60,7 +60,7 @@ No Desktop e Laptop com CachyOS, **Sistema Operacional → Armazenamento e proje
 
 No Desktop, **Sistema Operacional → Niri** aplica regras, atalhos, animações, layout, autostart e demais arquivos do Dotfiles em `~/.config/niri` ou em `$XDG_CONFIG_HOME/niri`. A ação preserva `config.kdl`, `cfg/input.kdl`, `cfg/display.kdl` e os demais arquivos locais. Valida uma cópia da configuração local com os novos arquivos usando `niri validate` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Niri`. Para que o Niri carregue os arquivos, mantenha os includes correspondentes no seu `config.kdl`. A ação cria `~/Pictures/Screenshots`. O autostart da Turing Smart Screen é executado quando o programa e seu ambiente Python estão disponíveis. [Configuração e validação do Niri](https://github.com/niri-wm/niri/wiki/Configuration%3A-Overview)
 
-**Sistema Operacional → Fish → Configurar Fish** instala `fish`, `mise`, `eza`, `bat`, `util-linux` e `man-db` e aplica `~/.config/fish/config.fish`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.
+**Sistema Operacional → Fish → Configurar Fish** instala as dependências ausentes e aplica `~/.config/fish/config.fish`. A ação reaproveita o Mise disponível no `PATH` ou em `~/.local/bin`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.
 
 **Sistema Operacional → Fastfetch → Configurar Fastfetch** instala `fastfetch` e `chafa` quando necessário. Usa a foto em `~/.face` ou copia a imagem do repositório se ainda não houver uma. Aplica `~/.config/fastfetch/config.jsonc` para que o comando `fastfetch` encontre a configuração e renderize a foto com Chafa.
 
@@ -84,7 +84,7 @@ O menu **Backup** aparece nos perfis Desktop e Laptop e pede confirmação antes
 
 Em **Programas → Ferramentas de Terminal**, a instalação em lote também inclui `ffmpeg`, `mpv`, `yt-dlp`, `scrcpy`, `android-tools`, `hurl`, `hyperfine`, `just`, `cmake` e `ninja` pelo Pacman, e `ventoy`, `scc`, `usql-bin` e `mprocs` pelo yay.
 
-**Instalar Posting** instala a versão 2 com `uv` e Python 3.13. **Instalar LunarVim** usa a versão 1.4 do editor com Neovim 0.9.5 pelo Mise. Por padrão, os executáveis são disponibilizados em `~/.local/bin`. [Posting 2 e 3](https://posting.sh/guide/migrating/) · [Instalação do LunarVim](https://www.lunarvim.org/docs/installation)
+**Instalar Posting** instala a versão 2 com `uv` e Python 3.13. A ação procura primeiro o `uv` instalado pelo Mise, inclusive sem ativação no shell, e depois um executável já disponível no sistema ou em `~/.local/bin`. Recorre ao Pacman quando o `uv` está ausente. **Instalar LunarVim** usa a versão 1.4 do editor com Neovim 0.9.5 pelo Mise e reaproveita essa versão quando já está instalada. Por padrão, os executáveis são disponibilizados em `~/.local/bin`. [Posting 2 e 3](https://posting.sh/guide/migrating/) · [Instalação do LunarVim](https://www.lunarvim.org/docs/installation)
 
 **Programas → Drivers** instala os headers correspondentes aos kernels instalados, `base-devel` e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
 
@@ -96,13 +96,13 @@ No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados →
 
 ## Programação
 
-**Programação → Instalar Rust** instala o Rustup pelo Pacman quando necessário, seleciona a toolchain estável como padrão e verifica `rustc` e `cargo`. A ação roda como usuário normal após confirmação.
+**Programação → Instalar Rust** reaproveita o Rustup disponível no `PATH` ou em `~/.cargo/bin` e usa o Pacman quando o executável está ausente. Seleciona a toolchain estável como padrão e verifica `rustc` e `cargo`. A ação roda como usuário normal após confirmação.
 
 **Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta`, `git-lfs`, `neovim`, `openssh` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. Após confirmação, a ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.
 
 O `~/.gitconfig` recebe a chave de assinatura em `user.signingkey` e habilita GPG para commits e tags. A CLI preserva a chave configurada se ela puder assinar, inclusive quando foi selecionada uma subchave ou a identidade Git mudou. Sem uma chave configurada utilizável, a CLI prioriza as chaves existentes com o e-mail da identidade Git e oferece as demais chaves utilizáveis se nenhuma corresponder. Se o chaveiro não tiver uma chave de assinatura utilizável, gera uma RSA de 4096 bits com senha e validade de dois anos e exibe a chave pública.
 
-**Programação → Mise → Configurar Mise e instalar ferramentas** instala o Mise e as dependências de compilação, copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A lista inclui as CLIs do GitHub (`gh`), do GitLab (`glab`), do Heroku (`heroku`), do Render (`render`), do Sentry (`sentry`) e do Linear (`linear`). Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
+**Programação → Mise → Configurar Mise e instalar ferramentas** reaproveita o executável do Mise quando disponível e instala as dependências de compilação ausentes. Copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A lista inclui as CLIs do GitHub (`gh`), do GitLab (`glab`), do Heroku (`heroku`), do Render (`render`), do Sentry (`sentry`) e do Linear (`linear`). Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
 
 No Desktop e Laptop, o menu **Programação → Login das CLIs** inclui AWS, Google Cloud, Azure, Railway, GitHub, GitLab, Heroku, Render, Sentry, Linear, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon e npm. Cada ação abre o login da própria ferramenta e usa a versão ativa do Mise, a última versão instalada ou o executável disponível no `PATH`. O Linear usa a CLI `schpet/linear-cli`, já usada no legado, e pede uma chave pessoal para armazenar no chaveiro do sistema.
 

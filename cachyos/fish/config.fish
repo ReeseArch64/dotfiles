@@ -23,7 +23,11 @@ function fish_greeting
 end
 
 # Mise
-mise activate fish | source
+if command -sq mise
+    mise activate fish | source
+else if test -x "$HOME/.local/bin/mise"
+    "$HOME/.local/bin/mise" activate fish | source
+end
 
 # Format man pages
 set -x MANROFFOPT "-c"

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -32,7 +33,7 @@ func runPiAgentSetup(device profile) error {
 	fmt.Fprintln(console.output, "Arquivos substituídos recebem backup em", location.path)
 	err = console.confirm("Digite CONFIRMO para configurar o Pi Agent: ", "CONFIRMO")
 	if err == nil {
-		err = configurePiAgent(console, cachyosAsset(home, "pi", "agent/settings.json"), agentDir, location)
+		err = configurePiAgent(console, cachyosAsset(home, "pi", "agent/settings.json"), agentDir, location, exec.LookPath)
 	}
 	if err != nil {
 		fmt.Fprintln(console.output, err)
@@ -43,7 +44,7 @@ func runPiAgentSetup(device profile) error {
 	return err
 }
 
-func configurePiAgent(console sshConsole, source, agentDir string, location backupLocation) error {
+func configurePiAgent(console sshConsole, source, agentDir string, location backupLocation, lookup func(string) (string, error)) error {
 	unlock, err := lockOperation(filepath.Join(console.home, "pi-agent"), "configuração do Pi Agent")
 	if err != nil {
 		return err
@@ -54,10 +55,11 @@ func configurePiAgent(console sshConsole, source, agentDir string, location back
 	if err != nil {
 		return err
 	}
-	if err := console.ensurePackages("mise", "git"); err != nil {
+	mise, err := ensureMise(&console, lookup, "git")
+	if err != nil {
 		return fmt.Errorf("instalar dependências do Pi Agent: %w", err)
 	}
-	command := []string{"mise", "--cd", "/", "exec", "pi", "bun", "node", "--", "env", "PI_CODING_AGENT_DIR=" + agentDir, "pi"}
+	command := []string{mise, "--cd", "/", "exec", "pi", "bun", "node", "--", "env", "PI_CODING_AGENT_DIR=" + agentDir, "pi"}
 	if err := console.commands.interactive(append(command, "--version")...); err != nil {
 		return fmt.Errorf("preparar o Pi com o Mise: %w", err)
 	}
