@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -12,23 +13,24 @@ import (
 type miseLogin struct {
 	page  screen
 	title string
+	tool  string
 	argv  []string
 }
 
 var miseLogins = []miseLogin{
-	{screenLoginAWS, "AWS", []string{"aws", "login"}},
-	{screenLoginGCloud, "Google Cloud", []string{"gcloud", "auth", "login"}},
-	{screenLoginAzure, "Azure", []string{"az", "login"}},
-	{screenLoginRailway, "Railway", []string{"railway", "login"}},
-	{screenLoginGitHub, "GitHub", []string{"gh", "auth", "login"}},
-	{screenLoginFirebase, "Firebase", []string{"firebase", "login"}},
-	{screenLoginCloudflare, "Cloudflare CLI", []string{"cf", "auth", "login"}},
-	{screenLoginWrangler, "Cloudflare Wrangler", []string{"wrangler", "login"}},
-	{screenLoginVercel, "Vercel", []string{"vercel", "login"}},
-	{screenLoginNeon, "Neon", []string{"neon", "auth"}},
-	{screenLoginNPM, "npm", []string{"npm", "login"}},
-	{screenLoginPNPM, "pnpm", []string{"pnpm", "login"}},
-	{screenLoginUV, "uv", []string{"uv", "auth", "login"}},
+	{screenLoginAWS, "AWS", "awscli", []string{"aws", "login"}},
+	{screenLoginGCloud, "Google Cloud", "gcloud", []string{"gcloud", "auth", "login"}},
+	{screenLoginAzure, "Azure", "azure-cli", []string{"az", "login"}},
+	{screenLoginRailway, "Railway", "railway", []string{"railway", "login"}},
+	{screenLoginGitHub, "GitHub", "gh", []string{"gh", "auth", "login"}},
+	{screenLoginFirebase, "Firebase", "firebase", []string{"firebase", "login"}},
+	{screenLoginCloudflare, "Cloudflare CLI", "npm:cf", []string{"cf", "auth", "login"}},
+	{screenLoginWrangler, "Cloudflare Wrangler", "wrangler", []string{"wrangler", "login"}},
+	{screenLoginVercel, "Vercel", "npm:vercel", []string{"vercel", "login"}},
+	{screenLoginNeon, "Neon", "npm:neon", []string{"neon", "auth"}},
+	{screenLoginNPM, "npm", "node", []string{"npm", "login"}},
+	{screenLoginPNPM, "pnpm", "pnpm", []string{"pnpm", "login"}},
+	{screenLoginUV, "uv", "uv", []string{"uv", "auth", "login"}},
 }
 
 func miseLoginForScreen(page screen) (miseLogin, bool) {
@@ -56,16 +58,9 @@ func runMiseLogin(device profile, name string) error {
 		if login.argv[0] != name {
 			continue
 		}
-		config, err := os.UserConfigDir()
-		if err != nil {
-			return err
-		}
-		if !filepath.IsAbs(config) {
-			return errors.New("o diretório de configuração precisa ter um caminho absoluto")
-		}
 		console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 		printActionHeader()
-		err = login.run(&console, filepath.Join(config, "mise", "config.toml"))
+		err := login.run(&console)
 		if err != nil {
 			fmt.Fprintln(console.output, err)
 		}
@@ -75,17 +70,11 @@ func runMiseLogin(device profile, name string) error {
 	return errors.New("CLI de login inválida")
 }
 
-func (login miseLogin) run(console *sshConsole, config string) error {
-	prefix := []string{"env", "MISE_GLOBAL_CONFIG_FILE=" + config, "MISE_AUTO_INSTALL=0", "mise", "--cd", "/"}
-	path, err := console.commands.capture("", append(prefix, "--quiet", "which", login.argv[0])...)
+func (login miseLogin) run(console *sshConsole) error {
+	args, err := login.command(console.commands)
 	if err != nil {
-		return fmt.Errorf("localizar %s com o Mise. Verifique Programação → Mise: %w", login.title, err)
+		return err
 	}
-	executable := strings.TrimSpace(path)
-	if !filepath.IsAbs(executable) || strings.ContainsRune(executable, '\n') {
-		return fmt.Errorf("o Mise não retornou um caminho válido para %s", login.title)
-	}
-	args := append(prefix, "exec", "--", executable)
 	args = append(args, login.argv[1:]...)
 	if login.page == screenLoginUV {
 		service, err := console.prompt("Domínio ou URL do serviço: ")
@@ -101,4 +90,52 @@ func (login miseLogin) run(console *sshConsole, config string) error {
 		return fmt.Errorf("login de %s: %w", login.title, err)
 	}
 	return nil
+}
+
+func (login miseLogin) command(commands sshCommands) ([]string, error) {
+	name := login.argv[0]
+	prefix := []string{"env", "MISE_AUTO_INSTALL=0", "mise", "--cd", "/"}
+	find := func(tool ...string) string {
+		args := append(prefix, "--quiet", "which", name)
+		path, err := commands.capture("", append(args, tool...)...)
+		path = strings.TrimSpace(path)
+		if err != nil || !filepath.IsAbs(path) || strings.ContainsAny(path, "\r\n") {
+			return ""
+		}
+		return path
+	}
+	if path := find(); path != "" {
+		return append(prefix, "exec", "--", path), nil
+	}
+	version, err := commands.capture("", append(prefix, "--quiet", "latest", "--installed", login.tool)...)
+	if fields := strings.Fields(version); err == nil && len(fields) == 1 {
+		tool := login.tool + "@" + fields[0]
+		if path := find("--tool", tool); path != "" {
+			return append(prefix, "exec", tool, "--", path), nil
+		}
+	}
+	if path := loginExecutableOnPath(name); path != "" {
+		return []string{path}, nil
+	}
+	return nil, fmt.Errorf("executável %s não encontrado no Mise nem no PATH. Verifique Programação → Mise", name)
+}
+
+func loginExecutableOnPath(name string) string {
+	mise, _ := exec.LookPath("mise")
+	miseInfo, _ := os.Stat(mise)
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if !filepath.IsAbs(dir) {
+			continue
+		}
+		path, err := exec.LookPath(filepath.Join(dir, name))
+		if err != nil {
+			continue
+		}
+		// Mise shims can remain on PATH after a tool stops being active.
+		info, err := os.Stat(path)
+		if err == nil && !os.SameFile(info, miseInfo) {
+			return path
+		}
+	}
+	return ""
 }
