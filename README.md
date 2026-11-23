@@ -66,7 +66,7 @@ No Desktop, **Sistema Operacional → Niri** aplica regras, atalhos, animações
 
 As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
 
-**Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` do legado em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
+**Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` de `cachyos/noctalia/` em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
 
 ## Programas
 
@@ -90,7 +90,7 @@ No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados →
 
 **Programas → Instalar Android Studio** instala a versão estável pelo yay. O pacote `android-studio` do AUR distribui o binário oficial do Google. [Pacote no AUR](https://aur.archlinux.org/packages/android-studio)
 
-**Programas → Configurar Discord e BetterDiscord** instala o Discord Stable pelo Pacman e usa a CLI oficial do BetterDiscord, fornecida pelo pacote `bdcli-bin` do AUR. Se a instalação nativa ainda estiver ausente, a ação abre o Discord para inicializá-la. Encerre o Discord pela bandeja quando a CLI solicitar. A ação encontra a versão nativa mais recente, importa os temas, plugins e preferências do legado para `$XDG_CONFIG_HOME/BetterDiscord` (por padrão, `~/.config/BetterDiscord`) e guarda arquivos substituídos em `/mnt/backups/dotfiles/BetterDiscord`. [CLI oficial do BetterDiscord](https://github.com/BetterDiscord/cli)
+**Programas → Configurar Discord e BetterDiscord** instala o Discord Stable pelo Pacman e usa a CLI oficial do BetterDiscord, fornecida pelo pacote `bdcli-bin` do AUR. Se a instalação nativa ainda estiver ausente, a ação abre o Discord para inicializá-la. Encerre o Discord pela bandeja quando a CLI solicitar. A ação encontra a versão nativa mais recente, importa os temas, plugins e preferências de `cachyos/discord/BetterDiscord/` para `$XDG_CONFIG_HOME/BetterDiscord` (por padrão, `~/.config/BetterDiscord`) e guarda arquivos substituídos em `/mnt/backups/dotfiles/BetterDiscord`. [CLI oficial do BetterDiscord](https://github.com/BetterDiscord/cli)
 
 **Programas → Configurar Obsidian** reaproveita o pacote `obsidian` se já estiver instalado ou instala `obsidian-bin` pelo yay. Aplica `appearance.json` e `snippets/noctalia.css` em `~/.obsidian`, preserva os demais arquivos do diretório e guarda as versões substituídas em `/mnt/backups/dotfiles/Obsidian`. [Pacote do Obsidian no AUR](https://aur.archlinux.org/packages/obsidian-bin)
 
@@ -108,7 +108,7 @@ O `~/.gitconfig` recebe a chave de assinatura em `user.signingkey` e habilita GP
 
 **Programação → Mise → Configurar Mise e instalar ferramentas** reaproveita o executável do Mise quando disponível e instala as dependências de compilação ausentes. Copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A lista inclui as CLIs do GitHub (`gh`), do GitLab (`glab`), do Heroku (`heroku`), do Render (`render`), do Sentry (`sentry`) e do Linear (`linear`). Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
 
-No Desktop e Laptop, o menu **Programação → Login das CLIs** inclui AWS, Google Cloud, Azure, Railway, GitHub, GitLab, Heroku, Render, Sentry, Linear, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon e npm. Cada ação abre o login da própria ferramenta e usa a versão ativa do Mise, a última versão instalada ou o executável disponível no `PATH`. O Linear usa a CLI `schpet/linear-cli`, já usada no legado, e pede uma chave pessoal para armazenar no chaveiro do sistema.
+No Desktop e Laptop, o menu **Programação → Login das CLIs** inclui AWS, Google Cloud, Azure, Railway, GitHub, GitLab, Heroku, Render, Sentry, Linear, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon e npm. Cada ação abre o login da própria ferramenta e usa a versão ativa do Mise, a última versão instalada ou o executável disponível no `PATH`. O Linear usa a CLI `schpet/linear-cli` e pede uma chave pessoal para armazenar no chaveiro do sistema.
 
 O Mise também instala Claude Code, Codex, Pi, GitHub Copilot CLI, Gemini CLI e Antigravity CLI. O menu de login tem opções para Claude Code, Codex, Copilot, Gemini e Antigravity. No Gemini, use `/auth` para escolher o método de autenticação e `/quit` para voltar ao menu.
 
@@ -124,7 +124,7 @@ A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador 
 
 ## Agentes de IA
 
-No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prepara o Pi, Bun e Node.js pelo Mise. A ação aplica o `settings.json` derivado do legado em `~/.pi/agent`, ou em `PI_CODING_AGENT_DIR` se estiver definido, e instala ou atualiza os pacotes declarados com `pi update --extensions`. A escolha de tema fica a cargo do usuário. O arquivo substituído recebe backup em `/mnt/backups/dotfiles/Pi`. [Pacotes do Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
+No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prepara o Pi, Bun e Node.js pelo Mise. A ação aplica o `settings.json` de `cachyos/pi/agent/` em `~/.pi/agent`, ou em `PI_CODING_AGENT_DIR` se estiver definido, e instala ou atualiza os pacotes declarados com `pi update --extensions`. A escolha de tema fica a cargo do usuário. O arquivo substituído recebe backup em `/mnt/backups/dotfiles/Pi`. [Pacotes do Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
 
 No Desktop, **Agentes de IA → Configurar Ollama (AMD)** exige uma GPU com o driver `amdgpu`, o dispositivo `/dev/kfd` e uma montagem ativa em `/mnt/storage`. Reaproveita a instalação oficial com ROCm ou executa o instalador oficial quando ela está ausente. Se o Ollama veio do Pacman, instala `ollama-rocm` quando necessário. Os modelos ficam em `/mnt/storage/ollama/models` e a API escuta em `127.0.0.1:11434`. A ação guarda a configuração systemd substituída em `/mnt/backups/dotfiles/Ollama`. Modelos existentes em outros caminhos precisam ser movidos separadamente. [Ollama no Linux](https://docs.ollama.com/linux)
 
@@ -143,8 +143,7 @@ curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.s
 
 ## Desenvolvimento
 
-- [cli/](cli/) contém o módulo Go ativo.
-- [cachyos/](cachyos/) e [ubuntu/](ubuntu/) reservam espaço para configurações de cada sistema.
-- [legacy/](legacy/) contém a implementação anterior, suas configurações e seus arquivos de referência.
+- [cli/](cli/) contém o módulo Go da CLI.
+- [cachyos/](cachyos/) e [ubuntu/](ubuntu/) contêm as configurações e os recursos de cada sistema.
 
 Execute `make test` para testar a CLI e `make cli` para compilar `bin/dotfiles`.
