@@ -12,7 +12,7 @@ var misePackages = []string{
 	"mise", "base-devel", "curl", "git", "unzip", "re2c",
 	"openssl", "bzip2", "zlib", "readline", "libyaml", "libffi", "sqlite", "tk",
 	"libxml2", "libxslt", "libzip", "oniguruma", "icu", "gmp", "libsodium",
-	"libpng", "libjpeg-turbo", "freetype2", "libwebp",
+	"libpng", "libjpeg-turbo", "freetype2", "libwebp", "libsecret",
 }
 
 func runMiseSetup(p profile) error {

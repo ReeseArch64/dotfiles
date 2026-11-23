@@ -26,6 +26,8 @@ var miseLogins = []miseLogin{
 	{screenLoginGitLab, "GitLab", "glab", []string{"glab", "auth", "login"}},
 	{screenLoginHeroku, "Heroku", "heroku", []string{"heroku", "login"}},
 	{screenLoginRender, "Render", "github:render-oss/cli", []string{"render", "login"}},
+	{screenLoginSentry, "Sentry", "github:getsentry/cli", []string{"sentry", "auth", "login"}},
+	{screenLoginLinear, "Linear", "github:schpet/linear-cli", []string{"linear", "auth", "login"}},
 	{screenLoginFirebase, "Firebase", "firebase", []string{"firebase", "login"}},
 	{screenLoginCloudflare, "Cloudflare CLI", "npm:cf", []string{"cf", "auth", "login"}},
 	{screenLoginWrangler, "Cloudflare Wrangler", "wrangler", []string{"wrangler", "login"}},
