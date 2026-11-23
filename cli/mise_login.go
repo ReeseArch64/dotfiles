@@ -36,6 +36,7 @@ var miseLogins = []miseLogin{
 	{screenLoginWrangler, "Cloudflare Wrangler", "wrangler", []string{"wrangler", "login"}},
 	{screenLoginVercel, "Vercel", "npm:vercel", []string{"vercel", "login"}},
 	{screenLoginNeon, "Neon", "npm:neon", []string{"neon", "auth"}},
+	{screenLoginExpo, "Expo (EAS)", "npm:eas-cli", []string{"eas", "login"}},
 	{screenLoginClaude, "Claude Code", "claude", []string{"claude", "auth", "login"}},
 	{screenLoginCodex, "Codex", "codex", []string{"codex", "login"}},
 	{screenLoginCopilot, "GitHub Copilot CLI", "copilot", []string{"copilot", "login"}},

@@ -26,7 +26,7 @@ func TestMiseLoginMenus(t *testing.T) {
 		}
 		next, _ := menu.selectItem(entry)
 		list := next.(model)
-		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Render", "Sentry", "Maple", "Axiom", "Linear", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "Claude Code", "Codex", "GitHub Copilot CLI", "Gemini CLI", "Antigravity CLI", "npm"}
+		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Render", "Sentry", "Maple", "Axiom", "Linear", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "Expo (EAS)", "Claude Code", "Codex", "GitHub Copilot CLI", "Gemini CLI", "Antigravity CLI", "npm"}
 		if got := menuTitles(list.items()); !slices.Equal(got, want) {
 			t.Fatalf("ferramentas no menu: %v", got)
 		}
@@ -67,6 +67,7 @@ func TestMiseLoginDispatch(t *testing.T) {
 		{"Sentry", screenLoginSentry, nil, "", []string{"--", "/mise/bin/sentry", "auth", "login"}, ""},
 		{"Maple instalado e inativo", screenLoginMaple, errors.New("não está ativo"), "0.4.0", []string{"github:MapleTechLabs/maple@0.4.0", "--", "/mise/bin/maple", "auth", "login"}, ""},
 		{"Axiom", screenLoginAxiom, nil, "", []string{"--", "/mise/bin/axiom", "auth", "login", "--auto-login=false"}, ""},
+		{"Expo EAS instalado e inativo", screenLoginExpo, errors.New("não está ativo"), "27.11.0", []string{"npm:eas-cli@27.11.0", "--", "/mise/bin/eas", "login"}, ""},
 		{"Linear instalado e inativo", screenLoginLinear, errors.New("não está ativo"), "3.1.0", []string{"github:schpet/linear-cli@3.1.0", "--", "/mise/bin/linear", "auth", "login"}, ""},
 		{"Claude Code", screenLoginClaude, nil, "", []string{"--", "/mise/bin/claude", "auth", "login"}, ""},
 		{"Codex", screenLoginCodex, nil, "", []string{"--", "/mise/bin/codex", "login"}, ""},

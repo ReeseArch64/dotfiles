@@ -46,6 +46,7 @@ const (
 	screenLoginWrangler
 	screenLoginVercel
 	screenLoginNeon
+	screenLoginExpo
 	screenLoginClaude
 	screenLoginCodex
 	screenLoginCopilot

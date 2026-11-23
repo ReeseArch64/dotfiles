@@ -80,6 +80,8 @@ O Mise também instala Claude Code, Codex, Pi, GitHub Copilot CLI, Gemini CLI e 
 
 O Mise instala o Maple (`maple`) e o Axiom (`axiom`). Em **Login das CLIs**, o Maple abre a autorização no navegador. O Axiom pede um token de acesso pessoal e o ID da organização no terminal.
 
+O Mise instala a EAS CLI (`eas`) para os serviços do Expo. Em **Login das CLIs → Expo (EAS)**, a ação `eas login` abre a autenticação da conta Expo. [Documentação da EAS CLI](https://docs.expo.dev/eas/cli/)
+
 No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/etc/docker/dotfiles-backup-*/daemon.json`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
 
 A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
@@ -92,7 +94,7 @@ O tar é privado e contém dados sensíveis. A senha principal do Firefox, quand
 
 ## Instalação
 
-O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` e o modelo do Mise das versões `1.10` a `1.21` quando ainda têm o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
+O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` e o modelo do Mise das versões `1.10` a `1.22` quando ainda têm o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh
