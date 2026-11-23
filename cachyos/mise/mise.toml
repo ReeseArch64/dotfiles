@@ -7,6 +7,7 @@ azure-cli = { version = "latest" }
 gh = { version = "latest" }
 glab = { version = "latest" }
 heroku = { version = "latest" }
+"github:render-oss/cli" = { version = "latest", rename_exe = "render" }
 k9s = { version = "latest" }
 kind = { version = "latest" }
 kubectl = { version = "latest" }

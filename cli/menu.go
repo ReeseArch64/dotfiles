@@ -36,6 +36,7 @@ const (
 	screenLoginGitHub
 	screenLoginGitLab
 	screenLoginHeroku
+	screenLoginRender
 	screenLoginFirebase
 	screenLoginCloudflare
 	screenLoginWrangler

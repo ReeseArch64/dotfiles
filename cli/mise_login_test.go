@@ -25,7 +25,7 @@ func TestMiseLoginMenus(t *testing.T) {
 		}
 		next, _ := menu.selectItem(entry)
 		list := next.(model)
-		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "npm"}
+		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Render", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "npm"}
 		if got := menuTitles(list.items()); !slices.Equal(got, want) {
 			t.Fatalf("ferramentas no menu: %v", got)
 		}
@@ -62,6 +62,7 @@ func TestMiseLoginDispatch(t *testing.T) {
 		{"GitHub", screenLoginGitHub, nil, "", []string{"--", "/mise/bin/gh", "auth", "login"}, ""},
 		{"GitLab", screenLoginGitLab, nil, "", []string{"--", "/mise/bin/glab", "auth", "login"}, ""},
 		{"Heroku instalado e inativo", screenLoginHeroku, errors.New("não está ativo"), "11.0.0", []string{"heroku@11.0.0", "--", "/mise/bin/heroku", "login"}, ""},
+		{"Render instalado e inativo", screenLoginRender, errors.New("não está ativo"), "2.38.0", []string{"github:render-oss/cli@2.38.0", "--", "/mise/bin/render", "login"}, ""},
 		{"GitHub ausente", screenLoginGitHub, errors.New("ferramenta ausente"), "", nil, "executável gh não encontrado"},
 		{"AWS instalada e inativa", screenLoginAWS, errors.New("não está ativo"), "2.33.0", []string{"awscli@2.33.0", "--", "/mise/bin/aws", "login"}, ""},
 	} {
