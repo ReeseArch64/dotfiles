@@ -85,8 +85,8 @@ func configureDocker(c *sshConsole, username, executable string, lookup func(str
 		return fmt.Errorf("adicionar %s ao grupo docker: %w", username, err)
 	}
 	fmt.Fprintln(c.output, "Abra uma nova sessão para atualizar o grupo docker nos demais terminais.")
-	if err := c.commands.interactive("env", "-u", "BROWSER", "xdg-settings", "set", "default-web-browser", "firefox.desktop"); err != nil {
-		return fmt.Errorf("definir o Firefox como navegador padrão: %w", err)
+	if err := setFirefoxDefault(c.commands); err != nil {
+		return err
 	}
 	if !hasCredentials() {
 		if err := c.commands.interactive("newgrp", "docker", "-c", "docker login"); err != nil {

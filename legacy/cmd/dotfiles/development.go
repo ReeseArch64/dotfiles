@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -19,8 +18,6 @@ var developmentPacmanPackages = []string{
 	"libzip", "sqlite", "oniguruma", "libpng", "libjpeg-turbo", "freetype2", "icu",
 	"readline", "gettext", "libsodium", "libxslt",
 }
-
-const betterStackInstallCommand = "curl -fsSL https://raw.githubusercontent.com/sounak98/betterstack-cli/main/install.sh | sh"
 
 func developmentToolsInstallStep(home string) step {
 	return terminalStep(
@@ -101,18 +98,6 @@ func rustupToolchainStep() step {
 	return terminalStep("Instalar toolchain Rust estável", "rustup", "default", "stable")
 }
 
-func betterStackInstallStep() step {
-	return terminalStep("Instalar Better Stack CLI", "sh", "-c", betterStackInstallCommand)
-}
-
-func betterStackLoginStep(home string) step {
-	path := filepath.Join(home, ".local", "bin") + ":" + os.Getenv("PATH")
-	return skipWhen(terminalStep("Autenticar no Better Stack", "env", "PATH="+path, "bs", "auth", "init"), func() bool {
-		config, err := os.ReadFile(filepath.Join(home, ".config", "bs", "config.toml"))
-		return err == nil && regexp.MustCompile(`(?m)^uptime_token\s*=\s*"[^"]+"`).Match(config)
-	})
-}
-
 func rustToolPath(home, name string) (string, error) {
 	cargoPath := filepath.Join(home, ".cargo", "bin", name)
 	if info, err := os.Stat(cargoPath); err == nil && info.Mode().IsRegular() && info.Mode().Perm()&0111 != 0 {
@@ -147,11 +132,11 @@ func developmentEnvironmentSteps(setupDir, home string, packageSteps []step) []s
 	}))
 	steps = append(steps, cloudLoginSteps(home)...)
 	steps = append(steps, fishConfigStep(setupDir, home))
-	steps = append(steps, rustAndBetterStackSteps(home)...)
+	steps = append(steps, rustSetupSteps(home)...)
 	return append(steps, npmLoginStep(home))
 }
 
-func rustAndBetterStackSteps(home string) []step {
+func rustSetupSteps(home string) []step {
 	return []step{
 		skipWhen(rustupToolchainStep(), func() bool {
 			out, err := exec.Command("rustup", "default").Output()
@@ -160,17 +145,7 @@ func rustAndBetterStackSteps(home string) []step {
 		nativeStep("Verificar rustc e cargo", func() error {
 			return verifyRustTools(home)
 		}),
-		skipWhen(betterStackInstallStep(), func() bool {
-			return executableFile(filepath.Join(home, ".local", "bin", "bs")) || commandSucceeds(nil, "bs", "--version")
-		}),
-		betterStackLoginStep(home),
 	}
-}
-
-func rustAndBetterStackJob() job {
-	home, _ := os.UserHomeDir()
-	steps := ensurePkgs("rustup", "curl")
-	return job{title: "Configurar Rust e Better Stack", steps: append(steps, rustAndBetterStackSteps(home)...)}
 }
 
 func developmentEnvironmentJob(setupDir string) job {

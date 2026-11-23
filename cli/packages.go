@@ -62,6 +62,12 @@ func (installer packageInstaller) run(action, modules string) error {
 		official = []string{"kitty"}
 	case "install-artcraft-launcher":
 		aur = "artcraft-launcher-bin"
+	case "install-firefox":
+		official = []string{"firefox", "xdg-utils"}
+	case "install-rust":
+		if _, err := installer.which("rustup"); err != nil {
+			official = []string{"rustup"}
+		}
 	case "drivers":
 		headers, err := installer.kernelHeaders(modules)
 		if err != nil {
@@ -90,6 +96,12 @@ func (installer packageInstaller) run(action, modules string) error {
 	if action == "proton-pass" {
 		fmt.Fprintln(installer.console.output, "Iniciar login com pass-cli login após a instalação.")
 	}
+	if action == "install-firefox" {
+		fmt.Fprintln(installer.console.output, "Definir o Firefox como navegador padrão.")
+	}
+	if action == "install-rust" {
+		fmt.Fprintln(installer.console.output, "Usar a toolchain estável como padrão e verificar rustc e cargo.")
+	}
 	if err := installer.console.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
 		return err
 	}
@@ -115,6 +127,19 @@ func (installer packageInstaller) run(action, modules string) error {
 		if err := installer.console.commands.interactive("pass-cli", "login"); err != nil {
 			return fmt.Errorf("executar pass-cli login: %w", err)
 		}
+	}
+	switch action {
+	case "install-firefox":
+		return setFirefoxDefault(installer.console.commands)
+	case "install-rust":
+		return configureRust(installer.console)
+	}
+	return nil
+}
+
+func setFirefoxDefault(commands sshCommands) error {
+	if err := commands.interactive("env", "-u", "BROWSER", "xdg-settings", "set", "default-web-browser", "firefox.desktop"); err != nil {
+		return fmt.Errorf("definir o Firefox como navegador padrão: %w", err)
 	}
 	return nil
 }

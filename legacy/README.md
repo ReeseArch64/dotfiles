@@ -20,22 +20,22 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 ### Migração do Desktop
 
-Drivers, Docker, Git/GPG, Linear CLI, Pi Agent, papéis de parede e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
+Drivers, Docker, Git/GPG, Rust, Firefox, Linear CLI, Pi Agent, papéis de parede e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
 
-No Desktop, use a CLI atual para instalar o Mise, fazer login nas CLIs migradas, configurar Fish e Fastfetch e instalar o cursor FrierenBLZ. O ambiente de desenvolvimento do legado passou a oferecer apenas Rust estável e Better Stack. A ação de ferramentas de terminal do legado mantém os utilitários pendentes.
+No Desktop, use a CLI atual para instalar o Mise, fazer login nas CLIs migradas, configurar Fish e Fastfetch e instalar o cursor FrierenBLZ. A ação de ferramentas de terminal do legado mantém os utilitários pendentes.
 
 | Área | O que ainda está no legado do Desktop |
 | --- | --- |
 | SSH e firewall | Configuração de cliente com aliases e identidades por destino, servidor SSH desativado e bloqueio de SSH de entrada. A CLI atual usa uma identidade por dispositivo e permite SSH pela LAN quando o firewall é configurado. |
 | Armazenamento e backup | Migração de pastas pessoais para `/mnt/storage`, lixeira em `~/.trash`, preparação de `/mnt/workspaces` com `~/Projects`, snapshot Btrfs e backup de projetos e chaves SSH/GPG. A ação de SDK atual cobre `~/.local/share/mise` e outros diretórios. `~/.local` inteiro, `~/.vscode` e `~/go` constam na lista legada. |
-| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia, instalador do Firefox e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, papéis de parede, backup do Firefox e preparação da foto pelo Fastfetch. |
+| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, papéis de parede, backup do Firefox e preparação da foto pelo Fastfetch. |
 | Aplicativos | Discord/BetterDiscord, Obsidian e Turing Smart Screen. |
-| Desenvolvimento | Sandbox Podman/Distrobox, instaladores de IDEs e Android CLI, Rust estável, Better Stack CLI e utilitários como Posting, mprocs, LunarVim, usql e Proton VPN CLI. |
+| Desenvolvimento | Sandbox Podman/Distrobox, Zed, Android CLI e utilitários como Posting, mprocs, LunarVim, usql e Proton VPN CLI. |
 | Agentes de IA | Configuração do Ollama para GPU AMD. |
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
-A CLI também ignora instaladores de ferramentas já disponíveis e autenticações detectadas. Ela confere o estado imediatamente antes de cada etapa, inclusive após instalar ferramentas na mesma execução. Se uma verificação não confirmar a sessão, o login será solicitado novamente. Credenciais locais do Docker e do Better Stack não comprovam que os tokens ainda são válidos.
+A CLI também ignora instaladores de ferramentas já disponíveis e autenticações detectadas. Ela confere o estado imediatamente antes de cada etapa, inclusive após instalar ferramentas na mesma execução. Se uma verificação não confirmar a sessão, o login será solicitado novamente. As credenciais locais do Docker podem ter expirado.
 
 Quando o yay falha, a CLI cria `~/.aur`, clona o pacote do AUR e executa `makepkg -si`. Depois, ela confirma a instalação com `pacman -Q`.
 
@@ -97,7 +97,7 @@ O `yay` é instalado automaticamente, quando necessário, compilando o pacote `y
 
 Algumas ações possuem requisitos próprios. Eles estão descritos nas seções correspondentes.
 
-CasaOS, Pi Agent, Ollama, LunarVim e Better Stack CLI executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
+CasaOS, Pi Agent, Ollama e LunarVim executam scripts remotos baixados com `curl`. Revise as origens antes de iniciar essas ações.
 
 ## Configurações dos perfis
 
@@ -519,7 +519,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 
 ### Ambiente de Desenvolvimento
 
-No Desktop, `Desenvolvimento > Rust e Better Stack` instala o Rust estável, verifica `rustc` e `cargo` e instala e autentica a CLI do Better Stack. Use `Programação > Mise`, `Programação > Login das CLIs` e `Sistema Operacional > Fish` na CLI atual para as outras etapas.
+No Desktop, use `Programação > Instalar Rust`, `Programação > Mise`, `Programação > Login das CLIs` e `Sistema Operacional > Fish` na CLI atual.
 
 No Notebook, `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
@@ -532,9 +532,7 @@ No Notebook, `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a conf
 7. Copia a configuração do Fish para `~/.config/fish/config.fish`. A fonte fica em `setup/notebook/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
 9. Valida `rustc --version` e `cargo --version`.
-10. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
-11. Executa `bs auth init`.
-12. Executa `npm login`.
+10. Executa `npm login`.
 
 O arquivo compartilhado `../cachyos/mise/mise.toml` instala:
 
@@ -605,15 +603,9 @@ distrobox enter sandbox
 
 Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Distrobox integra o diretório pessoal por padrão e não funciona como limite de segurança.
 
-### IDEs
+### Zed
 
-`Desenvolvimento > Instalar IDEs` instala:
-
-- `visual-studio-code-bin` via yay/AUR
-- `android-studio` via yay/AUR
-- `zed` via yay
-
-Após instalar o Android Studio, use o SDK Manager para instalar o Android SDK. A instalação da IDE não configura automaticamente `ANDROID_HOME`.
+`Desenvolvimento > Instalar Zed` instala o pacote `zed` via yay.
 
 ### Android CLI
 
@@ -721,7 +713,7 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 
 ### Mozilla Firefox
 
-`Desktop > Mozilla Firefox` instala `firefox` e `xdg-utils` via Pacman e define `firefox.desktop` como navegador padrão. A opção está disponível no desktop e no notebook. Os atalhos do Niri e o Noctalia usam Firefox.
+No Notebook, `Desktop > Mozilla Firefox` instala `firefox` e `xdg-utils` via Pacman e define `firefox.desktop` como navegador padrão. No Desktop, use `Navegador Web > Instalar Firefox` na CLI atual. Os atalhos do Niri e o Noctalia usam Firefox.
 
 O backup e a restauração de navegador e chaveiro foram removidos da CLI. Arquivos de backup criados anteriormente permanecem no disco.
 

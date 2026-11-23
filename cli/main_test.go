@@ -45,7 +45,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if m.profile.prefix == "desktop" {
 					wantProgramming = append(wantProgramming, "Docker")
 				}
-				wantProgramming = append(wantProgramming, "Login das CLIs")
+				wantProgramming = append(wantProgramming, "Login das CLIs", "Instalar Rust")
 				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, wantProgramming) {
 					t.Fatalf("menu de programação = %v", got)
 				}
@@ -62,9 +62,20 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if err != nil || !slices.Equal(miseCommand.Args[1:], []string{"--setup-mise"}) {
 					t.Fatalf("ação do Mise: %v, %v", miseCommand, err)
 				}
+				rust := programmingMenu.items()[len(wantProgramming)-1]
+				rustCommand, err := actionCommand(rust.action, rust.title)
+				if rust.disabled || err != nil || !slices.Equal(rustCommand.Args[1:], []string{"--packages", "install-rust"}) {
+					t.Fatalf("ação do Rust: %v, %v", rustCommand, err)
+				}
 				browser, _ := m.selectItem(m.items()[2])
-				if got := menuTitles(browser.(model).items()); !slices.Equal(got, []string{"Backup Completo"}) {
+				browserItems := browser.(model).items()
+				if got := menuTitles(browserItems); !slices.Equal(got, []string{"Backup Completo", "Instalar Firefox"}) {
 					t.Fatalf("menu de navegador = %v", got)
+				}
+				firefox := browserItems[1]
+				firefoxCommand, err := actionCommand(firefox.action, firefox.title)
+				if firefox.disabled || err != nil || !slices.Equal(firefoxCommand.Args[1:], []string{"--packages", "install-firefox"}) {
+					t.Fatalf("ação do Firefox: %v, %v", firefoxCommand, err)
 				}
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)

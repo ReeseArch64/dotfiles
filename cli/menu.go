@@ -220,7 +220,10 @@ func screenItems(page screen, device profile) []menuItem {
 		if device.prefix == "desktop" {
 			items = append(items, menuItem{title: "Docker", desc: "Instalar pacotes, ativar o serviço e autenticar", goTo: screenDocker})
 		}
-		return append(items, menuItem{title: screenTitles[screenMiseLogins], desc: "Autenticar nas ferramentas instaladas pelo Mise", goTo: screenMiseLogins})
+		return append(items,
+			menuItem{title: screenTitles[screenMiseLogins], desc: "Autenticar nas ferramentas instaladas pelo Mise", goTo: screenMiseLogins},
+			menuItem{title: "Instalar Rust", desc: "Configurar a toolchain estável com Rustup", action: "install-rust"},
+		)
 	case screenAIAgents:
 		return []menuItem{{title: "Pi Agent", desc: "Configurar o Pi e seus pacotes", goTo: screenPiAgent}}
 	case screenPiAgent:
@@ -258,7 +261,10 @@ func screenItems(page screen, device profile) []menuItem {
 	case screenCasaOS:
 		return []menuItem{{title: "Instalar CasaOS", desc: "Executar o instalador oficial e preparar o acesso ao Docker", action: "homelab-casaos"}}
 	case screenWebBrowser:
-		return []menuItem{{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"}}
+		return []menuItem{
+			{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"},
+			{title: "Instalar Firefox", desc: "Instalar e definir como navegador padrão", action: "install-firefox"},
+		}
 	case screenJob:
 		return nil
 	}
@@ -268,7 +274,7 @@ func screenItems(page screen, device profile) []menuItem {
 	return []menuItem{
 		{title: "Sistema Operacional", desc: "Configurar o sistema e instalar ferramentas", goTo: screenSystem},
 		{title: "Segurança", desc: "Configurar SSH, firewall e Proton Pass", goTo: screenSecurity},
-		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
+		{title: "Navegador Web", desc: "Instalar o Firefox e fazer backup dos perfis", goTo: screenWebBrowser},
 		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
 		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},

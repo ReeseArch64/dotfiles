@@ -201,9 +201,8 @@ func (m model) items() []item {
 		}
 		if m.device == deviceDesktop {
 			items = append(items,
-				item{title: "Rust e Better Stack", desc: "Instalar Rust estável e configurar a CLI do Better Stack", job: rustAndBetterStackJob},
 				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
-				item{title: "Instalar IDEs", desc: "Instalar Visual Studio Code, Android Studio e Zed via yay", job: idesJob},
+				item{title: "Instalar Zed", desc: "Instalar o editor Zed via yay", job: zedJob},
 			)
 		}
 		if m.device == deviceNotebook {
@@ -226,7 +225,6 @@ func (m model) items() []item {
 		}
 		items = append(items,
 			item{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-			item{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
 		)
 		if m.device == deviceDesktop {
 			items = append(items,
@@ -236,7 +234,10 @@ func (m model) items() []item {
 			)
 		}
 		if m.device == deviceNotebook {
-			items = append(items, item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }})
+			items = append(items,
+				item{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
+				item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
+			)
 		}
 		return append(items, item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }})
 	case screenAIAgents:

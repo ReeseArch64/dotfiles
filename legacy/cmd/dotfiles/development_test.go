@@ -29,21 +29,6 @@ func TestAzureLoginFailureDoesNotBlockDevelopment(t *testing.T) {
 	}
 }
 
-func TestDesktopDevelopmentRunsOnlyRustAndBetterStack(t *testing.T) {
-	want := []string{
-		"Instalar toolchain Rust estável",
-		"Verificar rustc e cargo",
-		"Instalar Better Stack CLI",
-		"Autenticar no Better Stack",
-	}
-	if packages := missingPkgs("rustup", "curl"); len(packages) != 0 {
-		want = append([]string{pacmanSyncStep().label, pacmanInstallStep(packages...).label}, want...)
-	}
-	if labels := jobStepLabels(rustAndBetterStackJob()); !slices.Equal(labels, want) {
-		t.Fatalf("passos do Desktop = %v", labels)
-	}
-}
-
 func TestAzureOptionalLoginFailsWithoutPrompt(t *testing.T) {
 	home := t.TempDir()
 	bin := filepath.Join(home, ".local", "share", "mise", "shims")
@@ -175,40 +160,6 @@ func TestDevelopmentSkipsInstalledMiseToolsAndRust(t *testing.T) {
 	}
 }
 
-func TestBetterStackSkipsInstallerAndConfiguredLogin(t *testing.T) {
-	home := t.TempDir()
-	binary := filepath.Join(home, ".local", "bin", "bs")
-	if err := os.MkdirAll(filepath.Dir(binary), 0755); err != nil {
-		t.Fatal(err)
-	}
-	writeTestExecutable(t, filepath.Dir(binary), "bs", `exit 0`)
-	steps := developmentEnvironmentSteps(t.TempDir(), home, nil)
-	for _, current := range steps {
-		if current.label == "Instalar Better Stack CLI" && !current.skip() {
-			t.Fatal("CLI instalada novamente")
-		}
-	}
-	if err := os.Remove(binary); err != nil {
-		t.Fatal(err)
-	}
-	config := filepath.Join(home, ".config", "bs", "config.toml")
-	if err := os.MkdirAll(filepath.Dir(config), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(config, []byte("[auth]\nuptime_token = \"secret\"\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if !betterStackLoginStep(home).skip() {
-		t.Fatal("configuração existente não detectada")
-	}
-	if err := os.WriteFile(config, []byte("[auth]\nuptime_token = \"\"\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if betterStackLoginStep(home).skip() {
-		t.Fatal("token vazio não deve ignorar login")
-	}
-}
-
 func TestDevelopmentPacmanPackagesIncludeFishRustupAndTk(t *testing.T) {
 	want := []string{
 		"fish", "rustup", "tk",
@@ -262,23 +213,6 @@ func TestNpmLoginStepUsesMiseShim(t *testing.T) {
 	want := []string{"env", "PATH=/tmp/home/.local/share/mise/shims:/usr/bin", "npm", "login"}
 	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
 		t.Fatalf("comando npm login inesperado: %v", got)
-	}
-}
-
-func TestBetterStackInstallStepUsesOfficialInstaller(t *testing.T) {
-	current := betterStackInstallStep()
-	want := []string{"sh", "-c", betterStackInstallCommand}
-	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
-		t.Fatalf("comando de instalação inesperado: %v", got)
-	}
-}
-
-func TestBetterStackLoginStepUsesLocalBin(t *testing.T) {
-	t.Setenv("PATH", "/usr/bin")
-	current := betterStackLoginStep("/tmp/home")
-	want := []string{"env", "PATH=/tmp/home/.local/bin:/usr/bin", "bs", "auth", "init"}
-	if got := commandTail(t, current, len(want)); !slices.Equal(got, want) {
-		t.Fatalf("comando de autenticação inesperado: %v", got)
 	}
 }
 
@@ -336,8 +270,6 @@ func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 		"Copiar configuração para ~/.config/fish/config.fish",
 		"Instalar toolchain Rust estável",
 		"Verificar rustc e cargo",
-		"Instalar Better Stack CLI",
-		"Autenticar no Better Stack",
 		"Autenticar no npm",
 	} {
 		if !slices.Contains(labels, want) {
@@ -355,9 +287,6 @@ func TestDevelopmentEnvironmentJobConfiguresAllTools(t *testing.T) {
 	}
 	if slices.Index(labels, "Instalar fish, rustup, tk") > slices.Index(labels, "Instalar toolchain Rust estável") {
 		t.Fatalf("rustup deve ser instalado antes da toolchain: %v", labels)
-	}
-	if slices.Index(labels, "Instalar Better Stack CLI") > slices.Index(labels, "Autenticar no Better Stack") {
-		t.Fatalf("Better Stack deve ser instalado antes da autenticação: %v", labels)
 	}
 	if labels[len(labels)-1] != "Autenticar no npm" {
 		t.Fatalf("último passo inesperado: %s", labels[len(labels)-1])

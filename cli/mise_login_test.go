@@ -16,9 +16,14 @@ func TestMiseLoginMenus(t *testing.T) {
 	for _, hostname := range []string{"desktop", "laptop", "homelab", "homeprod"} {
 		menu := newMenu(hostname)
 		menu.screen = screenProgramming
-		entry := menu.items()[len(menu.items())-1]
+		items := menu.items()
+		index := slices.IndexFunc(items, func(item menuItem) bool { return item.goTo == screenMiseLogins })
+		if index < 0 {
+			t.Fatalf("submenu de login ausente para %s", hostname)
+		}
+		entry := items[index]
 		supported := hostname == "desktop" || hostname == "laptop"
-		if entry.goTo != screenMiseLogins || entry.disabled == supported {
+		if entry.disabled == supported {
 			t.Fatalf("submenu de login para %s: %+v", hostname, entry)
 		}
 		if !supported {

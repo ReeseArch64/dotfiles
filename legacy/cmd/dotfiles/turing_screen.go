@@ -18,7 +18,7 @@ func turingScreenJobFor(setupDir, home, username string, packageSteps []step) jo
 			return fmt.Errorf("execute a CLI com um usuário comum, não como root")
 		}
 		if _, err := exec.LookPath("mise"); err != nil {
-			return fmt.Errorf("instale o mise em Desenvolvimento > Ambiente de Desenvolvimento: %w", err)
+			return fmt.Errorf("instale o mise em Programação > Mise na CLI atual: %w", err)
 		}
 		for _, entry := range []struct {
 			path string

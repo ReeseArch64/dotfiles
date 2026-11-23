@@ -74,6 +74,8 @@ As duas ações pedem confirmação antes de copiar a configuração e guardam a
 
 ## Programação
 
+**Programação → Instalar Rust** instala o Rustup pelo Pacman quando necessário, seleciona a toolchain estável como padrão e verifica `rustc` e `cargo`. A ação roda como usuário normal após confirmação.
+
 **Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta`, `git-lfs`, `neovim`, `openssh` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. Após confirmação, a ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.
 
 O `~/.gitconfig` recebe a chave de assinatura em `user.signingkey` e habilita GPG para commits e tags. A CLI preserva a chave configurada se ela puder assinar, inclusive quando foi selecionada uma subchave ou a identidade Git mudou. Sem uma chave configurada utilizável, a CLI prioriza as chaves existentes com o e-mail da identidade Git e oferece as demais chaves utilizáveis se nenhuma corresponder. Se o chaveiro não tiver uma chave de assinatura utilizável, gera uma RSA de 4096 bits com senha e validade de dois anos e exibe a chave pública.
@@ -97,6 +99,8 @@ A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador 
 No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prepara o Pi, Bun e Node.js pelo Mise. A ação aplica o `settings.json` derivado do legado em `~/.pi/agent`, ou em `PI_CODING_AGENT_DIR` se estiver definido, e instala ou atualiza os pacotes declarados com `pi update --extensions`. A escolha de tema fica a cargo do usuário. O arquivo substituído recebe backup em `/mnt/backups/dotfiles/Pi`. [Pacotes do Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md)
 
 ## Navegador Web
+
+**Navegador Web → Instalar Firefox** instala `firefox` e `xdg-utils` pelo Pacman e define o Firefox como navegador padrão após confirmação.
 
 **Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/dotfiles/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.
 
