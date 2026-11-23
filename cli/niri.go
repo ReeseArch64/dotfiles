@@ -2,12 +2,18 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
+
+var niriManagedFiles = []string{
+	"cfg/animation.kdl", "cfg/autostart.kdl", "cfg/keybinds.kdl", "cfg/layout.kdl",
+	"cfg/misc.kdl", "cfg/rules.kdl", "noctalia.kdl",
+}
 
 func runNiriSetup(p profile) error {
 	if p.prefix != "desktop" || os.Geteuid() == 0 {
@@ -31,12 +37,13 @@ func runNiriSetup(p profile) error {
 	if custom := os.Getenv("NIRI_CONFIG"); custom != "" && filepath.Clean(custom) != filepath.Join(target, "config.kdl") {
 		return fmt.Errorf("NIRI_CONFIG aponta para %s. A ação configura %s", custom, target)
 	}
-	source := filepath.Dir(cachyosAsset(home, "niri", "config.kdl"))
+	source := filepath.Dir(filepath.Dir(dotfilesAsset(home, "cachyos", "niri", "cfg", "rules.kdl")))
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup("Niri", console.commands.interactive)
 	printActionHeader()
-	fmt.Fprintln(console.output, "Aplicar a configuração completa do Desktop em", target)
-	fmt.Fprintln(console.output, "A pasta anterior recebe backup em", location.path)
+	fmt.Fprintln(console.output, "Aplicar os arquivos do Dotfiles em", target)
+	fmt.Fprintln(console.output, "Preservar config.kdl, cfg/input.kdl e cfg/display.kdl.")
+	fmt.Fprintln(console.output, "Arquivos substituídos recebem backup em", location.path)
 	if err := console.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
 		return err
 	}
@@ -62,25 +69,67 @@ func configureNiri(source, target, home string, location backupLocation, validat
 		return "", err
 	}
 	defer unlock()
-	if info, err := os.Lstat(target); err == nil {
-		if !info.IsDir() {
-			return "", fmt.Errorf("a configuração do Niri precisa ser um diretório real: %s", target)
-		}
-		if err := validateMigrationTree(target); err != nil {
-			return "", err
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	info, err := os.Lstat(target)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("prepare a configuração local do Niri em %s antes de aplicar os arquivos", target)
+	}
+	if err != nil {
 		return "", err
 	}
-	if err := validate(filepath.Join(source, "config.kdl")); err != nil {
+	if !info.IsDir() {
+		return "", fmt.Errorf("a configuração do Niri precisa ser um diretório real: %s", target)
+	}
+	config := filepath.Join(target, "config.kdl")
+	if info, err := os.Stat(config); err != nil || !info.Mode().IsRegular() {
+		return "", fmt.Errorf("a configuração local do Niri precisa existir em %s", config)
+	}
+	cfg := filepath.Join(target, "cfg")
+	if info, err := os.Lstat(cfg); err == nil && !info.IsDir() {
+		return "", fmt.Errorf("a pasta do Niri precisa ser um diretório real: %s", cfg)
+	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+	if err := validateMigrationTree(target); err != nil {
+		return "", err
+	}
+	staging, err := os.MkdirTemp(filepath.Dir(target), ".dotfiles-niri-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(staging)
+	if err := copySDKTree(context.Background(), target, staging); err != nil {
+		return "", err
+	}
+	stagedCfg := filepath.Join(staging, "cfg")
+	if err := os.Mkdir(stagedCfg, 0755); errors.Is(err, os.ErrExist) {
+		if info, err := os.Lstat(stagedCfg); err != nil || !info.IsDir() {
+			return "", fmt.Errorf("a cópia de cfg do Niri precisa ser um diretório real: %s", stagedCfg)
+		}
+	} else if err != nil {
+		return "", err
+	}
+	files := make([]configFile, 0, len(niriManagedFiles))
+	for _, name := range niriManagedFiles {
+		contents, err := os.ReadFile(filepath.Join(source, name))
+		if err != nil {
+			return "", err
+		}
+		candidate := filepath.Join(staging, name)
+		if info, err := os.Lstat(candidate); err == nil && info.Mode()&os.ModeSymlink != 0 {
+			if err := os.Remove(candidate); err != nil {
+				return "", err
+			}
+		}
+		if err := writeConfigAtomic(candidate, contents, 0644); err != nil {
+			return "", err
+		}
+		files = append(files, configFile{filepath.Join(target, name), contents, 0644})
+	}
+	if err := validate(filepath.Join(staging, "config.kdl")); err != nil {
 		return "", fmt.Errorf("validar a configuração do Niri: %w", err)
 	}
 	if err := os.MkdirAll(filepath.Join(home, "Pictures", "Screenshots"), 0755); err != nil {
 		return "", err
 	}
-	backup, finish, err := installAssetDirectory(source, target, "niri", location)
-	if err == nil && finish != nil {
-		err = finish(false)
-	}
-	return backup, err
+	return applyConfigFiles(files, location, "niri")
 }

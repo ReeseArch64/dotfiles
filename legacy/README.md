@@ -20,7 +20,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 ### Migração do Desktop
 
-Na [CLI atual](../README.md), o Desktop já tem drivers, Docker, Git/GPG, Rust, Firefox, Mise e os logins das CLIs, Pi Agent, Noctalia, Fish, Fastfetch, cursor, papéis de parede, remoção de aplicativos pré-instalados e ferramentas de terminal, incluindo Posting e LunarVim. Também migraram a configuração completa do Niri, as pastas pessoais para `/mnt/storage` e a preparação de `/mnt/workspaces` com o link `~/Projects`. No legado, as configurações do Noctalia e do Pi Agent pertencem ao Notebook.
+Na [CLI atual](../README.md), o Desktop já tem drivers, Docker, Git/GPG, Rust, Firefox, Mise e os logins das CLIs, Pi Agent, Noctalia, Fish, Fastfetch, cursor, papéis de parede, remoção de aplicativos pré-instalados e ferramentas de terminal, incluindo Posting e LunarVim. Também migraram os arquivos gerenciados do Niri, as pastas pessoais para `/mnt/storage` e a preparação de `/mnt/workspaces` com o link `~/Projects`. No legado, as configurações do Noctalia e do Pi Agent pertencem ao Notebook.
 
 | Área | O que falta migrar |
 | --- | --- |
@@ -106,7 +106,7 @@ CasaOS, Pi Agent, Ollama e LunarVim executam scripts remotos baixados com `curl`
 
 Os perfis arquivados usam `setup/desktop/` e `setup/notebook/`. A resolução procura primeiro o arquivo do perfil e, quando existir uma base em `setup/config/`, permite complementá-lo com os arquivos dessa base.
 
-Cada perfil mantém seu `ssh/config`. O Notebook tem seus próprios arquivos do Niri, Fish, Noctalia e Pi Agent. Reutiliza o `misc.kdl`, o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`. O conjunto do Niri para Desktop fica na CLI atual.
+Cada perfil mantém seu `ssh/config`. O Notebook tem seus próprios arquivos do Niri, Fish, Noctalia e Pi Agent. Reutiliza o `misc.kdl`, o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`. A CLI atual tem os arquivos gerenciados do Niri para Desktop e preserva o config, o input e o display locais.
 
 Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
@@ -681,7 +681,7 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 
 ### Niri
 
-No Desktop, use **Sistema Operacional → Niri** na CLI atual. O autostart, os monitores e a configuração completa estão em `../cachyos/niri/`.
+No Desktop, use **Sistema Operacional → Niri** na CLI atual. O autostart, as regras, os atalhos e os demais arquivos gerenciados estão em `../cachyos/niri/`. Os arquivos `config.kdl`, `cfg/input.kdl` e `cfg/display.kdl` são mantidos localmente.
 
 No Notebook, a ação arquivada aplica `setup/notebook/niri/` e o cursor FrierenBLZ. O arquivo `cfg/display.kdl` do Notebook contém somente `eDP-1`.
 

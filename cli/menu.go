@@ -189,7 +189,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
 			{title: "Noctalia", desc: "Aplicar settings.toml e state.toml e conferir plugins", action: "setup-noctalia"},
 			{title: screenTitles[screenStorage], desc: "Migrar pastas pessoais e preparar ~/Projects", goTo: screenStorage},
-			{title: "Niri", desc: "Aplicar atalhos, monitores e autostart do Desktop", action: "setup-niri"},
+			{title: "Niri", desc: "Aplicar regras, atalhos e autostart do Desktop", action: "setup-niri"},
 		}
 	case screenStorage:
 		return []menuItem{

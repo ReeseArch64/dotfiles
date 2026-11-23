@@ -18,11 +18,6 @@ window-rule {
 }
 
 window-rule {
-    match app-id="com.microsoft.VSCode"
-    opacity 0.95
-}
-
-window-rule {
     match app-id="discord"
     opacity 0.95
     draw-border-with-background false
@@ -43,11 +38,6 @@ window-rule {
     match app-id="dev.zed.Zed"
     opacity 0.95
     draw-border-with-background false
-}
-
-window-rule {
-    match app-id=r#"(?i)alacritty"#
-    opacity 0.95
 }
 
 window-rule {
