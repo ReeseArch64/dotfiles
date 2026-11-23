@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.24.0"
+const version = "1.25.0"
 
 type profile struct {
 	prefix      string
@@ -113,6 +113,8 @@ func main() {
 			action = runGitSetup
 		case "--setup-mise":
 			action = runMiseSetup
+		case "--setup-pi-agent":
+			action = runPiAgentSetup
 		case "--setup-docker":
 			action = runDockerSetup
 		case "--apply-docker":

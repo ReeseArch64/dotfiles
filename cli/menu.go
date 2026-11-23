@@ -20,6 +20,8 @@ const (
 	screenTerminal
 	screenServer
 	screenProgramming
+	screenAIAgents
+	screenPiAgent
 	screenGit
 	screenMise
 	screenSecurity
@@ -68,6 +70,8 @@ var screenTitles = map[screen]string{
 	screenTerminal:      "Terminal",
 	screenServer:        "Servidor",
 	screenProgramming:   "Programação",
+	screenAIAgents:      "Agentes de IA",
+	screenPiAgent:       "Pi Agent",
 	screenGit:           "Git",
 	screenMise:          "Mise",
 	screenSecurity:      "Segurança",
@@ -209,6 +213,10 @@ func screenItems(page screen, device profile) []menuItem {
 			items = append(items, menuItem{title: "Docker", desc: "Instalar pacotes, ativar o serviço e autenticar", goTo: screenDocker})
 		}
 		return append(items, menuItem{title: screenTitles[screenMiseLogins], desc: "Autenticar nas ferramentas instaladas pelo Mise", goTo: screenMiseLogins})
+	case screenAIAgents:
+		return []menuItem{{title: "Pi Agent", desc: "Configurar o tema e os pacotes do Pi", goTo: screenPiAgent}}
+	case screenPiAgent:
+		return []menuItem{{title: "Configurar Pi Agent", desc: "Aplicar settings.json, o tema Noctalia e as extensões", action: "setup-pi-agent"}}
 	case screenMiseLogins:
 		items := make([]menuItem, 0, len(miseLogins))
 		for _, login := range miseLogins {
@@ -255,6 +263,7 @@ func screenItems(page screen, device profile) []menuItem {
 		{title: "Navegador Web", desc: "Fazer backup completo do Firefox", goTo: screenWebBrowser},
 		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
+		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}
 }

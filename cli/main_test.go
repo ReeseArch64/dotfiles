@@ -34,7 +34,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if got := m.profile.sshKeyName(); got != tt.keyName {
 				t.Fatalf("nome da chave = %q, esperado %q", got, tt.keyName)
 			}
-			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Sair"}
+			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Agentes de IA", "Sair"}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}
@@ -145,8 +145,8 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 		security []string
 		ssh      []string
 	}{
-		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
-		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
 		{"homelab", []string{"Sistema Operacional", "Segurança", "CasaOS", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
 		{"homeprod", []string{"Sair"}, nil, nil},
 		{"unknown", []string{"Sair"}, nil, nil},
@@ -206,7 +206,7 @@ func TestMenuNavigationSkipsUnavailableItems(t *testing.T) {
 		t.Fatal("Enter não abriu CasaOS")
 	}
 	menu = newMenu("homeprod")
-	if got := menu.menuCursor(menu.items()); got != 5 {
+	if got := menu.menuCursor(menu.items()); got != 6 {
 		t.Fatalf("seleção inicial deveria ser Sair: %d", got)
 	}
 	if next, command := menu.handleKey("2"); command != nil || next.(model).screen != screenMain {
