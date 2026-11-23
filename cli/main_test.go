@@ -34,7 +34,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if got := m.profile.sshKeyName(); got != tt.keyName {
 				t.Fatalf("nome da chave = %q, esperado %q", got, tt.keyName)
 			}
-			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Agentes de IA", "Sair"}
+			want := []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "CasaOS", "Agentes de IA", "Programas", "Sair"}
 			if items := menuTitles(m.items()); !slices.Equal(items, want) {
 				t.Fatalf("opções = %v, esperado %v", items, want)
 			}
@@ -80,24 +80,34 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor", "Instalar ArtCraft Launcher", "Papéis de parede", "Aplicativos pré-instalados",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Fish", "Fastfetch", "Servidor", "Papéis de parede",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
 				if height := lipgloss.Height(osMenu.View()); height != osMenu.height {
 					t.Fatalf("menu do sistema ocupa %d linhas em terminal com %d", height, osMenu.height)
 				}
-				launcher := osMenu.items()[9]
+				programs, _ := m.handleKey("7")
+				programMenu := programs.(model)
+				if programMenu.screen != screenPrograms {
+					t.Fatal("atalho não abriu Programas")
+				}
+				if got := menuTitles(programMenu.items()); !slices.Equal(got, []string{
+					"Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Terminal", "Instalar ArtCraft Launcher", "Aplicativos pré-instalados",
+				}) {
+					t.Fatalf("menu Programas = %v", got)
+				}
+				launcher := programMenu.items()[4]
 				launcherCommand, err := actionCommand(launcher.action, launcher.title)
 				if launcher.disabled || err != nil || !slices.Equal(launcherCommand.Args[1:], []string{"--packages", "install-artcraft-launcher"}) {
 					t.Fatalf("ação do ArtCraft Launcher: %v, %v", launcherCommand, err)
 				}
-				wallpapers := osMenu.items()[10]
+				wallpapers := osMenu.items()[5]
 				wallpapersCommand, err := actionCommand(wallpapers.action, wallpapers.title)
 				if wallpapers.disabled || err != nil || !slices.Equal(wallpapersCommand.Args[1:], []string{"--wallpapers"}) {
 					t.Fatalf("ação de papéis de parede: %v, %v", wallpapersCommand, err)
 				}
-				terminal, _ := osMenu.handleKey("8")
+				terminal, _ := programMenu.handleKey("4")
 				terminalItems := terminal.(model).items()
 				if got := menuTitles(terminalItems); !slices.Equal(got, []string{"Instalar Kitty"}) {
 					t.Fatalf("submenu Terminal = %v", got)
@@ -107,7 +117,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 					t.Fatalf("ação de instalação do Kitty: %v, %v", command, err)
 				}
 				for index, app := range []string{"fish", "fastfetch"} {
-					child, _ := osMenu.selectItem(osMenu.items()[index+5])
+					child, _ := osMenu.selectItem(osMenu.items()[index+2])
 					items := child.(model).items()
 					if len(items) != 1 {
 						t.Fatalf("submenu de %s: %v", app, items)
@@ -118,7 +128,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 					}
 				}
 				for index, actions := range [][]string{{"essential-tools"}, {"install-yay", "terminal-tools"}, {"drivers"}} {
-					child, _ := osMenu.selectItem(osMenu.items()[index+2])
+					child, _ := programMenu.selectItem(programMenu.items()[index])
 					items := child.(model).items()
 					if len(items) != len(actions) {
 						t.Fatalf("submenu de ferramentas %d: %v", index, items)
@@ -161,9 +171,9 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 		security []string
 		ssh      []string
 	}{
-		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
-		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
-		{"homelab", []string{"Sistema Operacional", "Segurança", "CasaOS", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
+		{"desktop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Programas", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"laptop", []string{"Sistema Operacional", "Segurança", "Navegador Web", "Programação", "Agentes de IA", "Programas", "Sair"}, []string{"SSH", "Firewall", "Proton Pass"}, []string{"Configurar SSH", "Criar chave SSH", "Chaves autorizadas"}},
+		{"homelab", []string{"Sistema Operacional", "Segurança", "CasaOS", "Programas", "Sair"}, []string{"SSH", "Firewall"}, []string{"Configurar SSH"}},
 		{"homeprod", []string{"Sair"}, nil, nil},
 		{"unknown", []string{"Sair"}, nil, nil},
 	} {
@@ -222,7 +232,7 @@ func TestMenuNavigationSkipsUnavailableItems(t *testing.T) {
 		t.Fatal("Enter não abriu CasaOS")
 	}
 	menu = newMenu("homeprod")
-	if got := menu.menuCursor(menu.items()); got != 6 {
+	if got := menu.menuCursor(menu.items()); got != 7 {
 		t.Fatalf("seleção inicial deveria ser Sair: %d", got)
 	}
 	if next, command := menu.handleKey("2"); command != nil || next.(model).screen != screenMain {

@@ -42,7 +42,7 @@ As ações são disponibilizadas pelo hostname `homelab` e executadas no Ubuntu 
 - **Sistema Operacional → Servidor → Configurar swap** ativa `/swapfile-homelab` com 2 GiB e registra a configuração em `/etc/fstab`. Funciona em ext4 e XFS, mantém outras swaps e reserva pelo menos 4 GiB livres ao criar o arquivo. [Manual de swapon](https://manpages.ubuntu.com/manpages/noble/man8/swapon.8.html)
 - **Sistema Operacional → Fastfetch** aplica a configuração para SSH em `~/.config/fastfetch/config.jsonc` ou no diretório definido por `XDG_CONFIG_HOME`. Instala Chafa pelo APT e, se necessário, instala o pacote oficial do Fastfetch 2.70.0 com SHA-256 verificado. Usa a foto em `~/.face` ou copia a do repositório se estiver ausente. [Fastfetch 2.70.0](https://github.com/fastfetch-cli/fastfetch/releases/tag/2.70.0)
 - **Sistema Operacional → Fish** instala o Fish pelo APT, aplica a configuração do servidor e confirma que `/usr/bin/fish` é o shell de login do usuário atual. Em seguida, prepara a saudação do Fastfetch, instala Bat e `bsdextrautils` e cria `~/.hushlogin`. Abra uma nova sessão SSH para entrar no Fish.
-- **Sistema Operacional → Ferramentas de Terminal** instala LazyDocker, `jq`, `ripgrep`, `fd-find`, `fzf`, `bat`, `git` e `ncdu`. Cria os links simbólicos `fd` e `bat` quando necessário, reaproveita o Docker existente e verifica o SHA-256 do LazyDocker 0.25.2 quando precisa baixá-lo. [LazyDocker 0.25.2](https://github.com/jesseduffield/lazydocker/releases/tag/v0.25.2)
+- **Programas → Ferramentas de Terminal** instala LazyDocker, `jq`, `ripgrep`, `fd-find`, `fzf`, `bat`, `git` e `ncdu`. Cria os links simbólicos `fd` e `bat` quando necessário, reaproveita o Docker existente e verifica o SHA-256 do LazyDocker 0.25.2 quando precisa baixá-lo. [LazyDocker 0.25.2](https://github.com/jesseduffield/lazydocker/releases/tag/v0.25.2)
 
 As duas ações são implementadas em Go e guardam os arquivos substituídos em `/mnt/backups/dotfiles/DNS` e `/mnt/backups/dotfiles/Swap`.
 
@@ -54,23 +54,25 @@ As duas ações são implementadas em Go e guardam os arquivos substituídos em 
 
 No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 24 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
-**Sistema Operacional → Ferramentas Essenciais** instala `base-devel`, `curl`, `wget` e `rate-mirrors`.
-
-**Sistema Operacional → Ferramentas de Terminal** instala `bat`, `eza`, `btop`, `fzf`, `ripgrep`, `fd`, `jq`, `yq`, `zoxide`, `ncdu`, `tealdeer`, `wl-clipboard`, `atuin`, `starship`, `yazi`, `sshfs`, `glow` e `viddy`. A opção **Instalar yay** garante `git` e `base-devel` antes de clonar e compilar o pacote do AUR em `~/.aur/yay`, inclusive quando `~/.aur` aponta para `/mnt/sdk/Aur`. O instalador reutiliza o yay se ele já estiver disponível.
-
-**Sistema Operacional → Drivers** instala os headers correspondentes aos kernels instalados, `base-devel` e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
-
-**Sistema Operacional → Terminal → Instalar Kitty** instala o pacote `kitty` pelo Pacman após confirmação.
-
-No Desktop e Laptop com CachyOS, **Sistema Operacional → Aplicativos pré-instalados → Remover aplicativos** exige o Kitty instalado. Após confirmação, desinstala os pacotes encontrados entre `alacritty`, `meld` e `shelly` com `pacman -Rns`. A ação também apaga `~/.config/alacritty`, `~/.cache/alacritty`, `~/.config/meld`, `~/.local/share/meld` e `~/.cache/meld` quando existirem. [Manual do Pacman](https://man.archlinux.org/man/pacman.8.en#REMOVE_OPTIONS_(APPLY_TO_-R))
-
-**Sistema Operacional → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay após confirmação no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
-
 **Sistema Operacional → Fish → Configurar Fish** instala `fish`, `mise`, `eza`, `bat`, `util-linux` e `man-db` e aplica `~/.config/fish/config.fish`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.
 
 **Sistema Operacional → Fastfetch → Configurar Fastfetch** instala `fastfetch` e `chafa` quando necessário. Usa a foto em `~/.face` ou copia a imagem do repositório se ainda não houver uma. Aplica `~/.config/fastfetch/config.jsonc` para que o comando `fastfetch` encontre a configuração e renderize a foto com Chafa.
 
 As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
+
+## Programas
+
+**Programas → Ferramentas Essenciais** instala `base-devel`, `curl`, `wget` e `rate-mirrors`.
+
+**Programas → Ferramentas de Terminal** instala `bat`, `eza`, `btop`, `fzf`, `ripgrep`, `fd`, `jq`, `yq`, `zoxide`, `ncdu`, `tealdeer`, `wl-clipboard`, `atuin`, `starship`, `yazi`, `sshfs`, `glow` e `viddy`. A opção **Instalar yay** garante `git` e `base-devel` antes de clonar e compilar o pacote do AUR em `~/.aur/yay`, inclusive quando `~/.aur` aponta para `/mnt/sdk/Aur`. O instalador reutiliza o yay se ele já estiver disponível.
+
+**Programas → Drivers** instala os headers correspondentes aos kernels instalados, `base-devel` e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
+
+**Programas → Terminal → Instalar Kitty** instala o pacote `kitty` pelo Pacman após confirmação.
+
+No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados → Remover aplicativos** exige o Kitty instalado. Após confirmação, desinstala os pacotes encontrados entre `alacritty`, `meld` e `shelly` com `pacman -Rns`. A ação também apaga `~/.config/alacritty`, `~/.cache/alacritty`, `~/.config/meld`, `~/.local/share/meld` e `~/.cache/meld` quando existirem. [Manual do Pacman](https://man.archlinux.org/man/pacman.8.en#REMOVE_OPTIONS_(APPLY_TO_-R))
+
+**Programas → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay após confirmação no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
 
 ## Programação
 

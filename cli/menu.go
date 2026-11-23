@@ -11,6 +11,7 @@ type screen int
 const (
 	screenMain screen = iota
 	screenSystem
+	screenPrograms
 	screenEssentials
 	screenTerminalTools
 	screenDrivers
@@ -62,6 +63,7 @@ const (
 var screenTitles = map[screen]string{
 	screenMain:          "Menu principal",
 	screenSystem:        "Sistema Operacional",
+	screenPrograms:      "Programas",
 	screenEssentials:    "Ferramentas Essenciais",
 	screenTerminalTools: "Ferramentas de Terminal",
 	screenDrivers:       "Drivers",
@@ -149,7 +151,7 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return true
 	case item.goTo == screenCasaOS || item.action == "homelab-casaos":
 		return homelab
-	case item.goTo == screenSystem:
+	case item.goTo == screenSystem || item.goTo == screenPrograms:
 		return workstation || homelab
 	case item.goTo == screenDocker || item.action == "setup-docker":
 		return m.profile.prefix == "desktop"
@@ -175,17 +177,20 @@ func screenItems(page screen, device profile) []menuItem {
 	switch page {
 	case screenSystem:
 		return []menuItem{
-			{title: "Mouse personalizado", desc: "Instalar o cursor FrierenBLZ no Niri", action: "cursor"},
+			{title: "Mouse personalizado", desc: "Configurar o cursor FrierenBLZ no Niri", action: "cursor"},
 			{title: "Migrar pastas para /mnt/sdk", desc: "Mover dados e criar os links previstos para este perfil", action: "sdk-links"},
+			{title: "Fish", desc: "Configurar o shell Fish", goTo: screenFish},
+			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
+			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
+			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
+		}
+	case screenPrograms:
+		return []menuItem{
 			{title: "Ferramentas Essenciais", desc: "Instalar ferramentas básicas do sistema", goTo: screenEssentials},
 			{title: "Ferramentas de Terminal", desc: "Instalar utilitários de linha de comando", goTo: screenTerminalTools},
 			{title: "Drivers", desc: "Instalar headers do kernel e utilitários gráficos", goTo: screenDrivers},
-			{title: "Fish", desc: "Configurar o shell Fish", goTo: screenFish},
-			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
 			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
-			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 			{title: "Instalar ArtCraft Launcher", desc: "Instalar artcraft-launcher-bin pelo yay", action: "install-artcraft-launcher"},
-			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
 			{title: screenTitles[screenPreinstalled], desc: "Remover Alacritty, Meld e Shelly", goTo: screenPreinstalled},
 		}
 	case screenEssentials:
@@ -272,12 +277,13 @@ func screenItems(page screen, device profile) []menuItem {
 		return []menuItem{{title: "Fazer login", desc: login.commandLine(), action: "mise-login-" + login.argv[0]}}
 	}
 	return []menuItem{
-		{title: "Sistema Operacional", desc: "Configurar o sistema e instalar ferramentas", goTo: screenSystem},
+		{title: "Sistema Operacional", desc: "Configurar o sistema e a aparência", goTo: screenSystem},
 		{title: "Segurança", desc: "Configurar SSH, firewall e Proton Pass", goTo: screenSecurity},
 		{title: "Navegador Web", desc: "Instalar o Firefox e fazer backup dos perfis", goTo: screenWebBrowser},
 		{title: "Programação", desc: "Configurar ferramentas de desenvolvimento", goTo: screenProgramming},
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
 		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},
+		{title: screenTitles[screenPrograms], desc: "Instalar programas e remover aplicativos pré-instalados", goTo: screenPrograms},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}
 }

@@ -33,11 +33,11 @@ func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 		{[]string{"2", "1"}, "ssh"},
 		{[]string{"2", "2"}, "firewall"},
 		{[]string{"5"}, "casaos"},
-		{[]string{"1", "9"}, "dns"},
-		{[]string{"1", "9"}, "swap"},
-		{[]string{"1", "6"}, "fish"},
-		{[]string{"1", "7"}, "fastfetch"},
-		{[]string{"1", "4"}, "tools"},
+		{[]string{"1", "5"}, "dns"},
+		{[]string{"1", "5"}, "swap"},
+		{[]string{"1", "3"}, "fish"},
+		{[]string{"1", "4"}, "fastfetch"},
+		{[]string{"7", "2"}, "tools"},
 	} {
 		current := menu
 		for _, key := range tt.keys {

@@ -99,7 +99,7 @@ func (m model) View() string {
 	if lipgloss.Height(content) > height {
 		content = layout(true, true, true)
 	}
-	if (m.screen == screenMiseLogins || m.screen == screenSystem) && lipgloss.Height(content) > height {
+	if (m.screen == screenMain || m.screen == screenMiseLogins || m.screen == screenSystem || m.screen == screenPrograms) && lipgloss.Height(content) > height {
 		menuLimit = max(1, len(m.items())-(lipgloss.Height(content)-height))
 		content = layout(true, true, true)
 	}

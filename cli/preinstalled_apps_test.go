@@ -20,7 +20,7 @@ func TestPreinstalledAppsMenu(t *testing.T) {
 		{"desktop", "arch", false}, {"homelab", "ubuntu", false}, {"homeprod", "ubuntu", false},
 	} {
 		menu := newMenu(tt.hostname)
-		menu.screen, menu.osID = screenSystem, tt.osID
+		menu.screen, menu.osID = screenPrograms, tt.osID
 		items := menu.items()
 		entry := items[len(items)-1]
 		if entry.goTo != screenPreinstalled || entry.disabled == tt.allowed {
