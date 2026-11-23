@@ -185,6 +185,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
 			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 			{title: "Instalar ArtCraft Launcher", desc: "Instalar artcraft-launcher-bin pelo yay", action: "install-artcraft-launcher"},
+			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
 			{title: screenTitles[screenPreinstalled], desc: "Remover Alacritty, Meld e Shelly", goTo: screenPreinstalled},
 		}
 	case screenEssentials:

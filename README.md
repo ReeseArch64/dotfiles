@@ -50,6 +50,8 @@ As duas ações são implementadas em Go e guardam os arquivos substituídos em 
 
 **Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica `cachyos/niri/cfg/misc.kdl`. A ação exige o Niri instalado e que seu `config.kdl` inclua `cfg/misc.kdl`. Valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups em `/mnt/backups/dotfiles/Niri`.
 
+**Sistema Operacional → Papéis de parede** copia as 11 imagens do legado para `~/.wallpapers` nos perfis Desktop e Laptop. Quando a pasta existente é diferente, a ação guarda uma cópia em `/mnt/backups/dotfiles/Wallpapers` antes de substituí-la. A escolha da imagem de fundo é feita pelo ambiente gráfico.
+
 No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 24 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
 **Sistema Operacional → Ferramentas Essenciais** instala `base-devel`, `curl`, `wget` e `rate-mirrors`.

@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.26.0"
+const version = "1.27.0"
 
 type profile struct {
 	prefix      string
@@ -105,6 +105,8 @@ func main() {
 		switch os.Args[1] {
 		case "--cursor":
 			action = runCursorAction
+		case "--wallpapers":
+			action = runWallpapersAction
 		case "--firefox-backup":
 			action = runFirefoxBackup
 		case "--sdk-links":

@@ -14,7 +14,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | --- | --- |
 | Sistema | SSH, Firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
 | Desenvolvimento | Git, GPG e Linear CLI no Notebook, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Mozilla Firefox, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
+| Desktop | Niri, Noctalia, Mozilla Firefox, Obsidian, Turing Smart Screen e foto de perfil |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
 
@@ -28,7 +28,7 @@ A CLI atual também oferece a instalação do Mise e os logins das CLIs, a confi
 | --- | --- |
 | SSH e firewall | Configuração de cliente com aliases e identidades por destino, servidor SSH desativado e bloqueio de SSH de entrada. A CLI atual usa uma identidade por dispositivo e permite SSH pela LAN quando o firewall é configurado. |
 | Armazenamento e backup | Migração de pastas pessoais para `/mnt/storage`, lixeira em `~/.trash`, preparação de `/mnt/workspaces` com `~/Projects`, snapshot Btrfs e backup de projetos e chaves SSH/GPG. A ação de SDK atual cobre `~/.local/share/mise` e outros diretórios. `~/.local` inteiro, `~/.vscode` e `~/go` constam na lista legada. |
-| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia, wallpapers, instalador do Firefox e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, backup do Firefox e preparação da foto pelo Fastfetch. |
+| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia, instalador do Firefox e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, papéis de parede, backup do Firefox e preparação da foto pelo Fastfetch. |
 | Aplicativos | Discord/BetterDiscord, Obsidian e Turing Smart Screen. |
 | Desenvolvimento | Sandbox Podman/Distrobox, instaladores de IDEs e Android CLI, Rust estável, Better Stack CLI e utilitários como Posting, mprocs, LunarVim, usql e Proton VPN CLI. |
 | Agentes de IA | Configuração do Ollama para GPU AMD. |
@@ -179,7 +179,7 @@ O Notebook recebe:
 
 - Sistema: SSH, Firewall, Docker e remoção de aplicativos pré-instalados;
 - Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI, Android CLI e ferramentas de terminal;
-- Desktop: Niri, Noctalia, Mozilla Firefox, wallpapers e foto de perfil;
+- Desktop: Niri, Noctalia, Mozilla Firefox e foto de perfil;
 - Agentes de IA: somente Pi Agent;
 - Backup: todas as ações disponíveis.
 
@@ -758,7 +758,7 @@ A instalação não inicia o programa automaticamente. A configuração do Niri 
 
 ### Wallpapers
 
-`Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`.
+No perfil Notebook do legado, `Desktop > Wallpapers` copia `assets/wallpapers/` para `~/.wallpapers`. No Desktop, use `Sistema Operacional > Papéis de parede` na CLI atual.
 
 A pasta contém onze imagens destinadas a diferentes telas:
 

@@ -230,10 +230,10 @@ func (m model) items() []item {
 				item{title: "Turing Smart Screen", desc: "Instalar com Python 3.13, GPU AMD e tema Frieren", job: func() job { return turingScreenJob(m.setupDir) }},
 			)
 		}
-		return append(items,
-			item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
-			item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
-		)
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }})
+		}
+		return append(items, item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }})
 	case screenAIAgents:
 		if m.device == deviceDesktop {
 			return []item{{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }}}

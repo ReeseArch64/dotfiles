@@ -306,6 +306,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--homelab", strings.TrimPrefix(action, "homelab-")}
 	case "cursor":
 		args = []string{"--cursor"}
+	case "wallpapers":
+		args = []string{"--wallpapers"}
 	case "firefox-backup":
 		args = []string{"--firefox-backup"}
 	case "sdk-links":

@@ -69,7 +69,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor", "Instalar ArtCraft Launcher", "Aplicativos pré-instalados",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor", "Instalar ArtCraft Launcher", "Papéis de parede", "Aplicativos pré-instalados",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
@@ -80,6 +80,11 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				launcherCommand, err := actionCommand(launcher.action, launcher.title)
 				if launcher.disabled || err != nil || !slices.Equal(launcherCommand.Args[1:], []string{"--packages", "install-artcraft-launcher"}) {
 					t.Fatalf("ação do ArtCraft Launcher: %v, %v", launcherCommand, err)
+				}
+				wallpapers := osMenu.items()[10]
+				wallpapersCommand, err := actionCommand(wallpapers.action, wallpapers.title)
+				if wallpapers.disabled || err != nil || !slices.Equal(wallpapersCommand.Args[1:], []string{"--wallpapers"}) {
+					t.Fatalf("ação de papéis de parede: %v, %v", wallpapersCommand, err)
 				}
 				terminal, _ := osMenu.handleKey("8")
 				terminalItems := terminal.(model).items()
