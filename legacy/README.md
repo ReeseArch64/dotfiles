@@ -16,7 +16,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Sandbox, Zed e Proton VPN CLI no Desktop |
 | Desktop | Foto de perfil nos dois perfis, Niri, Noctalia, Firefox e papéis de parede no Notebook e Discord, Obsidian e Turing Smart Screen no Desktop |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
-| Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
+| Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG no Notebook |
 
 ### Migração do Desktop
 
@@ -26,13 +26,14 @@ A [CLI atual](../README.md) reúne os instaladores e as configurações migradas
 | --- | --- |
 | Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go), [Obsidian com suas configurações](#obsidian) e [Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren](#turing-smart-screen-somente-desktop). |
 | Desenvolvimento e IA | [Podman/Distrobox](#ambiente-sandbox), [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
-| Backups | [Snapshot Btrfs](#ponto-de-restauração), [envio de projetos ao GitHub, GitLab e Gitea](#backup-de-projetos-locais), [backup de chaves SSH](#backup-das-chaves-ssh) e [exportação das chaves GPG](#backup-das-chaves-gpg). |
+
+O snapshot Btrfs, o envio de projetos e a exportação de chaves GPG estão no menu **Backup** da CLI atual. O backup dedicado de chaves SSH saiu do Desktop e permanece arquivado no Notebook.
 
 Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
 
 - **SSH e firewall**. O Desktop legado usa aliases e várias identidades, mantém o servidor SSH desativado e bloqueia SSH de entrada. A CLI atual usa uma identidade por dispositivo e configura o acesso SSH pela LAN.
 - **Foto de perfil**. A ação legada substitui `~/.face`. O Fastfetch atual cria a foto quando ela está ausente.
-- **Diretórios SDK**. A CLI atual migra o estado do Mise em `~/.local/share/mise`, além dos demais caminhos suportados. A migração de `~/.local` por inteiro e de `~/go` continua no código legado. O mapeamento histórico de `~/.vscode` fica arquivado após a retirada do VS Code.
+- **Diretórios SDK**. A CLI atual migra o estado do Mise em `~/.local/share/mise`, além de `~/go`, `~/.render` e `~/.maple`. A migração de `~/.local` por inteiro e o mapeamento histórico de `~/.vscode` continuam arquivados.
 
 O Proton VPN CLI ficou fora da migração por escolha do usuário. A migração da lixeira para `~/.trash` foi descartada. O login automático e o Thunderbird foram retirados do Desktop. VS Code, Android Studio e Better Stack também foram retirados.
 
@@ -875,13 +876,13 @@ git push backup
 
 Os remotos devem estar previamente configurados: `origin` para o GitHub, `ogle` para o GitLab e `backup` para o Gitea. A CLI não cria nem altera URLs de remotos. Projetos com qualquer um desses remotos ausente são reportados como falha, sem envio parcial. Se o envio ao GitHub falhar, a CLI não envia esse projeto aos demais serviços. Após sucesso no GitHub, tenta GitLab e Gitea independentemente. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
 
-No Desktop, a preparação de `/mnt/workspaces` e do link `~/Projects` está em **Sistema Operacional → Armazenamento e projetos** na CLI atual. O envio dos projetos continua arquivado. No Notebook, a ação legada prepara o destino e o link antes do envio.
+No Desktop, **Sistema Operacional → Armazenamento e projetos** da CLI atual prepara `/mnt/workspaces` e o link `~/Projects`. O envio está em **Backup → Backup de projetos locais**. A ação arquivada do Notebook prepara o destino e o link antes do envio.
 
 A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
 
 ### Backup das chaves SSH
 
-`Backup > Backup das Chaves SSH` copia para `/mnt/backups/dotfiles/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github`, `id_gitlab` e `id_gitea`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab`, `id_gitea` e a pública `id_trabalho_desktop.pub`.
+No Notebook arquivado, `Backup > Backup das Chaves SSH` copia os pares `id_trabalho_notebook`, `id_github`, `id_gitlab`, `id_gitea` e a chave pública `id_trabalho_desktop.pub` para `/mnt/backups/dotfiles/ssh/<hash>/<geração>/original/`.
 
 A CLI valida todos os arquivos do perfil antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia. Chaves privadas de outro dispositivo nunca são exigidas nem copiadas.
 

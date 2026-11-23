@@ -52,7 +52,7 @@ As duas ações são implementadas em Go e guardam os arquivos substituídos em 
 
 **Sistema Operacional → Papéis de parede** copia as imagens do legado para `~/.wallpapers`. No Desktop, instala `desktop-4k.jpg`, `desktop-ultrawide.jpg` e `dual-monitor.jpg`. No Laptop, instala as 11 imagens. Quando a pasta existente é diferente, a ação guarda uma cópia em `/mnt/backups/dotfiles/Wallpapers` antes de substituí-la. A escolha da imagem de fundo é feita pelo ambiente gráfico.
 
-No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 24 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
+No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 27 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`, `~/go` → `/mnt/sdk/Go`, `~/.render` → `/mnt/sdk/Render` e `~/.maple` → `/mnt/sdk/Maple`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
 No Desktop e Laptop com CachyOS, **Sistema Operacional → Armazenamento e projetos → Migrar pastas para /mnt/storage** cria links para `Documents`, `Downloads`, `Pictures`, `Videos` e `Music`. A ação mescla os dados, dá prioridade aos arquivos da pasta pessoal em conflitos e preserva os diretórios anteriores em `/mnt/backups/dotfiles/Storage`.
 
@@ -67,6 +67,14 @@ No Desktop, **Sistema Operacional → Niri** aplica regras, atalhos, animações
 As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
 
 **Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` do legado em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
+
+## Backup
+
+O menu **Backup** aparece nos perfis Desktop e Laptop e pede confirmação antes de executar cada ação.
+
+- **Ponto de restauração Btrfs** cria um snapshot gravável do subvolume `/` em `/mnt/backups/dotfiles/Snapshots`. O destino precisa estar no mesmo sistema de arquivos Btrfs. A operação é bloqueada se o snapshot incluir a pasta `~/.ssh` do usuário. O snapshot cobre somente o subvolume raiz. [Documentação do Btrfs sobre snapshots](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html)
+- **Backup de projetos locais** encontra repositórios Git e worktrees em `/mnt/workspaces`. Para cada projeto com os três remotos configurados, envia primeiro ao GitHub (`origin`). Se esse envio funcionar, tenta o GitLab (`ogle`) e o Gitea (`backup`). A ação usa `git push` com as configurações de cada projeto e apresenta as falhas ao final.
+- **Backup das chaves GPG** exporta as chaves públicas e privadas em ASCII Armor. Cada geração fica em um diretório privado em `/mnt/backups/dotfiles/GPG`, com permissão `0600` para o arquivo de chaves privadas.
 
 ## Programas
 

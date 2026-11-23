@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.31.1"
+const version = "1.32.0"
 
 type profile struct {
 	prefix      string
@@ -95,6 +95,13 @@ func main() {
 	}
 	if len(os.Args) == 3 && os.Args[1] == "--mise-login" {
 		if err := runMiseLogin(identifyProfile(hostname), os.Args[2]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+	if len(os.Args) == 3 && os.Args[1] == "--backup" {
+		if err := runBackupAction(identifyProfile(hostname), os.Args[2]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

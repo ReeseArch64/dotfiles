@@ -190,12 +190,9 @@ func projectsUploadJob(steps []step, backup func() (int, error)) job {
 	}
 }
 
-func projectsBackupJob(device deviceProfile) job {
+func projectsBackupJob() job {
 	backup := func() (int, error) {
 		return backupProjectRepositories(context.Background(), projectsRoot, runProjectGit)
-	}
-	if device == deviceDesktop {
-		return projectsUploadJob(nil, backup)
 	}
 	home, _ := os.UserHomeDir()
 	setup := projectsWorkspaceSetupSteps(projectsWorkspace, os.Getuid(), os.Getgid())

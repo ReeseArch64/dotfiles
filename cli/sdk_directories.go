@@ -76,6 +76,7 @@ var sdkDirectoryMappings = [][2]string{
 	{".vite-plus", "VitePlus"}, {".docker", "Docker"}, {".dotnet", "Dotnet"}, {".java", "Java"},
 	{".copilot", "Copilot"}, {".azure", "Azure"}, {".aws", "Aws"}, {".gemini", "Gemini"}, {".railway", "Railway"}, {".tauri", "Tauri"},
 	{miseSDKPath, "Mise"},
+	{"go", "Go"}, {".render", "Render"}, {".maple", "Maple"},
 }
 
 func sdkMiseSource(home, root string) string {

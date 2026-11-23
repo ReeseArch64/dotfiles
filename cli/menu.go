@@ -58,6 +58,7 @@ const (
 	screenLoginGemini
 	screenLoginAntigravity
 	screenLoginNPM
+	screenBackup
 	screenJob
 )
 
@@ -87,6 +88,7 @@ var screenTitles = map[screen]string{
 	screenCasaOS:        "CasaOS",
 	screenWebBrowser:    "Navegador Web",
 	screenMiseLogins:    "Login das CLIs",
+	screenBackup:        "Backup",
 }
 
 type tickMsg time.Time
@@ -284,6 +286,12 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Backup Completo", desc: "Salvar todos os perfis e chaves com o Firefox fechado", action: "firefox-backup"},
 			{title: "Instalar Firefox", desc: "Instalar e definir como navegador padrão", action: "install-firefox"},
 		}
+	case screenBackup:
+		return []menuItem{
+			{title: "Ponto de restauração Btrfs", desc: "Criar um snapshot do subvolume raiz", action: "backup-snapshot"},
+			{title: "Backup de projetos locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", action: "backup-projects"},
+			{title: "Backup das chaves GPG", desc: "Exportar as chaves públicas e privadas", action: "backup-gpg"},
+		}
 	case screenJob:
 		return nil
 	}
@@ -298,6 +306,7 @@ func screenItems(page screen, device profile) []menuItem {
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
 		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},
 		{title: screenTitles[screenPrograms], desc: "Instalar programas e remover aplicativos pré-instalados", goTo: screenPrograms},
+		{title: screenTitles[screenBackup], desc: "Criar snapshots, enviar projetos e exportar chaves GPG", goTo: screenBackup},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}
 }

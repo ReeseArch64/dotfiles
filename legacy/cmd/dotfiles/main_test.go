@@ -50,7 +50,7 @@ func TestExitMenuIdentifiesHostname(t *testing.T) {
 func TestMainMenuOptions(t *testing.T) {
 	model := newModel(t.TempDir())
 	items := model.items()
-	want := []string{"Sistema", "Desenvolvimento", "Desktop", "Agentes de IA", "Backup", "Sair"}
+	want := []string{"Sistema", "Desenvolvimento", "Desktop", "Agentes de IA", "Sair"}
 	if titles := itemTitles(items); !slices.Equal(titles, want) {
 		t.Fatalf("opções inesperadas: %v", titles)
 	}
@@ -63,7 +63,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 		screenDevelopment: {"Ambiente Sandbox", "Instalar Zed", "Android CLI", "Proton VPN CLI"},
 		screenDesktop:     {"Discord", "Obsidian", "Turing Smart Screen", "Foto de perfil"},
 		screenAIAgents:    {"Ollama"},
-		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
+		screenBackup:      nil,
 		screenCleanup:     nil,
 		screenDocker:      nil,
 		screenGit:         nil,
@@ -99,7 +99,7 @@ func TestNotebookMenuContainsOnlySelectedActions(t *testing.T) {
 
 func TestMainMenuCategoriesOpenSubmenus(t *testing.T) {
 	model := newModel(t.TempDir())
-	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenAIAgents, screenBackup}
+	want := []screen{screenSystem, screenDevelopment, screenDesktop, screenAIAgents}
 	for i, destination := range want {
 		item := model.items()[i]
 		if item.goTo != destination || item.job != nil || item.quit {

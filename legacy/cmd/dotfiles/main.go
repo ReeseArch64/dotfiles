@@ -164,14 +164,16 @@ func (m model) items() []item {
 			systemDescription = "SSH e firewall"
 			developmentDescription = "Ambientes e ferramentas de desenvolvimento"
 		}
-		return []item{
+		items := []item{
 			{title: "Sistema", desc: systemDescription, goTo: screenSystem},
 			{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
 			{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
 			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
-			{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups/dotfiles", goTo: screenBackup},
-			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups/dotfiles", goTo: screenBackup})
+		}
+		return append(items, item{title: "Sair", desc: "Até a próxima!", quit: true})
 	case screenSystem:
 		sshDescription := "Configurar cliente e servidor permanente com acesso pela LAN"
 		firewallDescription := "Ativar o UFW e liberar o SSH somente na LAN"
@@ -242,9 +244,12 @@ func (m model) items() []item {
 		}
 		return []item{{title: "Pi Agent", desc: "Tema, settings e pacotes do Pi", goTo: screenPiAgent}}
 	case screenBackup:
+		if m.device != deviceNotebook {
+			return nil
+		}
 		return []item{
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
-			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", job: func() job { return projectsBackupJob(m.device) }},
+			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", job: projectsBackupJob},
 			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/dotfiles/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
 			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/dotfiles/gpg", job: gpgBackupJob},
 		}

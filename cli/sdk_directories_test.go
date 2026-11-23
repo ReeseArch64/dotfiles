@@ -79,8 +79,12 @@ func TestSDKMigrationApprovedDirectoriesAndBackups(t *testing.T) {
 		".expo": "Expo", ".vite-plus": "VitePlus", ".docker": "Docker", ".dotnet": "Dotnet",
 		".java": "Java", ".copilot": "Copilot", ".azure": "Azure", ".aws": "Aws",
 		".gemini": "Gemini", ".railway": "Railway", ".tauri": "Tauri",
+		"go": "Go", ".render": "Render", ".maple": "Maple",
 	}
-	excluded := []string{".local", ".local/share/Trash", ".trash", "Projects", "Documents", "Downloads", "Pictures", "Videos", "Music", ".vscode", "go"}
+	excluded := []string{".local", ".local/share/Trash", ".trash", "Projects", "Documents", "Downloads", "Pictures", "Videos", "Music", ".vscode"}
+	for _, name := range []string{"go", ".render", ".maple"} {
+		sdkTestFile(t, filepath.Join(home, name, "fixture"), name)
+	}
 	for _, name := range excluded {
 		sdkTestFile(t, filepath.Join(home, name, "fixture"), name)
 	}
@@ -114,6 +118,9 @@ func TestSDKMigrationApprovedDirectoriesAndBackups(t *testing.T) {
 	}
 	for _, name := range excluded {
 		sdkTestContent(t, filepath.Join(home, name, "fixture"), name)
+	}
+	for _, name := range []string{"go", ".render", ".maple"} {
+		sdkTestContent(t, filepath.Join(root, pairs[name], "fixture"), name)
 	}
 	sdkTestContent(t, filepath.Join(root, "Claude", "conflict"), "home")
 	sdkTestContent(t, filepath.Join(root, "Claude", "unique"), "target only")
