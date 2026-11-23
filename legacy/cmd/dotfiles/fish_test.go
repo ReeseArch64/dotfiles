@@ -109,7 +109,7 @@ end
 				}
 			})
 		}
-	})
+	}, deviceNotebook)
 }
 
 func TestRepositoryFishConfigExists(t *testing.T) {
@@ -122,5 +122,5 @@ func TestRepositoryFishConfigExists(t *testing.T) {
 		if !info.Mode().IsRegular() {
 			t.Fatalf("configuração Fish não é arquivo regular: %s", path)
 		}
-	})
+	}, deviceNotebook)
 }

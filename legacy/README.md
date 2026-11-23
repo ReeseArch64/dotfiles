@@ -4,7 +4,7 @@ Esta pasta arquiva a versão anterior da CLI. Consulte o [README atual](../READM
 
 Configuração pessoal para CachyOS com Niri e Noctalia Shell, e mini-servidor Ubuntu.
 
-As ações desta versão e seus requisitos ficam descritos abaixo como referência para a migração.
+O executável legado abre apenas a opção **Sair**. As ações e os requisitos abaixo documentam o código arquivado para a migração.
 
 ## Visão geral
 
@@ -13,25 +13,30 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | Área | Ações |
 | --- | --- |
 | Sistema | SSH, Firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
-| Desenvolvimento | Git, GPG e Linear CLI no Notebook, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Mozilla Firefox, Obsidian, Turing Smart Screen e foto de perfil |
+| Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Sandbox, Zed e Proton VPN CLI no Desktop |
+| Desktop | Niri e foto de perfil nos dois perfis, Noctalia, Firefox e papéis de parede no Notebook e Discord, Obsidian e Turing Smart Screen no Desktop |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
 
 ### Migração do Desktop
 
-Drivers, Docker, Git/GPG, Rust, Firefox, Linear CLI, Pi Agent, Noctalia, papéis de parede e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
+Na [CLI atual](../README.md), o Desktop já tem drivers, Docker, Git/GPG, Rust, Firefox, Mise e os logins das CLIs, Pi Agent, Noctalia, Fish, Fastfetch, cursor, papéis de parede, remoção de aplicativos pré-instalados e ferramentas de terminal, incluindo Posting e LunarVim. No legado, as configurações do Noctalia e do Pi Agent pertencem ao Notebook.
 
-No Desktop, use a CLI atual para instalar o Mise, fazer login nas CLIs migradas, configurar Fish e Fastfetch e instalar o cursor FrierenBLZ. A ação de ferramentas de terminal do legado mantém os utilitários pendentes.
-
-| Área | O que ainda está no legado do Desktop |
+| Área | O que falta migrar |
 | --- | --- |
-| SSH e firewall | Configuração de cliente com aliases e identidades por destino, servidor SSH desativado e bloqueio de SSH de entrada. A CLI atual usa uma identidade por dispositivo e permite SSH pela LAN quando o firewall é configurado. |
-| Armazenamento e backup | Migração de pastas pessoais para `/mnt/storage`, lixeira em `~/.trash`, preparação de `/mnt/workspaces` com `~/Projects`, snapshot Btrfs e backup de projetos e chaves SSH/GPG. A ação de SDK atual cobre `~/.local/share/mise` e outros diretórios. `~/.local` inteiro, `~/.vscode` e `~/go` constam na lista legada. |
-| Ambiente gráfico | Configuração completa do Niri por perfil e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, papéis de parede, backup do Firefox e preparação da foto pelo Fastfetch. |
-| Aplicativos | Discord/BetterDiscord, Obsidian e Turing Smart Screen. |
-| Desenvolvimento | Sandbox Podman/Distrobox, Zed, Android CLI e Proton VPN CLI. |
-| Agentes de IA | Configuração do Ollama para GPU AMD. |
+| Ambiente gráfico | Configuração completa do Niri por perfil, incluindo atalhos, monitores e autostart. A CLI atual já aplica o cursor e o `misc.kdl`. |
+| Aplicativos | Discord com BetterDiscord, Obsidian com os arquivos de configuração e Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren. |
+| Desenvolvimento e IA | Sandbox com Podman e Distrobox, Zed, Android CLI e Ollama com ROCm para GPU AMD. A Android CLI do Google é uma ação independente do pacote `android-tools`, que já foi migrado. |
+| Armazenamento | Migração das pastas pessoais para `/mnt/storage` e da lixeira para `~/.trash`. |
+| Backups | Snapshot Btrfs, envio de projetos aos remotos GitHub, GitLab e Gitea, preparação de `/mnt/workspaces` e do link `~/Projects`, backup das chaves SSH e exportação das chaves GPG. |
+
+Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
+
+- **SSH e firewall**. O Desktop legado usa aliases e várias identidades, mantém o servidor SSH desativado e bloqueia SSH de entrada. A CLI atual usa uma identidade por dispositivo e configura o acesso SSH pela LAN.
+- **Foto de perfil**. A ação legada substitui `~/.face`. O Fastfetch atual cria a foto quando ela está ausente.
+- **Diretórios SDK**. A CLI atual migra o estado do Mise em `~/.local/share/mise`, além dos demais caminhos suportados. A migração de `~/.local` por inteiro e de `~/go` continua no código legado. O mapeamento histórico de `~/.vscode` fica arquivado após a retirada do VS Code.
+
+O Proton VPN CLI ficou fora da migração por escolha do usuário. O login automático e o Thunderbird foram retirados do Desktop. VS Code, Android Studio e Better Stack também foram retirados.
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -103,7 +108,7 @@ CasaOS, Pi Agent, Ollama e LunarVim executam scripts remotos baixados com `curl`
 
 Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
 
-A base compartilhada em `setup/config/` contém `noctalia`, `pi` e os arquivos comuns de `niri`. Os perfis reutilizam o cursor, o Fastfetch compartilhado, o Mise e o `misc.kdl` da árvore `../cachyos/`. O Desktop usa o Fish dessa mesma árvore e o notebook mantém sua configuração própria. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri. O Notebook também mantém seu `git/.gitconfig`, que recebe a chave GPG específica do dispositivo, e usa os arquivos estáticos de Git de `../cachyos/`.
+A base compartilhada em `setup/config/` contém os arquivos comuns do Niri. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri. Ambos reutilizam o `misc.kdl` da árvore `../cachyos/`. O Notebook tem seus próprios arquivos de Fish, Noctalia e Pi Agent, reutiliza o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`.
 
 Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
@@ -113,11 +118,9 @@ A identidade do Git no Notebook fica definida em `setup/notebook/git/.gitconfig`
 
 No Notebook, a ação `Desenvolvimento > GPG` gera as chaves GPG localmente.
 
-Somente nos perfis Desktop e Notebook, antes de abrir a interface, após validar o perfil e o sistema operacional, a CLI garante que existam `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups`, com proprietário e grupo do usuário atual. Usa `0700` para workspaces/backups e `0755` para sdk/storage (permitindo acesso de serviços aos seus próprios subdiretórios). Solicita `sudo` somente se houver pastas ausentes ou com permissões/proprietário/grupo diferentes. Links simbólicos nesses caminhos são rejeitados. Não altera permissões ou donos recursivamente, nem formata ou monta discos.
+O legado arquiva a preparação de `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups` para os perfis Desktop e Notebook. O código usa `0700` para workspaces e backups e `0755` para SDK e storage.
 
-HomeLab e HomeProd não executam essa preparação automática, as migrações de diretórios nem a criação dos links simbólicos de SDK, pastas pessoais e lixeira descritos abaixo. Essa exclusão não desfaz migrações realizadas anteriormente.
-
-Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
+A tabela registra os mapeamentos históricos da migração SDK dos dois perfis:
 
 | Link no home | Destino |
 | --- | --- |
@@ -147,7 +150,7 @@ Na mesma preparação inicial, a CLI migra os dados e cria estes links no home:
 | `~/.railway` | `/mnt/sdk/Railway` |
 | `~/.tauri` | `/mnt/sdk/Tauri` |
 
-Também são migradas as pastas pessoais para `/mnt/storage`. Os caminhos no home são links simbólicos apontando para os destinos, assim como todos os diretórios SDK acima:
+A implementação arquivada para pastas pessoais cria estes links em `/mnt/storage`:
 
 | Link no home | Destino |
 | --- | --- |
@@ -175,11 +178,11 @@ make run
 
 ### Ações do Notebook
 
-O Notebook recebe:
+O código do Notebook conserva estas ações:
 
 - Sistema: SSH, Firewall, Docker e remoção de aplicativos pré-instalados;
 - Desenvolvimento: Git, GPG, Ambiente de Desenvolvimento, Linear CLI, Android CLI e ferramentas de terminal;
-- Desktop: Niri, Noctalia, Mozilla Firefox e foto de perfil;
+- Desktop: Niri, login automático, Noctalia, Mozilla Firefox, papéis de parede e foto de perfil;
 - Agentes de IA: somente Pi Agent;
 - Backup: todas as ações disponíveis.
 
@@ -917,7 +920,8 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 │   └── wallpapers/
 ├── cmd/dotfiles/          # Código e testes da CLI
 ├── setup/
-│   ├── desktop/          # Configurações completas CachyOS
+│   ├── config/           # Base Niri compartilhada
+│   ├── desktop/          # Configurações ainda arquivadas do Desktop
 │   ├── notebook/         # Configurações específicas CachyOS
 │   ├── laptop/           # Laptop Omarchy (SSH implementado em Go)
 │   ├── homelab/          # Homelab Ubuntu
