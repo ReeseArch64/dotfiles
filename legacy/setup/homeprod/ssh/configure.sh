@@ -21,7 +21,9 @@ sshd -t
 printf '%s\n' "$public_key" | ssh-keygen -lf /dev/stdin
 
 [[ ! -L "$admin_home/.ssh" && ! -L "$admin_home/.ssh/authorized_keys" ]] || exit 1
-backup=$(mktemp -d /etc/ssh/homeprod-backup.XXXXXXXX)
+source "$(dirname "$(readlink -f "$0")")/../../backup-store.sh"
+backup_dir=$(dotfiles_backup_category Legacy-HomeProd-SSH)
+backup=$(mktemp -d "$backup_dir/sshd.XXXXXXXX")
 chmod 0700 "$backup"
 cp -a /etc/ssh/sshd_config "$backup/sshd_config"
 if [[ -f "$admin_home/.ssh/authorized_keys" ]]; then

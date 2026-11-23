@@ -69,7 +69,7 @@ func runCursorAction(p profile) error {
 func installCursor(assets, config, home string, location backupLocation, validate func(string) error) (backups []string, result error) {
 	// Hold the lock through validation and the replacement of both assets.
 	configDir := filepath.Dir(config)
-	unlock, err := lockOperation(filepath.Join(configDir, ".dotfiles-cursor.lock"), "cursor")
+	unlock, err := lockOperation(filepath.Join(configDir, "cursor"), "cursor")
 	if err != nil {
 		return nil, fmt.Errorf("abrir configuração do Niri: %w", err)
 	}

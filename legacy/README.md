@@ -68,7 +68,7 @@ Ao executar essas ações, a CLI identifica o perfil sem perguntar ao usuário. 
 - `homelab`: disponibiliza CasaOS, DNS, SSH e firewall para Ubuntu;
 - `homeprod`: disponibiliza preparação da VPS, CasaOS, SSH, swap e acesso seguro unificado (Tunnel + firewall com rollback);
 - `macbook`: informa que o dispositivo ainda não possui suporte e encerra;
-- `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH, Firewall UFW, Navegador Web > Firefox (exige `~/.config/mozilla` existente e prepara `/mnt/backups/Restore Firefox` com sudo para o usuário) e a ação manual Aparência (`~/.face` e wallpaper em `~/.config/omarchy/backgrounds/dracula/laptop.jpg`). Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root. A configuração aceita zero chaves autorizadas e não exige teste de login remoto: verifica o serviço ativo/habilitado e a porta SSH respondendo localmente. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não move pastas nem cria links simbólicos; cria apenas os diretórios necessários às ações solicitadas. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
+- `laptop-alan`: perfil Laptop (Omarchy Linux, `ID=omarchy`), com SSH, Firewall UFW, Navegador Web > Firefox (exige `~/.config/mozilla` existente e prepara `/mnt/backups/dotfiles/Restore Firefox` com sudo para o usuário) e a ação manual Aparência (`~/.face` e wallpaper em `~/.config/omarchy/backgrounds/dracula/laptop.jpg`). Gera `id_laptop` Ed25519 pedindo e-mail e passphrase, e permite adicionar chaves públicas por colagem, visualizar e remover em **SSH > Chaves autorizadas**. O servidor permite apenas autenticação por chave e proíbe root. A configuração aceita zero chaves autorizadas e não exige teste de login remoto: verifica o serviço ativo/habilitado e a porta SSH respondendo localmente. O Firewall fica escurecido até verificar essa configuração; quando aplicado, permite SSH somente na LAN. Não usa flags em `config.txt`. É independente do notebook CachyOS (`setup/notebook/`), em `setup/laptop/`, sem herdar `setup/config/`. Não move pastas nem cria links simbólicos; cria apenas os diretórios necessários às ações solicitadas. O fluxo SSH é implementado em Go, sem scripts Python ou shell. Veja [o fluxo e as precauções do laptop](setup/laptop/README.md).
 
 Hostnames sem um desses termos, ou contendo mais de um deles, são rejeitados.
 
@@ -157,7 +157,7 @@ Também são migradas as pastas pessoais para `/mnt/storage`. Os caminhos no hom
 | `~/Videos` | `/mnt/storage/Videos` |
 | `~/Music` | `/mnt/storage/Music` |
 
-Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups dentro de `/mnt/backups`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
+Se já houver dados no destino, eles são mesclados: os arquivos do home prevalecem, mas conflitos são preservados em backup. Os diretórios originais do home e os destinos anteriores são mantidos integralmente em backups dentro de `/mnt/backups/dotfiles`, antes da criação dos links. Arquivos exclusivos do destino são mantidos na mesclagem. Links que já apontem para o destino correto não são migrados novamente; links para outros destinos são rejeitados, sem redirecionamento silencioso.
 
 Se uma pasta a migrar não puder ser lida por falta de permissão, a CLI solicita `sudo` para corrigir seu proprietário/grupo para o usuário atual (`chown -R -P --no-dereference`) e adicionar acesso ao dono (`chmod -R u+rwX`), antes de tentar novamente. Isso se limita à árvore afetada, no home ou no destino; não segue links simbólicos externos, não concede acesso a outros usuários e não apaga dados. As permissões corrigidas também ficam nos backups, mesmo se a migração falhar depois.
 
@@ -165,7 +165,7 @@ Se uma pasta a migrar não puder ser lida por falta de permissão, a CLI solicit
 
 Após preparar os links SDK, a CLI prepara a lixeira principal: `$XDG_DATA_HOME/Trash` passa a ser um link absoluto para `~/.trash`, um diretório real no mesmo sistema de arquivos do home. Quando `XDG_DATA_HOME` estiver ausente, vazio ou relativo, usa `~/.local/share/Trash`. Isso mantém a lixeira do home funcionando mesmo com `~/.local` em outro disco. Não modifica `XDG_DATA_HOME` nem as lixeiras próprias de outros volumes, como `/mnt/storage/.Trash-1000`.
 
-Na primeira execução, feche também os gerenciadores de arquivos e demais aplicativos que usam a lixeira. Os itens existentes e seus metadados de restauração são copiados para `~/.trash`, preservando os originais em `/mnt/backups` pelo mesmo mecanismo das outras migrações. `~/.trash`, `files` e `info` recebem permissão `0700`. Se as duas lixeiras já tiverem conteúdo, os itens sem conflitos são reunidos; nomes conflitantes, inclusive entre arquivos e seus metadados, interrompem a preparação antes de substituir os originais. Resolva esses conflitos antes de executar novamente. Links inesperados, diretórios de outro proprietário ou `~/.trash` em outro sistema de arquivos são rejeitados. Falhas na ativação acionam a recuperação dos originais; execuções seguintes reutilizam o link correto.
+Na primeira execução, feche também os gerenciadores de arquivos e demais aplicativos que usam a lixeira. Os itens existentes e seus metadados de restauração são copiados para `~/.trash`, preservando os originais em `/mnt/backups/dotfiles` pelo mesmo mecanismo das outras migrações. `~/.trash`, `files` e `info` recebem permissão `0700`. Se as duas lixeiras já tiverem conteúdo, os itens sem conflitos são reunidos; nomes conflitantes, inclusive entre arquivos e seus metadados, interrompem a preparação antes de substituir os originais. Resolva esses conflitos antes de executar novamente. Links inesperados, diretórios de outro proprietário ou `~/.trash` em outro sistema de arquivos são rejeitados. Falhas na ativação acionam a recuperação dos originais; execuções seguintes reutilizam o link correto.
 
 Para compilar e executar sem instalar o comando:
 
@@ -224,7 +224,7 @@ A ação `Configurar Swap` cria `/swapfile-homelab` com 2 GiB, permissão `0600`
 
 #### SSH por chave no HomeLab
 
-Execute o menu como seu usuário administrador (por exemplo, `alsgy`). A ação instala e ativa OpenSSH e solicita que você cole o conteúdo de `id_pessoal_desktop.pub` em uma única linha no terminal; não exige arquivo de chave no HomeLab nem no repositório. Valida a pública Ed25519, mostra seu fingerprint, cria `authorized_keys` se necessário e adiciona a chave preservando as existentes durante o teste. Teste uma segunda conexão usando essa chave e `sudo -v`. Somente depois de digitar `CONFIRMO`, mantém apenas a chave colada e aplica uma política permitindo SSH apenas para esse usuário com chave pública, bloqueando senha, autenticação interativa e root. Valida a política com `sshd -t` e `sshd -T`, guarda backup em `/etc/ssh/homelab-backup.*` e recarrega o serviço. Em caso de falha na aplicação, restaura a configuração e as chaves disponíveis durante o teste. Mantenha a sessão atual aberta até testar novamente. A chave privada permanece no desktop.
+Execute o menu como seu usuário administrador (por exemplo, `alsgy`). A ação instala e ativa OpenSSH e solicita que você cole o conteúdo de `id_pessoal_desktop.pub` em uma única linha no terminal; não exige arquivo de chave no HomeLab nem no repositório. Valida a pública Ed25519, mostra seu fingerprint, cria `authorized_keys` se necessário e adiciona a chave preservando as existentes durante o teste. Teste uma segunda conexão usando essa chave e `sudo -v`. Somente depois de digitar `CONFIRMO`, mantém apenas a chave colada e aplica uma política permitindo SSH apenas para esse usuário com chave pública, bloqueando senha, autenticação interativa e root. Valida a política com `sshd -t` e `sshd -T`, guarda backup em `/mnt/backups/dotfiles/Legacy-Homelab-SSH` e recarrega o serviço. Em caso de falha na aplicação, restaura a configuração e as chaves disponíveis durante o teste. Mantenha a sessão atual aberta até testar novamente. A chave privada permanece no desktop.
 
 O instalador do CasaOS executa o comando solicitado, com detecção de falhas no download:
 
@@ -268,7 +268,7 @@ Antes de executar, configure no painel Cloudflare Zero Trust, nesta ordem:
 
 Requer systemd com `LoadCredential` (247+, disponível no Ubuntu suportado), `curl`, `flock` e acesso aos repositórios APT. A instalação usa o [repositório oficial Cloudflare](https://pkg.cloudflare.com/), com chave dedicada e `signed-by`. Um binário existente em `/usr/bin/cloudflared` precisa suportar `--token-file` (2025.4.0+); versões antigas exigem atualização antes de repetir. Uma unidade `cloudflared.service` existente ou um conector em execução no Docker interrompem a configuração para evitar duplicação.
 
-A unidade `cloudflared-homeprod.service` inicia no boot, usa usuário dinâmico sem privilégios e recebe a credencial por `LoadCredential`. O token fica em `/etc/homeprod-cloudflared/tunnel-token` (`0600`, diretório `0700`, root), nunca no `ExecStart`. Backups privados ficam em `/etc/homeprod-cloudflared/backup.*`; trate-os também como segredos. O endpoint de saúde fica apenas em `127.0.0.1:49312`. O script aguarda `/ready` responder com sucesso; isso comprova conexão do conector, **não** a configuração correta de DNS/Access ou a segurança da origem.
+A unidade `cloudflared-homeprod.service` inicia no boot, usa usuário dinâmico sem privilégios e recebe a credencial por `LoadCredential`. O token fica em `/etc/homeprod-cloudflared/tunnel-token` (`0600`, diretório `0700`, root), nunca no `ExecStart`. Backups privados ficam em `/mnt/backups/dotfiles/Legacy-HomeProd-Tunnel`; trate-os também como segredos. O endpoint de saúde fica apenas em `127.0.0.1:49312`. O script aguarda `/ready` responder com sucesso; isso comprova conexão do conector, **não** a configuração correta de DNS/Access ou a segurança da origem.
 
 Em falha após alterar unidade/token, o script tenta restaurar os arquivos e o estado anterior do serviço. Pacotes e repositório APT instalados permanecem. A repetição atualiza a unidade/credencial com novo backup. Para parar somente este conector: `sudo systemctl disable --now cloudflared-homeprod.service`; isso não remove a aplicação Access, o Tunnel ou o DNS na Cloudflare. Recursos legados de Vaultwarden/Caddy/Tunnel já existentes na VPS não são migrados nem apagados automaticamente.
 
@@ -365,7 +365,7 @@ Mantenha a sessão root aberta até instalar a chave pública do desktop e confi
 
 Depois do bootstrap, a ação independente `Configurar SSH` do HomeProd deve ser executada como root. Cole o conteúdo de `id_pessoal_desktop.pub` diretamente no prompt do terminal, em uma única linha; nenhum arquivo de chave precisa ser colocado no repositório. Também é possível executar `bash setup/homeprod/ssh/configure.sh`. A ação aceita uma única pública Ed25519, valida seu formato, mostra seu fingerprint e adiciona a chave ao usuário `alsgy` para teste. A chave privada permanece no desktop. Em outro terminal, teste o acesso com a chave privada correspondente, `PasswordAuthentication=no` e `IdentityAgent=none`, seguido de `sudo -v`.
 
-Somente após digitar `CONFIRMO`, atestando o teste e a disponibilidade de recuperação, a ação restringe o SSH a `alsgy`, exige chave pública e proíbe login SSH de root e autenticação por senha. A única fonte de chaves passa a ser `/etc/ssh/homeprod_authorized_keys/alsgy`, gerenciada por root. A política é validada com `sshd -t` e `sshd -T` antes de recarregar o serviço. O backup fica em `/etc/ssh/homeprod-backup.*`; falhas na aplicação restauram a configuração anterior. Teste uma nova conexão antes de encerrar a sessão administrativa. Console/rescue do provedor e backup da chave precisam ser providenciados separadamente. Essa ação não configura o firewall.
+Somente após digitar `CONFIRMO`, atestando o teste e a disponibilidade de recuperação, a ação restringe o SSH a `alsgy`, exige chave pública e proíbe login SSH de root e autenticação por senha. A única fonte de chaves passa a ser `/etc/ssh/homeprod_authorized_keys/alsgy`, gerenciada por root. A política é validada com `sshd -t` e `sshd -T` antes de recarregar o serviço. O backup fica em `/mnt/backups/dotfiles/Legacy-HomeProd-SSH`; falhas na aplicação restauram a configuração anterior. Teste uma nova conexão antes de encerrar a sessão administrativa. Console/rescue do provedor e backup da chave precisam ser providenciados separadamente. Essa ação não configura o firewall.
 
 ## Navegação
 
@@ -463,9 +463,9 @@ No desktop e no notebook, a ação `Configurar SSH` executa `systemctl --user en
 
 O fluxo entre dispositivos é estritamente unidirecional: desktop → notebook e desktop → homelab. O desktop não aceita nenhuma chave, mantém `authorized_keys` vazio, bloqueia a porta SSH no UFW e desabilita `sshd.service` e `sshd.socket`. O notebook aceita somente `id_trabalho_desktop.pub`; o homelab aceita somente `id_pessoal_desktop.pub`. Assim, a identidade pessoal não concede acesso ao equipamento de trabalho. A configuração do notebook não contém destinos LAN para retornar ao desktop ou acessar o homelab.
 
-A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups`. A autenticação por senha permanece disponível como recuperação no notebook e no homelab; clientes com a chave privada correspondente entram diretamente por chave pública.
+A ação substitui `authorized_keys` pelo conjunto exato do perfil, aplica permissão `0600` e preserva a versão anterior em `/mnt/backups/dotfiles`. A autenticação por senha permanece disponível como recuperação no notebook e no homelab; clientes com a chave privada correspondente entram diretamente por chave pública.
 
-Uma configuração diferente é preservada em `/mnt/backups`, identificada pela origem e pela data, sem criar arquivos de backup dentro de `~/.ssh`.
+Uma configuração diferente é preservada em `/mnt/backups/dotfiles`, identificada pela origem e pela data, sem criar arquivos de backup dentro de `~/.ssh`.
 
 ### Firewall
 
@@ -696,7 +696,7 @@ Cada equipamento tem sua configuração completa e independente. O `cfg/display.
 
 A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/autostart.kdl`. O notebook não inicia esse serviço.
 
-Quando o cursor de destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`.
+Quando o cursor de destino é diferente, a CLI preserva a versão anterior em `/mnt/backups/dotfiles`.
 
 ### Noctalia
 
@@ -784,7 +784,7 @@ A ação substitui o destino existente. Faça uma cópia manual quando quiser pr
 
 Niri, o cursor FrierenBLZ, Obsidian e os wallpapers usam cópias regulares.
 
-Quando o destino é diferente, a CLI preserva a versão anterior em `/mnt/backups`, com identificação da origem e da data e sem sobrescrever backups anteriores. Conteúdo idêntico não gera outro backup. O backup é concluído antes da substituição, inclusive quando o destino fica em outro disco.
+Quando o destino é diferente, a CLI preserva a versão anterior em `/mnt/backups/dotfiles`, com identificação da origem e da data e sem sobrescrever backups anteriores. Conteúdo idêntico não gera outro backup. O backup é concluído antes da substituição, inclusive quando o destino fica em outro disco.
 
 Essa política também se aplica às configurações de SSH, Noctalia e Pi Agent, às migrações SDK e storage e aos arquivos DNS do mini-servidor. Não são criados backups permanentes nos diretórios dos programas. Backups antigos já existentes nesses locais não são movidos nem apagados automaticamente.
 
@@ -856,23 +856,23 @@ Para verificar a aceleração:
 
 ## Backup
 
-Todos os backups locais gerados pela CLI ficam em `/mnt/backups`, em registros únicos por categoria, origem e data UTC:
+Todos os backups locais gerados pela CLI ficam em `/mnt/backups/dotfiles`, em registros únicos por categoria, origem e data UTC:
 
 ```text
-/mnt/backups/<categoria>/<hash-SHA256-da-origem>/<data-UTC>-<identificador>/
+/mnt/backups/dotfiles/<categoria>/<hash-SHA256-da-origem>/<data-UTC>-<identificador>/
 ├── origin.json
 └── original
 ```
 
 As categorias são `files` (configurações e migração SDK), `ssh`, `gpg`, `dns` e `snapshots`. O conteúdo original fica em `original`; o arquivo `origin.json` informa o caminho de origem e a data (no DNS, `origin.path` registra a origem). A estrutura privada usa `0700`; configurações DNS e snapshots, executados via sudo, têm categorias próprias pertencentes ao root, sem alterar o dono do diretório principal.
 
-Cada execução cria uma nova geração e preserva as anteriores. A CLI prepara `/mnt/backups` com proprietário/grupo do usuário e permissão `0700`. Para execução isolada ou testes, `DOTFILES_BACKUP_DIR=/caminho/absoluto` substitui explicitamente a raiz; erros nunca causam fallback para o diretório do programa.
+Cada execução cria uma nova geração e preserva as anteriores. A CLI prepara `/mnt/backups/dotfiles` com proprietário/grupo do usuário e permissão `0700`. Para execução isolada ou testes, `DOTFILES_BACKUP_DIR=/caminho/absoluto` substitui explicitamente a raiz; erros nunca causam fallback para o diretório do programa.
 
 ### Ponto de restauração
 
-`Backup > Ponto de Restauração` cria um snapshot Btrfs gravável do subvolume raiz dentro de `/mnt/backups`. O registro fica em `snapshots/<hash-da-origem>/<data-UTC>-<identificador>/original`.
+`Backup > Ponto de Restauração` cria um snapshot Btrfs gravável do subvolume raiz dentro de `/mnt/backups/dotfiles`. O registro fica em `snapshots/<hash-da-origem>/<data-UTC>-<identificador>/original`.
 
-A ação prepara o destino centralizado e executa `btrfs subvolume snapshot / <destino>` com privilégios de administrador. O destino precisa pertencer ao mesmo sistema de arquivos Btrfs da raiz; se `/mnt/backups` estiver em outro disco ou sistema de arquivos, a criação do snapshot é recusada, sem gravá-lo em outro local.
+A ação prepara o destino centralizado e executa `btrfs subvolume snapshot / <destino>` com privilégios de administrador. O destino precisa pertencer ao mesmo sistema de arquivos Btrfs da raiz; se `/mnt/backups/dotfiles` estiver em outro disco ou sistema de arquivos, a criação do snapshot é recusada, sem gravá-lo em outro local.
 
 ### Backup de projetos locais
 
@@ -894,7 +894,7 @@ A ação envia somente commits e referências alcançados pelo `git push` config
 
 ### Backup das chaves SSH
 
-`Backup > Backup das Chaves SSH` copia para `/mnt/backups/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github`, `id_gitlab` e `id_gitea`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab`, `id_gitea` e a pública `id_trabalho_desktop.pub`.
+`Backup > Backup das Chaves SSH` copia para `/mnt/backups/dotfiles/ssh/<hash>/<geração>/original/` somente as identidades exigidas pelo perfil atual. No desktop isso inclui os pares `id_trabalho_desktop`, `id_pessoal_desktop`, `id_github`, `id_gitlab` e `id_gitea`. No notebook inclui os pares `id_trabalho_notebook`, `id_github`, `id_gitlab`, `id_gitea` e a pública `id_trabalho_desktop.pub`.
 
 A CLI valida todos os arquivos do perfil antes de criar o backup. Se algum estiver ausente ou não for um arquivo regular, a ação informa os nomes faltantes e não inicia a cópia. Chaves privadas de outro dispositivo nunca são exigidas nem copiadas.
 
@@ -906,10 +906,10 @@ Os diretórios de backup SSH recebem permissão `0700`. Cada geração mantém a
 
 | Conteúdo | Destino | Permissão |
 | --- | --- | --- |
-| Chaves públicas | `/mnt/backups/gpg/<hash>/<geração>/original/minha_chave_publica.asc` | `0644` |
-| Chaves privadas | `/mnt/backups/gpg/<hash>/<geração>/original/minha_chave_privada.asc` | `0600` |
+| Chaves públicas | `/mnt/backups/dotfiles/gpg/<hash>/<geração>/original/minha_chave_publica.asc` | `0644` |
+| Chaves privadas | `/mnt/backups/dotfiles/gpg/<hash>/<geração>/original/minha_chave_privada.asc` | `0600` |
 
-A ação exige o comando `gpg`, normalmente fornecido pelo pacote `gnupg` instalado em `Desenvolvimento > GPG`. O diretório `/mnt/backups/gpg` recebe permissão `0700`.
+A ação exige o comando `gpg`, normalmente fornecido pelo pacote `gnupg` instalado em `Desenvolvimento > GPG`. O diretório `/mnt/backups/dotfiles/gpg` recebe permissão `0700`.
 
 As duas exportações são concluídas antes da gravação dos arquivos. A CLI rejeita resultados sem os cabeçalhos OpenPGP esperados e usa arquivos temporários dentro de uma nova geração, preservando todos os backups existentes.
 

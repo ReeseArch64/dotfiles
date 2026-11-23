@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 	"unicode"
 )
 
@@ -83,21 +84,15 @@ func laptopSSHDirectory(home string) (string, error) {
 }
 
 func laptopSSHLock(path string) (func(), error) {
-	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR|syscall.O_NOFOLLOW, 0600)
+	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0)
 	if err != nil {
 		return nil, err
 	}
-	file := os.NewFile(uintptr(fd), path)
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() {
-		file.Close()
-		return nil, fmt.Errorf("lock inválido: %s", path)
-	}
 	if err := syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		file.Close()
+		_ = syscall.Close(fd)
 		return nil, errors.New("outra operação SSH está em andamento")
 	}
-	return func() { file.Close() }, nil
+	return func() { _ = syscall.Close(fd) }, nil
 }
 
 func validateLaptopPublicKey(line string, commands laptopSSHCommands) (string, string, error) {
@@ -203,7 +198,7 @@ func (c *laptopSSHConsole) manageKeys(action string) error {
 	if err != nil {
 		return err
 	}
-	unlock, err := laptopSSHLock(filepath.Join(directory, ".dotfiles-keys.lock"))
+	unlock, err := laptopSSHLock(directory)
 	if err != nil {
 		return err
 	}
@@ -304,17 +299,12 @@ func configureLaptopSSHClient(directory string) error {
 		previous = before + strings.TrimLeft(after, "\n")
 	}
 	if err == nil {
-		backup, err := os.CreateTemp(directory, "config.backup-*")
+		backup, err := reserveBackupAt(localBackupRoot(), "Legacy-SSH", path, time.Now())
 		if err != nil {
 			return err
 		}
-		_, writeErr := backup.Write(original)
-		closeErr := backup.Close()
-		if writeErr != nil {
-			return writeErr
-		}
-		if closeErr != nil {
-			return closeErr
+		if err := writeLaptopSSHFile(backup, original); err != nil {
+			return err
 		}
 	}
 	block := start + "\nHost *\n    IdentityFile ~/.ssh/id_laptop\n    IdentitiesOnly yes\n    AddKeysToAgent yes\n" + end + "\n"
@@ -326,7 +316,7 @@ func (c *laptopSSHConsole) configureIdentity() error {
 	if err != nil {
 		return err
 	}
-	unlock, err := laptopSSHLock(filepath.Join(directory, ".dotfiles-keys.lock"))
+	unlock, err := laptopSSHLock(directory)
 	if err != nil {
 		return err
 	}
@@ -391,6 +381,16 @@ func (c *laptopSSHConsole) configureIdentity() error {
 }
 
 func (c *laptopSSHConsole) configure() error {
+	root := localBackupRoot()
+	if err := validateBackupDirectoryPath(root); err != nil {
+		return err
+	}
+	if !backupDestinationReady(root, os.Getuid(), os.Getgid()) {
+		args := backupDestinationSetupArgs(root, os.Getuid(), os.Getgid())
+		if err := c.commands.interactive(append([]string{"sudo"}, args...)...); err != nil {
+			return err
+		}
+	}
 	if err := c.configureIdentity(); err != nil {
 		return err
 	}
@@ -535,6 +535,8 @@ func runLaptopSSHCommand(action string) error {
 	}
 	c := &laptopSSHConsole{home: account.HomeDir, username: account.Username, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemLaptopSSHCommands()}
 	switch action {
+	case "save-backup":
+		return writeLaptopSSHDBackup()
 	case "configure":
 		err = c.configure()
 	case "add", "list", "remove":

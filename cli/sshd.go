@@ -96,18 +96,18 @@ func writeConfigAtomic(path string, contents []byte, mode os.FileMode) error {
 }
 
 type sshServer struct {
-	username, home, config, lockPath string
-	connection                       string
-	backup                           func([]byte) (string, error)
-	commands                         sshCommands
-	recoveryCommands                 sshCommands
-	probe                            func(string) error
+	username, home, config, lockKey string
+	connection                      string
+	backup                          func([]byte) (string, error)
+	commands                        sshCommands
+	recoveryCommands                sshCommands
+	probe                           func(string) error
 }
 
 // Não executa shell: valida candidato e política efetiva antes da substituição.
 // Em erro após a substituição, restaura o arquivo e o estado de habilitação.
 func (s sshServer) apply() (backupPath string, result error) {
-	unlock, err := sshLock(s.lockPath)
+	unlock, err := sshLock(s.lockKey)
 	if err != nil {
 		return "", err
 	}
@@ -251,7 +251,7 @@ func applySSHServer(connection string) error {
 	username := account.Username
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
-	server := sshServer{username: username, home: account.HomeDir, connection: connection, config: "/etc/ssh/sshd_config", lockPath: "/run/dotfiles-ssh.lock", backup: func(data []byte) (string, error) {
+	server := sshServer{username: username, home: account.HomeDir, connection: connection, config: "/etc/ssh/sshd_config", lockKey: "system-ssh", backup: func(data []byte) (string, error) {
 		return backupSSHDAsUser(ctx, account, data)
 	}, commands: sshCommandsWithContext(ctx), recoveryCommands: systemSSHCommands()}
 	if _, err := server.commands.capture("", "ssh-keygen", "-A"); err != nil {

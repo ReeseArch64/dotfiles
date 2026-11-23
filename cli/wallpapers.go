@@ -22,7 +22,7 @@ func runWallpapersAction(p profile) error {
 	source := dotfilesAsset(home, "cachyos", "wallpapers")
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	printActionHeader()
-	backup, err := installWallpapers(source, home, managedBackup("Wallpapers", console.commands.interactive))
+	backup, err := installWallpapers(p, source, home, managedBackup("Wallpapers", console.commands.interactive))
 	if backup != "" {
 		fmt.Fprintln(console.output, "Backup:", backup)
 	}
@@ -35,13 +35,17 @@ func runWallpapersAction(p profile) error {
 	return err
 }
 
-func installWallpapers(source, home string, location backupLocation) (string, error) {
-	unlock, err := lockOperation(filepath.Join(home, ".dotfiles-wallpapers.lock"), "papéis de parede")
+func installWallpapers(p profile, source, home string, location backupLocation) (string, error) {
+	unlock, err := lockOperation(filepath.Join(home, ".wallpapers"), "papéis de parede")
 	if err != nil {
 		return "", err
 	}
 	defer unlock()
-	backup, finish, err := installAssetDirectory(source, filepath.Join(home, ".wallpapers"), "wallpapers", location)
+	var files []string
+	if p.prefix == "desktop" {
+		files = []string{"desktop-4k.jpg", "desktop-ultrawide.jpg", "dual-monitor.jpg"}
+	}
+	backup, finish, err := installAssetDirectory(source, filepath.Join(home, ".wallpapers"), "wallpapers", location, files...)
 	if err == nil && finish != nil {
 		err = finish(false)
 	}

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func installAssetDirectory(source, target, name string, location backupLocation) (string, func(bool) error, error) {
+func installAssetDirectory(source, target, name string, location backupLocation, files ...string) (string, func(bool) error, error) {
 	info, err := os.Lstat(source)
 	if err != nil {
 		return "", nil, err
@@ -18,7 +18,7 @@ func installAssetDirectory(source, target, name string, location backupLocation)
 	if !info.IsDir() {
 		return "", nil, fmt.Errorf("o caminho precisa ser um diretório: %s", source)
 	}
-	if sameAssetTree(source, target) {
+	if len(files) == 0 && sameAssetTree(source, target) {
 		return "", nil, nil
 	}
 	_, err = os.Lstat(target)
@@ -36,8 +36,11 @@ func installAssetDirectory(source, target, name string, location backupLocation)
 	}
 	defer os.RemoveAll(staging)
 	candidate := filepath.Join(staging, name)
-	if err := os.CopyFS(candidate, os.DirFS(source)); err != nil {
+	if err := copyAssets(source, candidate, files); err != nil {
 		return "", nil, err
+	}
+	if len(files) > 0 && sameAssetTree(candidate, target) {
+		return "", nil, nil
 	}
 	var backup, retired string
 	ops := systemSDKOps(context.Background(), location.path)
@@ -77,6 +80,29 @@ func installAssetDirectory(source, target, name string, location backupLocation)
 		}
 		return restore()
 	}, nil
+}
+
+func copyAssets(source, target string, files []string) error {
+	if len(files) == 0 {
+		return os.CopyFS(target, os.DirFS(source))
+	}
+	if err := os.Mkdir(target, 0755); err != nil {
+		return err
+	}
+	for _, name := range files {
+		path := filepath.Join(source, name)
+		if err := sshRegular(path, false); err != nil {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(target, name), data, 0644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func sameAssetTree(source, target string) bool {

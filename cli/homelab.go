@@ -76,12 +76,12 @@ func runPrivilegedHomelab(action, connection string) error {
 	if err != nil {
 		return err
 	}
-	lock, operation := "/run/dotfiles-ssh.lock", "SSH e firewall"
+	lock, operation := "system-ssh", "SSH e firewall"
 	switch action {
 	case "apply-dns":
-		lock, operation = "/run/dotfiles-dns.lock", "DNS"
+		lock, operation = "system-dns", "DNS"
 	case "apply-swap":
-		lock, operation = "/run/dotfiles-swap.lock", "swap"
+		lock, operation = "system-swap", "swap"
 	}
 	unlock, err := lockOperation(lock, operation)
 	if err != nil {

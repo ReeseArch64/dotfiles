@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	backupDestination = "/mnt/backups"
+	backupDestination = "/mnt/backups/dotfiles"
 )
 
 func backupDestinationReady(destination string, uid, gid int) bool {

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
@@ -98,6 +101,7 @@ type laptopSSHServer struct {
 	commands                         laptopSSHCommands
 	recoveryCommands                 laptopSSHCommands
 	probe                            func(string) error
+	backup                           func([]byte) (string, error)
 }
 
 // Não executa shell: valida candidato e política efetiva antes da substituição.
@@ -160,15 +164,17 @@ func (s laptopSSHServer) apply() (backupPath string, result error) {
 	if enabledErr != nil {
 		enabledState = "disabled"
 	}
-	backup, err := os.MkdirTemp(filepath.Dir(s.config), "laptop-backup.*")
+	backup, err := s.backup(original)
 	if err != nil {
 		return "", err
 	}
 	backupPath = backup
-	if err := os.WriteFile(filepath.Join(backup, "sshd_config"), original, 0600); err != nil {
+	staging, err := os.MkdirTemp(filepath.Dir(s.config), ".dotfiles-sshd-*")
+	if err != nil {
 		return backup, err
 	}
-	candidate := filepath.Join(backup, "candidate")
+	defer os.RemoveAll(staging)
+	candidate := filepath.Join(staging, "candidate")
 	policy := []byte(laptopSSHPolicy(s.username, port))
 	if err := os.WriteFile(candidate, policy, 0600); err != nil {
 		return backup, err
@@ -262,11 +268,65 @@ func applyLaptopSSHServer() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
-	server := laptopSSHServer{username: username, home: account.HomeDir, config: "/etc/ssh/sshd_config", lockPath: "/run/dotfiles-laptop-ssh.lock", commands: laptopSSHCommandsWithContext(ctx), recoveryCommands: systemLaptopSSHCommands()}
+	lock := "/run/dotfiles-laptop-ssh"
+	if err := os.Mkdir(lock, 0700); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	server := laptopSSHServer{username: username, home: account.HomeDir, config: "/etc/ssh/sshd_config", lockPath: lock, commands: laptopSSHCommandsWithContext(ctx), recoveryCommands: systemLaptopSSHCommands(), backup: func(contents []byte) (string, error) {
+		return saveLaptopSSHDBackupAsUser(ctx, account, contents)
+	}}
 	backup, err := server.apply()
 	if err != nil {
 		return err
 	}
 	fmt.Printf("SSH somente por chaves, sem root, habilitado para %s. Backup: %s\nTeste uma NOVA conexão antes de fechar a sessão atual. O firewall não foi alterado.\n", username, backup)
 	return nil
+}
+
+func saveLaptopSSHDBackupAsUser(ctx context.Context, account *user.User, contents []byte) (string, error) {
+	uid, err := strconv.ParseUint(account.Uid, 10, 32)
+	if err != nil || uid == 0 {
+		return "", errors.New("usuário inválido para o backup")
+	}
+	gid, err := strconv.ParseUint(account.Gid, 10, 32)
+	if err != nil {
+		return "", err
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	command := exec.CommandContext(ctx, executable, "--laptop-ssh", "save-backup")
+	command.SysProcAttr = &syscall.SysProcAttr{Credential: &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}}
+	command.Stdin, command.Stderr = bytes.NewReader(contents), os.Stderr
+	output, err := command.Output()
+	return strings.TrimSpace(string(output)), err
+}
+
+func writeLaptopSSHDBackup() error {
+	contents, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+	backup, err := saveLaptopSSHDBackup(localBackupRoot(), contents)
+	if err != nil {
+		return err
+	}
+	fmt.Println(backup)
+	return nil
+}
+
+func saveLaptopSSHDBackup(root string, contents []byte) (string, error) {
+	directory := filepath.Join(root, "Legacy-SSHD")
+	if err := privateBackupDirectory(directory, true); err != nil {
+		return "", err
+	}
+	backup, err := os.MkdirTemp(directory, "sshd-*")
+	if err != nil {
+		return "", err
+	}
+	if err := writeLaptopSSHFile(filepath.Join(backup, "sshd_config"), contents); err != nil {
+		return "", errors.Join(err, os.Remove(backup))
+	}
+	return backup, nil
 }

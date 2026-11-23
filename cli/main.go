@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.27.0"
+const version = "1.27.1"
 
 type profile struct {
 	prefix      string
@@ -123,6 +123,8 @@ func main() {
 			action = runDockerSetup
 		case "--apply-docker":
 			action = runPrivilegedDocker
+		case "--docker-backup":
+			action = writeDockerBackup
 		case "--sshd-backup":
 			action = writeSSHDBackup
 		}

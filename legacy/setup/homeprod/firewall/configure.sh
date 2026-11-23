@@ -5,13 +5,22 @@ umask 077
 action=${1:-apply}
 case "$action" in apply|confirm|rollback|status) ;; *) echo 'Uso: configure.sh apply|confirm|rollback|status' >&2; exit 1 ;; esac
 state=/etc/homeprod-firewall
-pending="$state/pending"
+backup_dir=/mnt/backups/dotfiles/Legacy-HomeProd-Firewall
+pending="$backup_dir/pending"
 unit=/etc/systemd/system/homeprod-firewall.service
 service=homeprod-firewall.service
 timer=homeprod-firewall-rollback
 marker='# Managed by dotfiles: homeprod-firewall'
 directory=$(dirname "$(readlink -f "$0")")
 [[ ! -L "$state" && ! -L "$unit" ]] || { echo 'Caminho simbólico recusado.' >&2; exit 1; }
+if [[ -f "$directory/backup-store.sh" ]]; then
+  backup_library="$directory/backup-store.sh"
+else
+  backup_library="$directory/../../backup-store.sh"
+fi
+source "$backup_library"
+legacy_pending="$state/pending"
+if [[ -d "$legacy_pending" ]]; then pending="$legacy_pending"; fi
 for tool in systemctl flock; do command -v "$tool" >/dev/null; done
 
 # Never hold the lock while waiting for a human: the rollback must remain free to run.
@@ -36,8 +45,12 @@ INFO
   [[ "$answer" == CONFIRMO ]] || { echo 'Não confirmado; rollback continua programado.'; exit 1; }
 fi
 
-exec 9>/run/dotfiles-homeprod-firewall.lock
+dotfiles_lock_directory homeprod-firewall
 flock 9
+if [[ -e "$backup_dir" || -L "$backup_dir" ]]; then
+  dotfiles_backup_category Legacy-HomeProd-Firewall >/dev/null
+fi
+[[ ! -L "$pending" ]] || { echo "Snapshot em caminho simbólico recusado." >&2; exit 1; }
 if [[ "$action" == status ]]; then
   systemctl --no-pager status "$service" "$timer.timer" || true
   if [[ -d "$pending" ]]; then echo 'Teste PENDENTE: ainda não confirmado.'; fi
@@ -87,7 +100,7 @@ restore() {
   nft -f "$pending/restore.nft" || return 1
   $failed && { echo 'Rede restaurada, mas persistência incompleta; snapshot preservado.' >&2; return 1; }
   stop_timer || return 1
-  mv "$pending" "$(mktemp -d "$state/rolled-back.XXXXXXXX")/snapshot" || return 1
+  mv "$pending" "$(mktemp -d "$(dirname "$pending")/rolled-back.XXXXXXXX")/snapshot" || return 1
   echo 'Rollback concluído. Regras externas a homeprod_guard não foram alteradas.'
 }
 if [[ "$action" == rollback ]]; then
@@ -102,7 +115,7 @@ cleanup() {
   if $rollback_needed; then
     echo "Falha/cancelamento; iniciando rollback. Snapshot: $pending" >&2
     if restore; then :; else
-      echo 'Rollback falhou. Use console/rescue e examine /etc/homeprod-firewall/pending.' >&2
+      echo "Rollback falhou. Use console/rescue e examine $pending." >&2
     fi
   fi
   exit "$code"
@@ -150,9 +163,11 @@ if [[ "$action" == apply ]]; then
   install -d -m 0700 -o root -g root "$state"
   # Stable root-owned recovery path, independent of checkout location/session.
   if [[ "$(readlink -f "$0")" != "$state/manage.sh" ]]; then
+    install -m 0700 -o root -g root "$backup_library" "$state/backup-store.sh"
     install -m 0700 -o root -g root "$0" "$state/manage.sh"
   fi
-  work=$(mktemp -d "$state/preparing.XXXXXXXX")
+  backup_dir=$(dotfiles_backup_category Legacy-HomeProd-Firewall)
+  work=$(mktemp -d "$backup_dir/preparing.XXXXXXXX")
   python3 "$directory/rules.py" "$work/inventory.json" "$work/candidate.nft"
   nft --check -f "$work/candidate.nft"
   install -m 0600 "$directory/homeprod-firewall.service" "$work/unit.candidate"
@@ -204,7 +219,7 @@ elif [[ "$action" == confirm ]]; then
   systemctl reload "$service"
   check_tunnel
   stop_timer
-  mv "$pending" "$(mktemp -d "$state/confirmed.XXXXXXXX")/snapshot"
+  mv "$pending" "$(mktemp -d "$(dirname "$pending")/confirmed.XXXXXXXX")/snapshot"
   rollback_needed=false
   echo 'Firewall confirmado e habilitado no boot. Teste novamente após reboot com console disponível.'
 fi

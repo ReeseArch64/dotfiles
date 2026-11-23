@@ -15,7 +15,9 @@ read -r -p 'Chave pública (ssh-ed25519 ...): ' public_key
 [[ "$public_key" == ssh-ed25519\ * ]] || { echo 'Chave pública Ed25519 esperada.' >&2; exit 1; }
 printf '%s\n' "$public_key" | ssh-keygen -lf /dev/stdin
 [[ ! -L "$user_home/.ssh" && ! -L "$user_home/.ssh/authorized_keys" ]]
-backup=$(mktemp -d /etc/ssh/homelab-backup.XXXXXXXX)
+source "$(dirname "$(readlink -f "$0")")/../../backup-store.sh"
+backup_dir=$(dotfiles_backup_category Legacy-Homelab-SSH)
+backup=$(mktemp -d "$backup_dir/sshd.XXXXXXXX")
 cp -a /etc/ssh/sshd_config "$backup/sshd_config"
 if [[ -e "$user_home/.ssh/authorized_keys" ]]; then
   [[ -f "$user_home/.ssh/authorized_keys" ]]

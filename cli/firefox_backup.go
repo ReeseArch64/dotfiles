@@ -16,8 +16,6 @@ import (
 	"time"
 )
 
-const firefoxBackupDir = backupMount + "/Firefox"
-
 var errFirefoxOpen = errors.New("feche completamente o Firefox antes de fazer o backup")
 
 func runFirefoxBackup(p profile) error {
@@ -35,7 +33,7 @@ func runFirefoxBackup(p profile) error {
 	printActionHeader()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	fmt.Println("Verificando se o Firefox está fechado e preparando o backup…")
-	location := backupLocation{path: firefoxBackupDir, base: backupMount, sudo: systemSSHCommands().interactive}
+	location := managedBackup("Firefox", systemSSHCommands().interactive)
 	path, err := backupFirefox(ctx, home, config, location, time.Now(), firefoxClosed)
 	stop()
 	if err != nil {

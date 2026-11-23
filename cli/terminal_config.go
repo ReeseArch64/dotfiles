@@ -35,7 +35,7 @@ func runTerminalConfig(p profile, app string) error {
 	destination := filepath.Join(home, ".config", app, filename)
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup(name, console.commands.interactive)
-	lock := filepath.Join(home, ".dotfiles-"+app+".lock")
+	lock := filepath.Join(home, app)
 	packages := terminalConfigPackages(app, console.commands)
 	printActionHeader()
 	fmt.Fprintln(console.output, "Aplicar a configuração em", destination)

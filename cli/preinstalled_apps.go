@@ -38,7 +38,7 @@ func runPreinstalledCleanup(p profile) error {
 }
 
 func removePreinstalledApps(c *sshConsole) error {
-	unlock, err := lockOperation(filepath.Join(c.home, ".dotfiles-preinstalled-apps.lock"), "remoção de aplicativos pré-instalados")
+	unlock, err := lockOperation(filepath.Join(c.home, "preinstalled-apps"), "remoção de aplicativos pré-instalados")
 	if err != nil {
 		return err
 	}

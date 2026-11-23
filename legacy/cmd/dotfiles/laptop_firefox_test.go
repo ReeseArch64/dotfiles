@@ -164,7 +164,7 @@ func TestLaptopFirefoxMenuAndJobOrdering(t *testing.T) {
 	if !slices.Equal(last[len(last)-len(want):], want) {
 		t.Fatalf("padrão Firefox incorreto: %v", last)
 	}
-	if laptopFirefoxRestorePath != "/mnt/backups/Restore Firefox" {
+	if laptopFirefoxRestorePath != "/mnt/backups/dotfiles/Restore Firefox" {
 		t.Fatal("destino de restauração incorreto")
 	}
 }

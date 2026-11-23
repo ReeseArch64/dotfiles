@@ -44,7 +44,7 @@ func runPiAgentSetup(device profile) error {
 }
 
 func configurePiAgent(console sshConsole, source, agentDir string, location backupLocation) error {
-	unlock, err := lockOperation(filepath.Join(console.home, ".dotfiles-pi.lock"), "configuração do Pi Agent")
+	unlock, err := lockOperation(filepath.Join(console.home, "pi-agent"), "configuração do Pi Agent")
 	if err != nil {
 		return err
 	}

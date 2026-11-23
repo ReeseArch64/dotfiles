@@ -76,26 +76,8 @@ func sshDirectory(home string) (string, error) {
 	return directory, os.Chmod(directory, 0700)
 }
 
-func sshLock(path string) (func(), error) {
-	return lockOperation(path, "SSH")
-}
-
-func lockOperation(path, operation string) (func(), error) {
-	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0600)
-	if err != nil {
-		return nil, err
-	}
-	file := os.NewFile(uintptr(fd), path)
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() {
-		file.Close()
-		return nil, fmt.Errorf("lock inválido: %s", path)
-	}
-	if err := syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		file.Close()
-		return nil, fmt.Errorf("outra operação de %s está em andamento", operation)
-	}
-	return func() { file.Close() }, nil
+func sshLock(key string) (func(), error) {
+	return lockOperation(key, "SSH")
 }
 
 func validatePublicKey(line string, commands sshCommands) (string, string, error) {
@@ -202,7 +184,7 @@ func (c *sshConsole) manageKeys(action string) error {
 	if err != nil {
 		return err
 	}
-	unlock, err := sshLock(filepath.Join(directory, ".dotfiles-keys.lock"))
+	unlock, err := lockDirectory(directory, "SSH")
 	if err != nil {
 		return err
 	}

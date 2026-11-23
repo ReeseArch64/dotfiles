@@ -77,7 +77,7 @@ func migrateSDK(ctx context.Context, home string, run func(...string) error) err
 		return err
 	}
 
-	unlock, err := lockOperation(filepath.Join(sdkRoot, ".dotfiles-sdk.lock"), "migração SDK")
+	unlock, err := lockDirectory(sdkRoot, "migração SDK")
 	if err != nil {
 		return err
 	}

@@ -5,10 +5,11 @@ set -Eeuo pipefail
 umask 077
 [[ $(id -u) == 0 ]] || { echo 'Execute via sudo.' >&2; exit 1; }
 for tool in systemctl curl flock; do command -v "$tool" >/dev/null; done
-exec 9>/run/lock/dotfiles-homeprod-tunnel.lock
+directory=$(dirname "$(readlink -f "$0")")
+source "$directory/../../backup-store.sh"
+dotfiles_lock_directory homeprod-tunnel
 flock -n 9 || { echo 'Outra configuração do Tunnel está em execução.' >&2; exit 1; }
 
-directory=$(dirname "$(readlink -f "$0")")
 state=/etc/homeprod-cloudflared
 unit=/etc/systemd/system/cloudflared-homeprod.service
 service=cloudflared-homeprod.service
@@ -44,7 +45,8 @@ printf '\n'
 [[ "$token" =~ ^[A-Za-z0-9_=+/.-]+$ ]] || { unset token; echo 'Token vazio ou inválido.' >&2; exit 1; }
 
 install -d -m 0700 -o root -g root "$state"
-work=$(mktemp -d "$state/backup.XXXXXXXX")
+backup_dir=$(dotfiles_backup_category Legacy-HomeProd-Tunnel)
+work=$(mktemp -d "$backup_dir/backup.XXXXXXXX")
 phase='preparar instalação'
 changed=false
 committed=false

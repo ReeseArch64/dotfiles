@@ -61,7 +61,7 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 	if err != nil {
 		return err
 	}
-	unlock, err := lockOperation(filepath.Join(console.home, ".dotfiles-git.lock"), "configuração do Git")
+	unlock, err := lockOperation(filepath.Join(console.home, "git"), "configuração do Git")
 	if err != nil {
 		return err
 	}

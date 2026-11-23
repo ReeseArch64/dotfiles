@@ -40,7 +40,7 @@ func runDockerSetup(device profile) error {
 	}
 	console := sshConsole{home: account.HomeDir, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	printActionHeader()
-	err = configureDocker(&console, account.Username, executable, exec.LookPath)
+	err = configureDocker(&console, account.Username, executable, exec.LookPath, managedBackup("Docker", console.commands.interactive))
 	if err != nil {
 		fmt.Fprintln(console.output, err)
 	}
@@ -48,7 +48,7 @@ func runDockerSetup(device profile) error {
 	return err
 }
 
-func configureDocker(c *sshConsole, username, executable string, lookup func(string) (string, error)) error {
+func configureDocker(c *sshConsole, username, executable string, lookup func(string) (string, error), location backupLocation) error {
 	configDir := os.Getenv("DOCKER_CONFIG")
 	if configDir == "" {
 		configDir = filepath.Join(c.home, ".docker")
@@ -74,6 +74,9 @@ func configureDocker(c *sshConsole, username, executable string, lookup func(str
 	}
 	if err := c.ensurePackages(packages...); err != nil {
 		return fmt.Errorf("instalar pacotes Docker: %w", err)
+	}
+	if err := location.prepare(); err != nil {
+		return err
 	}
 	if err := c.commands.interactive("sudo", "--", executable, "--apply-docker"); err != nil {
 		return fmt.Errorf("configurar docker.service: %w", err)
@@ -144,18 +147,39 @@ func runPrivilegedDocker(device profile) error {
 	if device.prefix != "desktop" {
 		return errors.New("ação disponível apenas no perfil Desktop")
 	}
-	if _, err := sudoAccount(); err != nil {
+	account, err := sudoAccount()
+	if err != nil {
 		return err
 	}
-	unlock, err := lockOperation("/run/dotfiles-docker.lock", "Docker")
+	unlock, err := lockOperation("system-docker", "Docker")
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	return applyDockerDaemon("/etc/docker", systemSSHCommands(), os.Stdout)
+	save := func(data []byte) (string, error) {
+		return saveBackupAsUser(context.Background(), account, data, "--docker-backup")
+	}
+	return applyDockerDaemon("/etc/docker", systemSSHCommands(), os.Stdout, save)
 }
 
-func applyDockerDaemon(directory string, commands sshCommands, output io.Writer) error {
+func writeDockerBackup(p profile) error {
+	if p.prefix != "desktop" || os.Geteuid() == 0 {
+		return errors.New("execute o backup do Docker pelo menu Desktop como usuário normal")
+	}
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+	location := backupLocation{path: filepath.Join(backupRoot, "Docker")}
+	path, err := location.saveFile("daemon.json.backup-*", data)
+	if err != nil {
+		return err
+	}
+	fmt.Println(path)
+	return nil
+}
+
+func applyDockerDaemon(directory string, commands sshCommands, output io.Writer, save func([]byte) (string, error)) error {
 	if err := os.MkdirAll(directory, 0755); err != nil {
 		return err
 	}
@@ -201,13 +225,9 @@ func applyDockerDaemon(directory string, commands sshCommands, output io.Writer)
 			return fmt.Errorf("validar daemon.json: %w", err)
 		}
 		if previous != nil {
-			backup, err := os.MkdirTemp(directory, "dotfiles-backup-*")
+			path, err := save(previous)
 			if err != nil {
 				return err
-			}
-			path := filepath.Join(backup, "daemon.json")
-			if err := writeConfigAtomic(path, previous, 0600); err != nil {
-				return errors.Join(err, os.Remove(backup))
 			}
 			fmt.Fprintln(output, "Backup da configuração anterior:", path)
 		}

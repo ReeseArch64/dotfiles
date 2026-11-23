@@ -60,9 +60,15 @@ class LifecycleTests(unittest.TestCase):
         self.unit = self.root / 'etc/systemd/system/homeprod-firewall.service'
         self.unit.parent.mkdir(parents=True)
         (self.root / 'run/lock').mkdir(parents=True)
+        backup_root = self.root / 'mnt/backups/dotfiles'
+        self.backup_dir = backup_root / 'Legacy-HomeProd-Firewall'
+        library = (HERE.parents[1] / 'backup-store.sh').read_text()
+        library = library.replace('/mnt/backups/dotfiles', str(backup_root))
+        library = library.replace('/run/dotfiles-legacy-', str(self.root / 'run/dotfiles-legacy-'))
+        (self.root / 'backup-store.sh').write_text(library)
         self.script = self.root / 'configure.sh'
         source = (HERE / 'configure.sh').read_text().replace('/etc/', str(self.root / 'etc') + '/')
-        source = source.replace('/run/dotfiles-homeprod-firewall.lock', str(self.root / 'run/firewall.lock'))
+        source = source.replace('/mnt/backups/dotfiles', str(backup_root))
         self.script.write_text(source)
         for name in ('rules.py', 'homeprod-firewall.service'):
             shutil.copy(HERE / name, self.root)
@@ -150,7 +156,7 @@ else exit 92; fi''')
 
     def test_trial_arms_timer_before_apply_and_does_not_persist(self):
         self.apply()
-        self.assertTrue((self.state / 'pending/ready').exists())
+        self.assertTrue((self.backup_dir / 'pending/ready').exists())
         self.assertTrue((self.root / 'timer').exists())
         self.assertTrue((self.root / 'runtime').exists())
         self.assertFalse(self.unit.exists())
@@ -162,7 +168,7 @@ else exit 92; fi''')
         self.apply()
         p = self.run_script('confirm', installed=True)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        self.assertFalse((self.state / 'pending').exists())
+        self.assertFalse((self.backup_dir / 'pending').exists())
         self.assertTrue(self.unit.exists())
         self.assertTrue((self.state / 'rules.nft').exists())
         self.assertTrue((self.root / 'enabled').exists())
@@ -174,7 +180,7 @@ else exit 92; fi''')
         p = self.run_script('rollback', installed=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertFalse((self.root / 'runtime').exists())
-        self.assertFalse((self.state / 'pending').exists())
+        self.assertFalse((self.backup_dir / 'pending').exists())
         self.assertFalse((self.root / 'timer').exists())
 
     def test_preflight_failures_never_apply_rules(self):
@@ -183,7 +189,7 @@ else exit 92; fi''')
                 p = self.run_script(scenario=scenario)
                 self.assertNotEqual(p.returncode, 0)
                 self.assertFalse((self.root / 'runtime').exists())
-                self.assertFalse((self.state / 'pending').exists())
+                self.assertFalse((self.backup_dir / 'pending').exists())
 
     def test_apply_or_timer_failure_restores_network(self):
         for scenario in ('timer-failure', 'apply-failure'):
@@ -191,7 +197,7 @@ else exit 92; fi''')
                 p = self.run_script(scenario=scenario)
                 self.assertNotEqual(p.returncode, 0)
                 self.assertFalse((self.root / 'runtime').exists())
-                self.assertFalse((self.state / 'pending').exists())
+                self.assertFalse((self.backup_dir / 'pending').exists())
                 self.assertFalse((self.root / 'timer').exists())
 
     def test_confirmation_failure_restores_first_install(self):
@@ -222,7 +228,7 @@ else exit 92; fi''')
         self.assertNotEqual(self.run_script().returncode, 0)
         (self.root / 'timer').unlink()
         self.assertNotEqual(self.run_script('confirm').returncode, 0)
-        self.assertTrue((self.state / 'pending').exists())
+        self.assertTrue((self.backup_dir / 'pending').exists())
         self.assertEqual(self.run_script('rollback').returncode, 0)
 
     def test_declining_confirmation_leaves_rollback_armed(self):
@@ -234,7 +240,7 @@ else exit 92; fi''')
         self.apply()
         p = self.run_script('rollback', scenario='restore-failure', installed=True)
         self.assertNotEqual(p.returncode, 0)
-        self.assertTrue((self.state / 'pending/ready').exists())
+        self.assertTrue((self.backup_dir / 'pending/ready').exists())
         self.assertTrue((self.root / 'timer').exists())
         self.assertTrue((self.root / 'runtime').exists())
 

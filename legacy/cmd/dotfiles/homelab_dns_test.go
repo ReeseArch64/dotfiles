@@ -220,6 +220,7 @@ func TestServerDNSAllowsNonconflictingDropIns(t *testing.T) {
 }
 
 func TestServerDNSJobUsesSudoAndIndependentAction(t *testing.T) {
+	testBackupStore(t)
 	bin, _ := homelabMocks(t)
 	writeTestExecutable(t, bin, "sudo", `printf '%s\n' "$*" >> "$COMMAND_LOG"`)
 	j := serverDNSJob("/repo/setup/homelab")

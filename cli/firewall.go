@@ -351,7 +351,7 @@ func applyFirewall(connection string) error {
 	if err := lan.checkConnection(connection); err != nil {
 		return err
 	}
-	unlock, err := sshLock("/run/dotfiles-ssh.lock")
+	unlock, err := sshLock("system-ssh")
 	if err != nil {
 		return err
 	}

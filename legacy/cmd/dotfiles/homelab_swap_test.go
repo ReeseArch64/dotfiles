@@ -29,12 +29,12 @@ func TestHomelabSwapScriptSafety(t *testing.T) {
 	script := readHomelabFile(t, path)
 	for _, required := range []string{
 		"size_gib=${1:-2}", "swap_file=/swapfile-homelab",
-		"/run/lock/dotfiles-homelab-swap.lock", "flock -n 9",
+		"dotfiles_lock_directory homelab-swap", "flock -n 9",
 		"ext4|xfs", "! -L /etc/fstab", "! -L \"$swap_file\"",
 		"Arquivo existente incompatível", "bytes + 4 * 1024 * 1024 * 1024",
 		"chmod 0600", "ln \"$temporary\" \"$swap_file\"",
 		"swapon \"$swap_file\"", "if [[ -z \"$entry\" ]]",
-		"/etc/fstab.homelab-swap.XXXXXXXX", "sw,nofail 0 0",
+		"dotfiles_backup_category Legacy-Homelab-Swap", "$backup_dir/fstab.XXXXXXXX", "sw,nofail 0 0",
 	} {
 		if !strings.Contains(script, required) {
 			t.Errorf("proteção/configuração ausente: %s", required)

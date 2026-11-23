@@ -78,7 +78,8 @@ func TestConfigureDockerInstallsMachineAndManagesLogin(t *testing.T) {
 				}
 				return "/usr/bin/firefox", nil
 			}
-			if err := configureDocker(&c, "user", "/cli/dotfiles", lookup); err != nil {
+			location := backupLocation{path: filepath.Join(t.TempDir(), "Docker")}
+			if err := configureDocker(&c, "user", "/cli/dotfiles", lookup, location); err != nil {
 				t.Fatal(err)
 			}
 			want := []string{
@@ -98,7 +99,7 @@ func TestConfigureDockerInstallsMachineAndManagesLogin(t *testing.T) {
 }
 
 func TestApplyDockerDaemonValidatesAndRestoresOnStartFailure(t *testing.T) {
-	for _, failure := range []string{"", "dockerd", "systemctl start"} {
+	for _, failure := range []string{"", "dockerd", "backup", "systemctl start"} {
 		t.Run("falha="+failure, func(t *testing.T) {
 			dir := t.TempDir()
 			target := filepath.Join(dir, "daemon.json")
@@ -130,7 +131,14 @@ func TestApplyDockerDaemonValidatesAndRestoresOnStartFailure(t *testing.T) {
 				return "", nil
 			}}
 			var output strings.Builder
-			err := applyDockerDaemon(dir, commands, &output)
+			location := backupLocation{path: filepath.Join(t.TempDir(), "Docker")}
+			save := func(data []byte) (string, error) {
+				if failure == "backup" {
+					return "", errors.New("backup indisponível")
+				}
+				return location.saveFile("daemon.json.backup-*", data)
+			}
+			err := applyDockerDaemon(dir, commands, &output, save)
 			if failure != "" {
 				if err == nil || enabled || string(mustReadDockerFile(t, target)) != string(before) {
 					t.Fatalf("configuração anterior não foi preservada: %v", err)
@@ -140,7 +148,7 @@ func TestApplyDockerDaemonValidatesAndRestoresOnStartFailure(t *testing.T) {
 			if err != nil || !enabled || !strings.Contains(output.String(), "próximo reinício") {
 				t.Fatalf("aplicação incompleta: %v, %s", err, &output)
 			}
-			matches, err := filepath.Glob(filepath.Join(dir, "dotfiles-backup-*", "daemon.json"))
+			matches, err := filepath.Glob(filepath.Join(location.path, "daemon.json.backup-*"))
 			if err != nil || len(matches) != 1 || string(mustReadDockerFile(t, matches[0])) != string(before) {
 				t.Fatalf("backup inválido: %v, %v", matches, err)
 			}

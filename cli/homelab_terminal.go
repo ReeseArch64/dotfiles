@@ -66,7 +66,7 @@ func configureHomelabFastfetch(c *sshConsole, config string) error {
 	if err := installHomelabFastfetch(c); err != nil {
 		return fmt.Errorf("instalar Fastfetch: %w", err)
 	}
-	lock := filepath.Join(c.home, ".dotfiles-fastfetch.lock")
+	lock := filepath.Join(c.home, "fastfetch")
 	if err := ensureProfilePhoto(cachyosAsset(c.home, "fastfetch", "face.jpg"), filepath.Join(c.home, ".face"), lock); err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func configureHomelabFastfetch(c *sshConsole, config string) error {
 }
 
 func applyHomelabTerminalConfig(c *sshConsole, category, app, source, destination string) error {
-	backup, err := applyTerminalConfig(source, destination, filepath.Join(c.home, ".dotfiles-"+app+".lock"), managedBackup(category, c.commands.interactive))
+	backup, err := applyTerminalConfig(source, destination, filepath.Join(c.home, app), managedBackup(category, c.commands.interactive))
 	if backup != "" {
 		fmt.Fprintln(c.output, "Backup:", backup)
 	}

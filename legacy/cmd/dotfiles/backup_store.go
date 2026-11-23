@@ -38,7 +38,7 @@ func validateBackupDirectoryPath(path string) error {
 	return nil
 }
 
-func privateBackupDirectory(path string) error {
+func privateBackupDirectory(path string, private bool) error {
 	if err := validateBackupDirectoryPath(path); err != nil {
 		return err
 	}
@@ -53,8 +53,9 @@ func privateBackupDirectory(path string) error {
 		return err
 	}
 	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || int(stat.Uid) != os.Geteuid() || info.Mode().Perm() != 0700 {
-		return fmt.Errorf("backup requer diretório privado 0700 do usuário atual: %s", path)
+	mode := info.Mode().Perm()
+	if !ok || int(stat.Uid) != os.Geteuid() || mode&0700 != 0700 || private && mode != 0700 {
+		return fmt.Errorf("diretório de backup com proprietário ou permissões inválidas: %s", path)
 	}
 	return nil
 }
@@ -79,7 +80,7 @@ func reserveBackupAt(root, category, origin string, at time.Time) (string, error
 	parent := root
 	for _, component := range []string{"", category, fmt.Sprintf("%x", sha256.Sum256([]byte(origin)))} {
 		parent = filepath.Join(parent, component)
-		if err := privateBackupDirectory(parent); err != nil {
+		if err := privateBackupDirectory(parent, parent != backupDestination); err != nil {
 			return "", fmt.Errorf("preparar backup: %w", err)
 		}
 	}

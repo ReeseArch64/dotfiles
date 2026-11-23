@@ -56,7 +56,7 @@ func configureMise(console sshConsole, source, destination string, location back
 	if err != nil {
 		return fmt.Errorf("ler mise.toml do Dotfiles: %w", err)
 	}
-	unlock, err := lockOperation(filepath.Join(console.home, ".dotfiles-mise.lock"), "configuração do Mise")
+	unlock, err := lockOperation(filepath.Join(console.home, "mise"), "configuração do Mise")
 	if err != nil {
 		return err
 	}

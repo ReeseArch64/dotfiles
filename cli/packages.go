@@ -222,7 +222,11 @@ func (installer packageInstaller) ensureYay() error {
 	if err != nil {
 		return err
 	}
-	unlock, err := lockOperation(filepath.Join(root, ".dotfiles-yay.lock"), "instalação do yay")
+	directory, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
+	unlock, err := lockDirectory(directory, "instalação do yay")
 	if err != nil {
 		return err
 	}

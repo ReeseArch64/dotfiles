@@ -15,7 +15,8 @@ bytes=$((size_gib * 1024 * 1024 * 1024))
   echo 'fstab ausente ou caminho com link simbólico; nenhuma alteração.' >&2; exit 1;
 }
 # Serialize repeated runs, including the fstab update.
-exec 9>/run/lock/dotfiles-homelab-swap.lock
+source "$(dirname "$(readlink -f "$0")")/../../backup-store.sh"
+dotfiles_lock_directory homelab-swap
 flock -n 9 || { echo 'Outra configuração de swap está em execução.' >&2; exit 1; }
 
 case $(findmnt -n -o FSTYPE --target /) in
@@ -60,7 +61,8 @@ fi
 
 # Persist only after the kernel has successfully activated this file.
 if [[ -z "$entry" ]]; then
-  backup=$(mktemp /etc/fstab.homelab-swap.XXXXXXXX)
+  backup_dir=$(dotfiles_backup_category Legacy-Homelab-Swap)
+  backup=$(mktemp "$backup_dir/fstab.XXXXXXXX")
   cp -p /etc/fstab "$backup"
   printf '\n%s none swap sw,nofail 0 0\n' "$swap_file" >> /etc/fstab
   printf 'Backup do fstab: %s\n' "$backup"

@@ -29,7 +29,7 @@ Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
 
 No perfil HomeProd, apenas **Sair** fica habilitado. Desktop e Laptop podem acessar os servidores quando suas chaves públicas estiverem autorizadas.
 
-Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/backups` e aos subdiretórios usados pela ação. Usa `sudo` quando precisa corrigir a propriedade ou criar um diretório sem acesso de escrita no pai. A pasta específica de cada ação fica com permissão `0700`.
+Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/backups` e aos subdiretórios usados pela ação. Usa `sudo` quando precisa corrigir a propriedade ou criar um diretório sem acesso de escrita no pai. Os backups da CLI são gravados em subpastas de `/mnt/backups/dotfiles`, com permissão `0700` para cada categoria.
 
 ## Homelab
 
@@ -50,7 +50,7 @@ As duas ações são implementadas em Go e guardam os arquivos substituídos em 
 
 **Sistema Operacional → Mouse personalizado** instala o tema FrierenBLZ em `~/.icons` e aplica `cachyos/niri/cfg/misc.kdl`. A ação exige o Niri instalado e que seu `config.kdl` inclua `cfg/misc.kdl`. Valida a configuração candidata com `niri validate`. Arquivos e temas substituídos recebem backups em `/mnt/backups/dotfiles/Niri`.
 
-**Sistema Operacional → Papéis de parede** copia as 11 imagens do legado para `~/.wallpapers` nos perfis Desktop e Laptop. Quando a pasta existente é diferente, a ação guarda uma cópia em `/mnt/backups/dotfiles/Wallpapers` antes de substituí-la. A escolha da imagem de fundo é feita pelo ambiente gráfico.
+**Sistema Operacional → Papéis de parede** copia as imagens do legado para `~/.wallpapers`. No Desktop, instala `desktop-4k.jpg`, `desktop-ultrawide.jpg` e `dual-monitor.jpg`. No Laptop, instala as 11 imagens. Quando a pasta existente é diferente, a ação guarda uma cópia em `/mnt/backups/dotfiles/Wallpapers` antes de substituí-la. A escolha da imagem de fundo é feita pelo ambiente gráfico.
 
 No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 24 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
@@ -88,7 +88,7 @@ O Mise instala o Maple (`maple`) e o Axiom (`axiom`). Em **Login das CLIs**, o M
 
 O Mise instala a EAS CLI (`eas`) para os serviços do Expo. Em **Login das CLIs → Expo (EAS)**, a ação `eas login` abre a autenticação da conta Expo. [Documentação da EAS CLI](https://docs.expo.dev/eas/cli/)
 
-No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/etc/docker/dotfiles-backup-*/daemon.json`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
+No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/mnt/backups/dotfiles/Docker/daemon.json.backup-*`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
 
 A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
 
@@ -98,7 +98,7 @@ No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prep
 
 ## Navegador Web
 
-**Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.
+**Navegador Web → Backup Completo** exige o Firefox fechado. Salva as pastas de dados e os perfis registrados em `/mnt/backups/dotfiles/Firefox/firefox-AAAA-MM-DD-HH-MM-SS.tar`. Inclui `profiles.ini`, arquivos de login e chaves do Firefox, cookies, sessões, extensões e demais dados de cada perfil. Caminhos dentro da pasta pessoal são armazenados relativos a ela. Perfis registrados fora dela ficam no tar com seu caminho sem a barra inicial.
 
 O tar é privado e contém dados sensíveis. A senha principal do Firefox, quando configurada, continua necessária para abrir os logins salvos. Sites ainda podem expirar sessões ou exigir nova autenticação. [Dados armazenados nos perfis do Firefox](https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data)
 

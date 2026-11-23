@@ -14,6 +14,7 @@ import (
 
 func newLaptopSSHConsoleTest(t *testing.T) (*laptopSSHConsole, string, string) {
 	t.Helper()
+	testBackupStore(t)
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
 		t.Skip("ssh-keygen necessário")
 	}
@@ -161,7 +162,7 @@ func TestLaptopSSHRefuseSymlinks(t *testing.T) {
 }
 
 func TestLaptopSSHLockPreventsConcurrentEdit(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "lock")
+	path := t.TempDir()
 	unlock, err := laptopSSHLock(path)
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +175,7 @@ func TestLaptopSSHLockPreventsConcurrentEdit(t *testing.T) {
 }
 
 func TestLaptopSSHClientConfigIdempotent(t *testing.T) {
+	testBackupStore(t)
 	directory := t.TempDir()
 	path := filepath.Join(directory, "config")
 	if err := os.WriteFile(path, []byte("Host test\n    HostName test.example.com\n"), 0600); err != nil {
@@ -188,7 +190,7 @@ func TestLaptopSSHClientConfigIdempotent(t *testing.T) {
 	if strings.Count(string(contents), "IdentityFile ~/.ssh/id_laptop") != 1 || !strings.Contains(string(contents), "HostName test.example.com") {
 		t.Fatalf("configuração incorreta: %s", contents)
 	}
-	backups, _ := filepath.Glob(filepath.Join(directory, "config.backup-*"))
+	backups, _ := testBackupPaths(localBackupRoot(), "Legacy-SSH", path)
 	if len(backups) != 2 {
 		t.Fatal("backups não preservados")
 	}

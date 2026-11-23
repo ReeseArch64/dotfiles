@@ -112,7 +112,7 @@ func TestSSHServerApplyAndRollback(t *testing.T) {
 				return "", errors.New("unexpected command")
 			}
 			backups := filepath.Join(t.TempDir(), "SSHD")
-			server := sshServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), backup: func(data []byte) (string, error) {
+			server := sshServer{username: "alan", home: c.home, config: config, lockKey: filepath.Join(directory, "lock"), backup: func(data []byte) (string, error) {
 				return saveSSHDBackup(backups, data)
 			}, commands: sshCommands{capture: capture}, probe: func(string) error {
 				if failure == "port" {
@@ -176,7 +176,7 @@ func TestSSHServerRefusesMissingKeysAndSocket(t *testing.T) {
 	if err := os.WriteFile(config, original, 0600); err != nil {
 		t.Fatal(err)
 	}
-	server := sshServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), commands: c.commands}
+	server := sshServer{username: "alan", home: c.home, config: config, lockKey: filepath.Join(directory, "lock"), commands: c.commands}
 	if _, err := server.apply(); err == nil {
 		t.Fatal("servidor configurado sem chaves")
 	}

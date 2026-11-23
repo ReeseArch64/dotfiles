@@ -20,11 +20,17 @@ class HomeProdTunnelTests(unittest.TestCase):
         self.unit = self.root / 'etc/systemd/system/cloudflared-homeprod.service'
         self.unit.parent.mkdir(parents=True)
         (self.root / 'run/lock').mkdir(parents=True)
+        backup_root = self.root / 'mnt/backups/dotfiles'
+        self.backup_dir = backup_root / 'Legacy-HomeProd-Tunnel'
+        library = (HERE.parents[1] / 'backup-store.sh').read_text()
+        library = library.replace('/mnt/backups/dotfiles', str(backup_root))
+        library = library.replace('/run/dotfiles-legacy-', str(self.root / 'run/dotfiles-legacy-'))
+        (self.root / 'backup-store.sh').write_text(library)
         self.script = self.root / 'configure.sh'
         source = (HERE / 'configure.sh').read_text()
         for original, replacement in [
             ('/etc/', str(self.root / 'etc') + '/'),
-            ('/run/lock/', str(self.root / 'run/lock') + '/'),
+            ('/../../backup-store.sh', '/backup-store.sh'),
             ('/usr/share/keyrings/', str(self.root / 'keyrings') + '/'),
             ('/usr/bin/cloudflared', str(self.bin / 'cloudflared')),
         ]:
@@ -92,7 +98,7 @@ esac''')
         self.assertIn('NÃO considere a VPS protegida ainda', result.stdout)
         self.assertTrue((self.root / 'enabled').exists())
         self.assertTrue((self.root / 'active').exists())
-        self.assertFalse(list(self.state.glob('backup.*/new-token')))
+        self.assertFalse(list(self.backup_dir.glob('backup.*/new-token')))
 
     def test_install_from_official_repository(self):
         (self.bin / 'cloudflared').unlink()

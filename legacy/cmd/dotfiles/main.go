@@ -169,7 +169,7 @@ func (m model) items() []item {
 			{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
 			{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
 			{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
-			{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups", goTo: screenBackup},
+			{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups/dotfiles", goTo: screenBackup},
 			{title: "Sair", desc: "Até a próxima!", quit: true},
 		}
 	case screenSystem:
@@ -243,8 +243,8 @@ func (m model) items() []item {
 		return []item{
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
 			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub e depois ao GitLab", job: projectsBackupJob},
-			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
-			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/gpg", job: gpgBackupJob},
+			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/dotfiles/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
+			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/dotfiles/gpg", job: gpgBackupJob},
 		}
 	case screenPiAgent:
 		if m.device == deviceNotebook {

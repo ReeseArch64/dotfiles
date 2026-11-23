@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-const laptopFirefoxRestorePath = "/mnt/backups/Restore Firefox"
+const laptopFirefoxRestorePath = "/mnt/backups/dotfiles/Restore Firefox"
 
 func validateLaptopFirefoxHome(home string, uid int) error {
 	if uid <= 0 {
@@ -63,7 +63,7 @@ func prepareLaptopFirefoxRestore(path string, uid, gid int, run func(...string) 
 func laptopFirefoxJobFor(home string, uid, gid int, packageSteps []step, run func(...string) error) job {
 	steps := []step{nativeStep("Validar ~/.config/mozilla existente", func() error { return validateLaptopFirefoxHome(home, uid) })}
 	setup := append([]step{}, packageSteps...)
-	setup = append(setup, nativeStep("Preparar /mnt/backups/Restore Firefox para o usuário", func() error {
+	setup = append(setup, nativeStep("Preparar /mnt/backups/dotfiles/Restore Firefox para o usuário", func() error {
 		return prepareLaptopFirefoxRestore(laptopFirefoxRestorePath, uid, gid, run)
 	}), terminalStep("Definir Firefox como navegador padrão", "env", "-u", "BROWSER", "xdg-settings", "set", "default-web-browser", "firefox.desktop"))
 	steps = append(steps, withSudo(setup...)...)

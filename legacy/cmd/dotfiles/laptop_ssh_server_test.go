@@ -111,7 +111,7 @@ func TestLaptopSSHServerApplyAndRollback(t *testing.T) {
 				}
 				return "", errors.New("unexpected command")
 			}
-			server := laptopSSHServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), commands: laptopSSHCommands{capture: capture}, probe: func(string) error {
+			server := laptopSSHServer{username: "alan", home: c.home, config: config, lockPath: directory, commands: laptopSSHCommands{capture: capture}, backup: func(contents []byte) (string, error) { return saveLaptopSSHDBackup(localBackupRoot(), contents) }, probe: func(string) error {
 				if failure == "port" {
 					return errors.New("porta fechada")
 				}
@@ -170,7 +170,7 @@ func TestLaptopSSHServerRefusesMissingKeysAndSocket(t *testing.T) {
 	if err := os.WriteFile(config, original, 0600); err != nil {
 		t.Fatal(err)
 	}
-	server := laptopSSHServer{username: "alan", home: c.home, config: config, lockPath: filepath.Join(directory, "lock"), commands: c.commands}
+	server := laptopSSHServer{username: "alan", home: c.home, config: config, lockPath: directory, commands: c.commands}
 	if _, err := server.apply(); err == nil {
 		t.Fatal("servidor configurado sem chaves")
 	}

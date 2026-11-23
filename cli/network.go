@@ -136,7 +136,7 @@ func (c *sshConsole) configure() error {
 	if err != nil {
 		return err
 	}
-	unlock, err := sshLock(filepath.Join(directory, ".dotfiles-keys.lock"))
+	unlock, err := lockDirectory(directory, "SSH")
 	if err != nil {
 		return err
 	}
