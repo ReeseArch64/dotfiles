@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"syscall"
@@ -50,13 +49,4 @@ func prepareMountDirectories(root string, uid, gid int, run func(...string) erro
 		}
 	}
 	return nil
-}
-
-func prepareSystemMountDirectories() error {
-	return prepareMountDirectories("/mnt", os.Getuid(), os.Getgid(), func(args ...string) error {
-		fmt.Fprintln(os.Stdout, "Preparando", args[len(args)-1]+"...")
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-		return cmd.Run()
-	})
 }

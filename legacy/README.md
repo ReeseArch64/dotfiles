@@ -20,13 +20,13 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 ### Migração do Desktop
 
-Na [CLI atual](../README.md), o Desktop já tem drivers, Docker, Git/GPG, Rust, Firefox, Mise e os logins das CLIs, Pi Agent, Noctalia, Fish, Fastfetch, cursor, papéis de parede, remoção de aplicativos pré-instalados e ferramentas de terminal, incluindo Posting e LunarVim. Também migraram os arquivos gerenciados do Niri, as pastas pessoais para `/mnt/storage` e a preparação de `/mnt/workspaces` com o link `~/Projects`. No legado, as configurações do Noctalia e do Pi Agent pertencem ao Notebook.
+A [CLI atual](../README.md) reúne os instaladores e as configurações migradas do Desktop, incluindo Noctalia, as ferramentas de terminal, as pastas pessoais em `/mnt/storage`, o link `~/Projects` para `/mnt/workspaces` e os arquivos gerenciados do Niri. Desde a v1.31.1, `config.kdl`, `cfg/input.kdl` e `cfg/display.kdl` são arquivos locais do Desktop. A configuração arquivada do Notebook inclui seus próprios arquivos do Niri, Noctalia e Pi Agent.
 
 | Área | O que falta migrar |
 | --- | --- |
-| Aplicativos | Discord com BetterDiscord, Obsidian com os arquivos de configuração e Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren. |
-| Desenvolvimento e IA | Sandbox com Podman e Distrobox, Zed, Android CLI e Ollama com ROCm para GPU AMD. A Android CLI do Google é uma ação independente do pacote `android-tools`, que já foi migrado. |
-| Backups | Snapshot Btrfs, envio de projetos aos remotos GitHub, GitLab e Gitea, backup das chaves SSH e exportação das chaves GPG. |
+| Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go), [Obsidian com suas configurações](#obsidian) e [Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren](#turing-smart-screen-somente-desktop). |
+| Desenvolvimento e IA | [Podman/Distrobox](#ambiente-sandbox), [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
+| Backups | [Snapshot Btrfs](#ponto-de-restauração), [envio de projetos ao GitHub, GitLab e Gitea](#backup-de-projetos-locais), [backup de chaves SSH](#backup-das-chaves-ssh) e [exportação das chaves GPG](#backup-das-chaves-gpg). |
 
 Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
 
@@ -116,7 +116,7 @@ A identidade do Git no Notebook fica definida em `setup/notebook/git/.gitconfig`
 
 No Notebook, a ação `Desenvolvimento > GPG` gera as chaves GPG localmente.
 
-A CLI atual prepara os destinos quando cada ação é selecionada. As rotinas arquivadas para Desktop e Notebook usavam `0700` para workspaces e backups e `0755` para SDK e storage.
+A CLI atual prepara os destinos quando cada ação é selecionada. As rotinas internas de migração do legado registram a preparação histórica de workspaces, SDK, storage e backups.
 
 A tabela registra os mapeamentos históricos da migração SDK dos dois perfis:
 

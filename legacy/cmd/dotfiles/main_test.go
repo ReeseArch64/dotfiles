@@ -69,6 +69,7 @@ func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 		screenGit:         nil,
 		screenGPG:         nil,
 		screenPiAgent:     nil,
+		screenNoctalia:    nil,
 	}
 	for category, want := range categories {
 		model.screen = category

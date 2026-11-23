@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 )
@@ -66,13 +65,4 @@ func repairMigrationPermissions(path string, uid, gid int, run func(...string) e
 		return err
 	}
 	return run("sudo", "chmod", "-R", "u+rwX", "--", path)
-}
-
-func repairSystemMigrationPermissions(path string) error {
-	fmt.Fprintln(os.Stdout, "Corrigindo permissões antes de migrar", path+"...")
-	return repairMigrationPermissions(path, os.Getuid(), os.Getgid(), func(args ...string) error {
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-		return cmd.Run()
-	})
 }

@@ -24,19 +24,6 @@ type sdkMigration struct {
 	homeMoved, targetMoved, targetInstalled, linkInstalled bool
 }
 
-func prepareSystemSDKDirectories() error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-	return prepareSDKDirectories(home, "/mnt/sdk", sdkMigrationOps{
-		copyTree:          copySDKTree,
-		repairPermissions: repairSystemMigrationPermissions,
-		rename:            os.Rename,
-		symlink:           os.Symlink,
-	})
-}
-
 func copySDKTree(source, target string) error {
 	cmd := exec.Command("cp", "-a", "--no-target-directory", "--", source, target)
 	if output, err := cmd.CombinedOutput(); err != nil {
