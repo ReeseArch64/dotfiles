@@ -166,17 +166,21 @@ func backupProjectRepositories(ctx context.Context, root string, run gitCommand)
 }
 
 func projectsBackupJobFor(setup []step, prepare, link func() error, backup func() (int, error)) job {
-	count := 0
 	steps := append([]step{}, setup...)
 	steps = append(steps,
 		nativeStep("Criar "+projectsRoot, prepare),
 		nativeStep("Criar link ~/Projects", link),
-		nativeStep("Enviar projetos ao GitHub, GitLab e Gitea", func() error {
-			var err error
-			count, err = backup()
-			return err
-		}),
 	)
+	return projectsUploadJob(steps, backup)
+}
+
+func projectsUploadJob(steps []step, backup func() (int, error)) job {
+	count := 0
+	steps = append(steps, nativeStep("Enviar projetos ao GitHub, GitLab e Gitea", func() error {
+		var err error
+		count, err = backup()
+		return err
+	}))
 	return job{
 		title: "Backup de Projetos Locais",
 		steps: steps,
@@ -186,15 +190,19 @@ func projectsBackupJobFor(setup []step, prepare, link func() error, backup func(
 	}
 }
 
-func projectsBackupJob() job {
+func projectsBackupJob(device deviceProfile) job {
+	backup := func() (int, error) {
+		return backupProjectRepositories(context.Background(), projectsRoot, runProjectGit)
+	}
+	if device == deviceDesktop {
+		return projectsUploadJob(nil, backup)
+	}
 	home, _ := os.UserHomeDir()
 	setup := projectsWorkspaceSetupSteps(projectsWorkspace, os.Getuid(), os.Getgid())
 	return projectsBackupJobFor(
 		setup,
 		func() error { return ensureProjectsRoot(projectsRoot) },
 		func() error { return ensureProjectsLink(home, projectsWorkspace) },
-		func() (int, error) {
-			return backupProjectRepositories(context.Background(), projectsRoot, runProjectGit)
-		},
+		backup,
 	)
 }

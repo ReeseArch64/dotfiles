@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.30.0"
+const version = "1.31.0"
 
 type profile struct {
 	prefix      string
@@ -113,6 +113,12 @@ func main() {
 			action = runFirefoxBackup
 		case "--sdk-links":
 			action = runSDKMigration
+		case "--storage-links":
+			action = runStorageMigration
+		case "--setup-workspaces":
+			action = runWorkspacesSetup
+		case "--setup-niri":
+			action = runNiriSetup
 		case "--setup-git":
 			action = runGitSetup
 		case "--setup-mise":

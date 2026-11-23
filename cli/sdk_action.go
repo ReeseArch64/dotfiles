@@ -15,17 +15,30 @@ import (
 )
 
 const (
-	sdkRoot       = "/mnt/sdk"
-	sdkBackupRoot = backupRoot + "/SDK"
+	sdkRoot     = "/mnt/sdk"
+	storageRoot = "/mnt/storage"
 )
+
+var storageDirectoryMappings = [][2]string{
+	{"Documents", "Documents"}, {"Downloads", "Downloads"}, {"Pictures", "Pictures"},
+	{"Videos", "Videos"}, {"Music", "Music"},
+}
 
 func (p profile) canMigrateSDK(osID string) bool {
 	return p.sshKeyName() != "" && osID == "cachyos"
 }
 
 func runSDKMigration(p profile) error {
+	return runDirectoryMigration(p, sdkRoot, "SDK", sdkDirectoryMappings)
+}
+
+func runStorageMigration(p profile) error {
+	return runDirectoryMigration(p, storageRoot, "Storage", storageDirectoryMappings)
+}
+
+func runDirectoryMigration(p profile, target, category string, mappings [][2]string) error {
 	if !p.canMigrateSDK(systemOSID()) || os.Geteuid() == 0 {
-		return errors.New("a migração para /mnt/sdk exige CachyOS e deve ser executada pelo menu Desktop ou Laptop como usuário normal")
+		return fmt.Errorf("a migração para %s exige CachyOS e deve ser executada pelo menu Desktop ou Laptop como usuário normal", target)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -33,56 +46,58 @@ func runSDKMigration(p profile) error {
 	}
 	printActionHeader()
 	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	for _, mapping := range sdkDirectoryMappings {
-		fmt.Printf("  ~/%s → %s\n", mapping[0], filepath.Join(sdkRoot, mapping[1]))
+	location := managedBackup(category, console.commands.interactive)
+	for _, mapping := range mappings {
+		fmt.Printf("  ~/%s → %s\n", mapping[0], filepath.Join(target, mapping[1]))
 	}
-	fmt.Printf("\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", sdkBackupRoot)
+	fmt.Printf("\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", location.path)
 	if err := console.confirm("Digite CONFIRMO para iniciar a migração: ", "CONFIRMO"); err != nil {
 		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	err = migrateSDK(ctx, home, console.commands.interactive)
+	err = migrateDirectories(ctx, home, target, location, mappings, console.commands.interactive)
 	stop()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	} else {
-		fmt.Println("Links SDK configurados. Backups em", sdkBackupRoot)
+		fmt.Println("Links configurados para", target)
 	}
 	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 
-func migrateSDK(ctx context.Context, home string, run func(...string) error) error {
+func migrateDirectories(ctx context.Context, home, target string, location backupLocation, mappings [][2]string, run func(...string) error) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
 	if err := sdkRealDirectoryPath(home); err != nil {
 		return err
 	}
-	if err := validateBackupPath(sdkRoot); err != nil {
+	if err := validateBackupPath(target); err != nil {
 		return err
 	}
-	if pathInside(home, sdkRoot) || pathInside(sdkRoot, home) ||
-		pathInside(sdkBackupRoot, home) || pathInside(home, sdkBackupRoot) {
+	if pathInside(home, target) || pathInside(target, home) ||
+		pathInside(location.path, home) || pathInside(home, location.path) ||
+		pathInside(location.path, target) || pathInside(target, location.path) {
 		return errors.New("a pasta pessoal e os destinos da migração não podem se sobrepor")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := ensureSDKRoot(sdkRoot, 0755, run); err != nil {
+	if err := ensureDirectoryRoot(target, 0755, run); err != nil {
 		return err
 	}
-	if err := managedBackup("SDK", run).prepare(); err != nil {
+	if err := location.prepare(); err != nil {
 		return err
 	}
 
-	unlock, err := lockDirectory(sdkRoot, "migração SDK")
+	unlock, err := lockDirectory(target, "migração para "+target)
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	ops := systemSDKOps(ctx, sdkBackupRoot)
+	ops := systemSDKOps(ctx, location.path)
 	ops.repairPermissions = func(path string) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -91,7 +106,7 @@ func migrateSDK(ctx context.Context, home string, run func(...string) error) err
 		return repairMigrationPermissions(path, os.Getuid(), os.Getgid(), run)
 	}
 	fmt.Println("Preparando as cópias e os backups…")
-	return prepareSDKDirectories(home, sdkRoot, ops)
+	return prepareDirectoryLinks(home, target, mappings, ops)
 }
 
 func systemSDKOps(ctx context.Context, backups string) sdkMigrationOps {
@@ -115,7 +130,7 @@ func systemSDKOps(ctx context.Context, backups string) sdkMigrationOps {
 	}
 }
 
-func ensureSDKRoot(path string, mode os.FileMode, run func(...string) error) error {
+func ensureDirectoryRoot(path string, mode os.FileMode, run func(...string) error) error {
 	uid, gid := os.Getuid(), os.Getgid()
 	isReady := func() (bool, error) {
 		info, err := os.Lstat(path)

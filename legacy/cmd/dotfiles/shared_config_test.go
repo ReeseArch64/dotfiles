@@ -198,8 +198,10 @@ func TestRepositorySharedFilesAreNotDuplicated(t *testing.T) {
 		t.Fatal(err)
 	}
 	shared := filepath.Join(root, "setup", "config")
-	count := 0
 	err = filepath.WalkDir(shared, func(path string, entry fs.DirEntry, walkErr error) error {
+		if path == shared && os.IsNotExist(walkErr) {
+			return nil
+		}
 		if walkErr != nil || entry.IsDir() {
 			return walkErr
 		}
@@ -207,7 +209,6 @@ func TestRepositorySharedFilesAreNotDuplicated(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		count++
 		for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
 			profile := setupDirectory(root, device)
 			local := filepath.Join(profile, relative)
@@ -228,9 +229,6 @@ func TestRepositorySharedFilesAreNotDuplicated(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	if count == 0 {
-		t.Fatal("nenhum arquivo compartilhado encontrado")
 	}
 	if _, err := os.Stat(filepath.Join(setupDirectory(root, deviceNotebook), "git", ".gitconfig")); err != nil {
 		t.Fatalf(".gitconfig do notebook ausente: %v", err)

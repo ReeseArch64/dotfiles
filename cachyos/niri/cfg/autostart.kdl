@@ -1,0 +1,3 @@
+spawn-at-startup "noctalia"
+
+spawn-sh-at-startup "if [ -x /usr/bin/turing-smart-screen ] && [ -x \"$HOME/.local/share/turing-screen-venv/bin/python\" ]; then PATH=\"$HOME/.local/share/turing-screen-venv/bin:$PATH\" exec /usr/bin/turing-smart-screen main; fi"

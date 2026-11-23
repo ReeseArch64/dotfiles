@@ -73,7 +73,7 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 				{screenGit, "Configurar Git", "Copiar ~/.gitconfig"},
 				{screenDesktop, "Niri", "Copiar configuração para ~/.config/niri"},
 			} {
-				if action.screen == screenGit && device != deviceNotebook {
+				if device != deviceNotebook {
 					continue
 				}
 				m.screen = action.screen
@@ -95,18 +95,15 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 					t.Fatalf("ação ausente: %s / %s", action.title, action.label)
 				}
 			}
-			paths := []string{".config/niri/config.kdl"}
-			if device == deviceNotebook {
-				paths = append(paths, ".gitconfig")
+			if device != deviceNotebook {
+				return
 			}
+			paths := []string{".config/niri/config.kdl", ".gitconfig"}
 			for _, path := range paths {
 				content, err := os.ReadFile(filepath.Join(home, filepath.FromSlash(path)))
 				if err != nil || !strings.Contains(string(content), device.String()) {
 					t.Fatalf("perfil incorreto em %s: %s, %v", path, content, err)
 				}
-			}
-			if device != deviceNotebook {
-				return
 			}
 			m.screen = screenGit
 			m.refresh()
@@ -145,9 +142,9 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 				t.Fatalf("configuração exclusiva %s não deve existir no laptop: %v", name, err)
 			}
 		}
-		names := []string{"niri", "ssh"}
+		names := []string{"ssh"}
 		if filepath.Base(setupDir) == "notebook" {
-			names = append(names, "cursor", "fastfetch", "fish", "git", "mise", "noctalia", "pi")
+			names = append(names, "niri", "cursor", "fastfetch", "fish", "git", "mise", "noctalia", "pi")
 		}
 		for _, name := range names {
 			if info, err := os.Stat(configPath(setupDir, name)); err != nil || !info.IsDir() {
@@ -161,9 +158,9 @@ func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 			if err := installMiseConfig(setupDir, t.TempDir()); err != nil {
 				t.Fatal(err)
 			}
-		}
-		if err := installNiri(setupDir, t.TempDir(), time.Now()); err != nil {
-			t.Fatal(err)
+			if err := installNiri(setupDir, t.TempDir(), time.Now()); err != nil {
+				t.Fatal(err)
+			}
 		}
 	})
 }
@@ -233,7 +230,7 @@ func TestDesktopResolvesOnlyRemainingConfiguration(t *testing.T) {
 	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
 		for _, name := range []string{
 			"cursor/FrierenBLZ", "fastfetch/config.json", "fish/config.fish", "git/.gitignore",
-			"mise/mise.toml", "noctalia/settings.toml", "pi/agent/settings.json",
+			"mise/mise.toml", "niri/cfg/misc.kdl", "noctalia/settings.toml", "pi/agent/settings.json",
 		} {
 			expected := filepath.Join(setupDir, name)
 			if path := configPath(setupDir, name); path != expected {
@@ -242,9 +239,6 @@ func TestDesktopResolvesOnlyRemainingConfiguration(t *testing.T) {
 			if _, err := os.Lstat(expected); !os.IsNotExist(err) {
 				t.Fatalf("configuração migrada ainda está no Desktop legado: %s (%v)", expected, err)
 			}
-		}
-		if _, err := os.Stat(configPath(setupDir, "niri", "cfg", "misc.kdl")); err != nil {
-			t.Fatalf("include do Niri ausente: %v", err)
 		}
 	}, deviceDesktop)
 }

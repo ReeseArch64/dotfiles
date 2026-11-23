@@ -44,11 +44,7 @@ func configPath(setupDir string, elements ...string) string {
 }
 
 func migratedConfigPath(setupDir, relative string) string {
-	if sharedConfigDirectory(setupDir) == "" {
-		return ""
-	}
-	// The remaining Desktop Niri action still needs the shared misc.kdl include.
-	if filepath.Base(setupDir) == "desktop" && relative != "niri/cfg/misc.kdl" {
+	if sharedConfigDirectory(setupDir) == "" || filepath.Base(setupDir) != "notebook" {
 		return ""
 	}
 	switch relative {

@@ -38,7 +38,7 @@ func copySDKTree(ctx context.Context, source, target string) error {
 	return nil
 }
 
-func prepareSDKDirectories(home, root string, ops sdkMigrationOps) error {
+func prepareDirectoryLinks(home, root string, mappings [][2]string, ops sdkMigrationOps) error {
 	home, err := filepath.Abs(home)
 	if err != nil {
 		return err
@@ -56,8 +56,8 @@ func prepareSDKDirectories(home, root string, ops sdkMigrationOps) error {
 		return fmt.Errorf("HOME e destino não podem se sobrepor: %s, %s", home, root)
 	}
 
-	migrations := make([]sdkMigration, 0, len(sdkDirectoryMappings))
-	for _, mapping := range sdkDirectoryMappings {
+	migrations := make([]sdkMigration, 0, len(mappings))
+	for _, mapping := range mappings {
 		source := filepath.Join(home, mapping[0])
 		if mapping[0] == miseSDKPath {
 			source = sdkMiseSource(home, root)

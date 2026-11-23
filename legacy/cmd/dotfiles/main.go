@@ -214,15 +214,12 @@ func (m model) items() []item {
 		}
 		return append(items, item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }})
 	case screenDesktop:
-		niriDescription := "Copiar a configuração completa do Niri"
+		var items []item
 		if m.device == deviceNotebook {
-			niriDescription = "Copiar configuração e cursor FrierenBLZ"
-		}
-		items := []item{
-			{title: "Niri", desc: niriDescription, job: func() job { return niriJob(m.setupDir, m.device) }},
-		}
-		if m.device == deviceNotebook {
-			items = append(items, item{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob})
+			items = append(items,
+				item{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
+				item{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
+			)
 		}
 		if m.device == deviceDesktop {
 			items = append(items,
@@ -247,7 +244,7 @@ func (m model) items() []item {
 	case screenBackup:
 		return []item{
 			{title: "Ponto de Restauração", desc: "Criar snapshot Btrfs da raiz com data e hora", job: restorePointJob},
-			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub e depois ao GitLab", job: projectsBackupJob},
+			{title: "Backup de Projetos Locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", job: func() job { return projectsBackupJob(m.device) }},
 			{title: "Backup das Chaves SSH", desc: "Copiar chaves deste dispositivo para /mnt/backups/dotfiles/ssh", job: func() job { return sshKeysBackupJob(m.device) }},
 			{title: "Backup das Chaves GPG", desc: "Exportar chaves pública e privada para /mnt/backups/dotfiles/gpg", job: gpgBackupJob},
 		}

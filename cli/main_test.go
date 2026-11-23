@@ -80,12 +80,30 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Fish", "Fastfetch", "Servidor", "Papéis de parede", "Noctalia",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Fish", "Fastfetch", "Servidor", "Papéis de parede", "Noctalia", "Armazenamento e projetos", "Niri",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
 				if height := lipgloss.Height(osMenu.View()); height != osMenu.height {
 					t.Fatalf("menu do sistema ocupa %d linhas em terminal com %d", height, osMenu.height)
+				}
+				niri := osMenu.items()[8]
+				niriCommand, err := actionCommand(niri.action, niri.title)
+				if niri.disabled != (m.profile.prefix != "desktop") || err != nil || !slices.Equal(niriCommand.Args[1:], []string{"--setup-niri"}) {
+					t.Fatalf("ação do Niri: %v, %v", niriCommand, err)
+				}
+				osMenu.osID = "cachyos"
+				storage, _ := osMenu.handleKey("8")
+				items := storage.(model).items()
+				if got := menuTitles(items); !slices.Equal(got, []string{"Migrar pastas para /mnt/storage", "Configurar ~/Projects"}) {
+					t.Fatalf("menu Armazenamento e projetos = %v", got)
+				}
+				for index, flag := range []string{"--storage-links", "--setup-workspaces"} {
+					item := items[index]
+					command, err := actionCommand(item.action, item.title)
+					if item.disabled || err != nil || !slices.Equal(command.Args[1:], []string{flag}) {
+						t.Fatalf("ação de armazenamento %s: %v, %v", item.title, command, err)
+					}
 				}
 				programs, _ := m.handleKey("7")
 				programMenu := programs.(model)

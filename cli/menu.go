@@ -11,6 +11,7 @@ type screen int
 const (
 	screenMain screen = iota
 	screenSystem
+	screenStorage
 	screenPrograms
 	screenEssentials
 	screenTerminalTools
@@ -63,6 +64,7 @@ const (
 var screenTitles = map[screen]string{
 	screenMain:          "Menu principal",
 	screenSystem:        "Sistema Operacional",
+	screenStorage:       "Armazenamento e projetos",
 	screenPrograms:      "Programas",
 	screenEssentials:    "Ferramentas Essenciais",
 	screenTerminalTools: "Ferramentas de Terminal",
@@ -155,8 +157,10 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return workstation || homelab
 	case item.goTo == screenDocker || item.action == "setup-docker":
 		return m.profile.prefix == "desktop"
-	case item.action == "sdk-links":
+	case item.goTo == screenStorage || item.action == "sdk-links" || item.action == "storage-links" || item.action == "setup-workspaces":
 		return m.profile.canMigrateSDK(m.osID)
+	case item.action == "setup-niri":
+		return m.profile.prefix == "desktop"
 	case item.goTo == screenPreinstalled || item.action == "remove-preinstalled":
 		return m.profile.canRemovePreinstalledApps(m.osID)
 	case item.goTo == screenFish || item.goTo == screenFastfetch || item.goTo == screenTerminalTools ||
@@ -184,6 +188,13 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
 			{title: "Noctalia", desc: "Aplicar settings.toml e state.toml e conferir plugins", action: "setup-noctalia"},
+			{title: screenTitles[screenStorage], desc: "Migrar pastas pessoais e preparar ~/Projects", goTo: screenStorage},
+			{title: "Niri", desc: "Aplicar atalhos, monitores e autostart do Desktop", action: "setup-niri"},
+		}
+	case screenStorage:
+		return []menuItem{
+			{title: "Migrar pastas para /mnt/storage", desc: "Mover pastas pessoais e criar links no diretório pessoal", action: "storage-links"},
+			{title: "Configurar ~/Projects", desc: "Criar o link para /mnt/workspaces", action: "setup-workspaces"},
 		}
 	case screenPrograms:
 		return []menuItem{

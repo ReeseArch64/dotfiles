@@ -162,67 +162,44 @@ func TestNiriJobCopiesConfigurationAndCursor(t *testing.T) {
 		"Copiar cursor FrierenBLZ para ~/.icons",
 	}
 	now := func() time.Time { return time.Time{} }
-	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
-		count := 1
-		if device == deviceNotebook {
-			count = 2
-		}
-		configured := niriJobFor("/tmp/dotfiles", "/tmp/home", now, device)
-		if labels := jobStepLabels(configured); !slices.Equal(labels, want[:count]) {
-			t.Fatalf("passos inesperados para %s: %v", device, labels)
-		}
+	configured := niriJobFor("/tmp/dotfiles", "/tmp/home", now)
+	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
+		t.Fatalf("passos inesperados: %v", labels)
 	}
 }
 
-func TestInstallNiriDeviceProfiles(t *testing.T) {
+func TestInstallNiriNotebookProfile(t *testing.T) {
 	testBackupStore(t)
 	dotfiles, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
-		t.Run(device.String(), func(t *testing.T) {
-			home := t.TempDir()
-			now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
-			for range 2 {
-				setupDir := setupDirectory(dotfiles, device)
-				if err := installNiri(setupDir, home, now); err != nil {
-					t.Fatal(err)
-				}
-			}
-			destination := filepath.Join(home, ".config", "niri")
-			composed, cleanup, err := materializeConfigDirectory(setupDirectory(dotfiles, device), "niri")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer cleanup()
-			if !directoriesEqual(composed, destination) {
-				t.Fatal("configuração instalada difere da composição compartilhada e do perfil")
-			}
-			common := configPath(setupDirectory(dotfiles, device), "niri", "cfg", "autostart.kdl")
-			if !regularFileMatches(common, filepath.Join(destination, "cfg", "autostart.kdl")) {
-				t.Fatal("autostart do perfil foi alterado")
-			}
-			content, err := os.ReadFile(filepath.Join(destination, "cfg", "autostart.kdl"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			hasTuring := strings.Contains(string(content), "spawn-at-startup") && strings.Contains(string(content), "/usr/bin/turing-smart-screen")
-			if hasTuring != (device == deviceDesktop) {
-				t.Fatalf("autostart incorreto para %s: %s", device, content)
-			}
-			display, err := os.ReadFile(filepath.Join(destination, "cfg", "display.kdl"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			isLaptop := device == deviceNotebook
-			if strings.Contains(string(display), `output "eDP-1"`) != isLaptop || strings.Contains(string(display), `output "DP-1"`) == isLaptop || (isLaptop && strings.Count(string(display), `output "`) != 1) {
-				t.Fatalf("outputs incorretos para %s: %s", device, display)
-			}
-			if matches, err := testBackupPaths(localBackupRoot(), "files", destination); err != nil || len(matches) != 0 {
-				t.Fatalf("reinstalação criou backups: %v, err=%v", matches, err)
-			}
-		})
+	home := t.TempDir()
+	setupDir := setupDirectory(dotfiles, deviceNotebook)
+	now := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+	for range 2 {
+		if err := installNiri(setupDir, home, now); err != nil {
+			t.Fatal(err)
+		}
+	}
+	destination := filepath.Join(home, ".config", "niri")
+	composed, cleanup, err := materializeConfigDirectory(setupDir, "niri")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	if !directoriesEqual(composed, destination) {
+		t.Fatal("configuração instalada difere da composição compartilhada e do perfil")
+	}
+	display, err := os.ReadFile(filepath.Join(destination, "cfg", "display.kdl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(display), `output "eDP-1"`) || strings.Count(string(display), `output "`) != 1 {
+		t.Fatalf("outputs incorretos para o Notebook: %s", display)
+	}
+	if matches, err := testBackupPaths(localBackupRoot(), "files", destination); err != nil || len(matches) != 0 {
+		t.Fatalf("reinstalação criou backups: %v, err=%v", matches, err)
 	}
 }
 

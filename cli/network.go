@@ -314,6 +314,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--firefox-backup"}
 	case "sdk-links":
 		args = []string{"--sdk-links"}
+	case "storage-links", "setup-workspaces", "setup-niri":
+		args = []string{"--" + action}
 	case "setup-git":
 		args = []string{"--setup-git"}
 	case "setup-mise":

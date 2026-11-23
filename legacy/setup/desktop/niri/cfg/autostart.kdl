@@ -1,3 +1,0 @@
-spawn-at-startup "noctalia"
-
-spawn-at-startup "/usr/bin/env" "PATH=/home/alsgy/.local/share/turing-screen-venv/bin:/usr/local/bin:/usr/bin:/bin" "/usr/bin/turing-smart-screen" "main"

@@ -54,6 +54,12 @@ As duas ações são implementadas em Go e guardam os arquivos substituídos em 
 
 No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 24 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
+No Desktop e Laptop com CachyOS, **Sistema Operacional → Armazenamento e projetos → Migrar pastas para /mnt/storage** cria links para `Documents`, `Downloads`, `Pictures`, `Videos` e `Music`. A ação mescla os dados, dá prioridade aos arquivos da pasta pessoal em conflitos e preserva os diretórios anteriores em `/mnt/backups/dotfiles/Storage`.
+
+**Sistema Operacional → Armazenamento e projetos → Configurar ~/Projects** prepara `/mnt/workspaces` com permissão `0700` e cria o link `~/Projects` apontando para ele. Se o caminho já contiver um arquivo, um diretório ou um link para outro destino, a ação pede que o caminho seja liberado antes de continuar.
+
+No Desktop, **Sistema Operacional → Niri** aplica a configuração completa em `~/.config/niri` ou em `$XDG_CONFIG_HOME/niri`, incluindo atalhos, monitores, regras e autostart. A ação executa `niri validate` antes da substituição e guarda a pasta anterior em `/mnt/backups/dotfiles/Niri`. Cria `~/Pictures/Screenshots`. O autostart da Turing Smart Screen só é executado quando o programa e seu ambiente Python estão disponíveis. [Configuração e validação do Niri](https://github.com/niri-wm/niri/wiki/Configuration%3A-Overview)
+
 **Sistema Operacional → Fish → Configurar Fish** instala `fish`, `mise`, `eza`, `bat`, `util-linux` e `man-db` e aplica `~/.config/fish/config.fish`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.
 
 **Sistema Operacional → Fastfetch → Configurar Fastfetch** instala `fastfetch` e `chafa` quando necessário. Usa a foto em `~/.face` ou copia a imagem do repositório se ainda não houver uma. Aplica `~/.config/fastfetch/config.jsonc` para que o comando `fastfetch` encontre a configuração e renderize a foto com Chafa.

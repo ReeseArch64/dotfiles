@@ -14,21 +14,19 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | --- | --- |
 | Sistema | SSH, Firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
 | Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Sandbox, Zed e Proton VPN CLI no Desktop |
-| Desktop | Niri e foto de perfil nos dois perfis, Noctalia, Firefox e papéis de parede no Notebook e Discord, Obsidian e Turing Smart Screen no Desktop |
+| Desktop | Foto de perfil nos dois perfis, Niri, Noctalia, Firefox e papéis de parede no Notebook e Discord, Obsidian e Turing Smart Screen no Desktop |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
 
 ### Migração do Desktop
 
-Na [CLI atual](../README.md), o Desktop já tem drivers, Docker, Git/GPG, Rust, Firefox, Mise e os logins das CLIs, Pi Agent, Noctalia, Fish, Fastfetch, cursor, papéis de parede, remoção de aplicativos pré-instalados e ferramentas de terminal, incluindo Posting e LunarVim. No legado, as configurações do Noctalia e do Pi Agent pertencem ao Notebook.
+Na [CLI atual](../README.md), o Desktop já tem drivers, Docker, Git/GPG, Rust, Firefox, Mise e os logins das CLIs, Pi Agent, Noctalia, Fish, Fastfetch, cursor, papéis de parede, remoção de aplicativos pré-instalados e ferramentas de terminal, incluindo Posting e LunarVim. Também migraram a configuração completa do Niri, as pastas pessoais para `/mnt/storage` e a preparação de `/mnt/workspaces` com o link `~/Projects`. No legado, as configurações do Noctalia e do Pi Agent pertencem ao Notebook.
 
 | Área | O que falta migrar |
 | --- | --- |
-| Ambiente gráfico | Configuração completa do Niri por perfil, incluindo atalhos, monitores e autostart. A CLI atual já aplica o cursor e o `misc.kdl`. |
 | Aplicativos | Discord com BetterDiscord, Obsidian com os arquivos de configuração e Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren. |
 | Desenvolvimento e IA | Sandbox com Podman e Distrobox, Zed, Android CLI e Ollama com ROCm para GPU AMD. A Android CLI do Google é uma ação independente do pacote `android-tools`, que já foi migrado. |
-| Armazenamento | Migração das pastas pessoais para `/mnt/storage` e da lixeira para `~/.trash`. |
-| Backups | Snapshot Btrfs, envio de projetos aos remotos GitHub, GitLab e Gitea, preparação de `/mnt/workspaces` e do link `~/Projects`, backup das chaves SSH e exportação das chaves GPG. |
+| Backups | Snapshot Btrfs, envio de projetos aos remotos GitHub, GitLab e Gitea, backup das chaves SSH e exportação das chaves GPG. |
 
 Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
 
@@ -36,7 +34,7 @@ Três fluxos já têm ações correspondentes na CLI atual, com diferenças de c
 - **Foto de perfil**. A ação legada substitui `~/.face`. O Fastfetch atual cria a foto quando ela está ausente.
 - **Diretórios SDK**. A CLI atual migra o estado do Mise em `~/.local/share/mise`, além dos demais caminhos suportados. A migração de `~/.local` por inteiro e de `~/go` continua no código legado. O mapeamento histórico de `~/.vscode` fica arquivado após a retirada do VS Code.
 
-O Proton VPN CLI ficou fora da migração por escolha do usuário. O login automático e o Thunderbird foram retirados do Desktop. VS Code, Android Studio e Better Stack também foram retirados.
+O Proton VPN CLI ficou fora da migração por escolha do usuário. A migração da lixeira para `~/.trash` foi descartada. O login automático e o Thunderbird foram retirados do Desktop. VS Code, Android Studio e Better Stack também foram retirados.
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
 
@@ -106,9 +104,9 @@ CasaOS, Pi Agent, Ollama e LunarVim executam scripts remotos baixados com `curl`
 
 ## Configurações dos perfis
 
-Desktop e notebook são selecionados pelo hostname (`desktop` e `notebook`, respectivamente). Os arquivos idênticos ficam em `setup/config/`; `setup/desktop/` e `setup/notebook/` contêm somente as configurações específicas de cada perfil. A CLI procura primeiro o arquivo do perfil e, quando ausente, usa o compartilhado. Para diretórios copiados, como Niri, monta uma árvore temporária com a base compartilhada e os arquivos do perfil por cima, preservando a comparação, os backups e a instalação atômica existentes.
+Os perfis arquivados usam `setup/desktop/` e `setup/notebook/`. A resolução procura primeiro o arquivo do perfil e, quando existir uma base em `setup/config/`, permite complementá-lo com os arquivos dessa base.
 
-A base compartilhada em `setup/config/` contém os arquivos comuns do Niri. Cada perfil mantém seu `ssh/config`, o autostart e o display do Niri. Ambos reutilizam o `misc.kdl` da árvore `../cachyos/`. O Notebook tem seus próprios arquivos de Fish, Noctalia e Pi Agent, reutiliza o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`.
+Cada perfil mantém seu `ssh/config`. O Notebook tem seus próprios arquivos do Niri, Fish, Noctalia e Pi Agent. Reutiliza o `misc.kdl`, o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`. O conjunto do Niri para Desktop fica na CLI atual.
 
 Discord, Obsidian, Ollama e Turing Smart Screen continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
@@ -118,7 +116,7 @@ A identidade do Git no Notebook fica definida em `setup/notebook/git/.gitconfig`
 
 No Notebook, a ação `Desenvolvimento > GPG` gera as chaves GPG localmente.
 
-O legado arquiva a preparação de `/mnt/workspaces`, `/mnt/sdk`, `/mnt/storage` e `/mnt/backups` para os perfis Desktop e Notebook. O código usa `0700` para workspaces e backups e `0755` para SDK e storage.
+A CLI atual prepara os destinos quando cada ação é selecionada. As rotinas arquivadas para Desktop e Notebook usavam `0700` para workspaces e backups e `0755` para SDK e storage.
 
 A tabela registra os mapeamentos históricos da migração SDK dos dois perfis:
 
@@ -150,7 +148,7 @@ A tabela registra os mapeamentos históricos da migração SDK dos dois perfis:
 | `~/.railway` | `/mnt/sdk/Railway` |
 | `~/.tauri` | `/mnt/sdk/Tauri` |
 
-A implementação arquivada para pastas pessoais cria estes links em `/mnt/storage`:
+A CLI atual usa os mesmos mapeamentos de pastas pessoais da implementação arquivada:
 
 | Link no home | Destino |
 | --- | --- |
@@ -165,10 +163,6 @@ Se já houver dados no destino, eles são mesclados: os arquivos do home prevale
 Se uma pasta a migrar não puder ser lida por falta de permissão, a CLI solicita `sudo` para corrigir seu proprietário/grupo para o usuário atual (`chown -R -P --no-dereference`) e adicionar acesso ao dono (`chmod -R u+rwX`), antes de tentar novamente. Isso se limita à árvore afetada, no home ou no destino; não segue links simbólicos externos, não concede acesso a outros usuários e não apaga dados. As permissões corrigidas também ficam nos backups, mesmo se a migração falhar depois.
 
 **Feche os aplicativos antes da primeira migração**, especialmente os que usam `~/.local` e `~/.cache`. A cópia preserva permissões, datas e links simbólicos, inclusive entre discos diferentes. Reserve espaço para os dados copiados e os backups. Arquivos especiais (por exemplo, sockets ativos) e caminhos de origem/destino inseguros interrompem a preparação sem ativar os links do grupo afetado (SDK ou storage). Os backups são preservados para conferência; a CLI não os remove automaticamente.
-
-Após preparar os links SDK, a CLI prepara a lixeira principal: `$XDG_DATA_HOME/Trash` passa a ser um link absoluto para `~/.trash`, um diretório real no mesmo sistema de arquivos do home. Quando `XDG_DATA_HOME` estiver ausente, vazio ou relativo, usa `~/.local/share/Trash`. Isso mantém a lixeira do home funcionando mesmo com `~/.local` em outro disco. Não modifica `XDG_DATA_HOME` nem as lixeiras próprias de outros volumes, como `/mnt/storage/.Trash-1000`.
-
-Na primeira execução, feche também os gerenciadores de arquivos e demais aplicativos que usam a lixeira. Os itens existentes e seus metadados de restauração são copiados para `~/.trash`, preservando os originais em `/mnt/backups/dotfiles` pelo mesmo mecanismo das outras migrações. `~/.trash`, `files` e `info` recebem permissão `0700`. Se as duas lixeiras já tiverem conteúdo, os itens sem conflitos são reunidos; nomes conflitantes, inclusive entre arquivos e seus metadados, interrompem a preparação antes de substituir os originais. Resolva esses conflitos antes de executar novamente. Links inesperados, diretórios de outro proprietário ou `~/.trash` em outro sistema de arquivos são rejeitados. Falhas na ativação acionam a recuperação dos originais; execuções seguintes reutilizam o link correto.
 
 Para compilar e executar sem instalar o comando:
 
@@ -687,15 +681,9 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 
 ### Niri
 
-`Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O `misc.kdl` vem de `../cachyos/niri/cfg/misc.kdl` quando não há configuração específica. No Notebook, a ação também copia o cursor de `../cachyos/cursor/FrierenBLZ/` para `~/.icons/FrierenBLZ`, com prioridade aos arquivos específicos do perfil. No Desktop, depois de instalar a configuração do Niri, use `Sistema Operacional > Mouse personalizado` na CLI atual.
+No Desktop, use **Sistema Operacional → Niri** na CLI atual. O autostart, os monitores e a configuração completa estão em `../cachyos/niri/`.
 
-O atalho `Mod+Enter` dessa configuração abre o Kitty.
-
-Cada equipamento tem sua configuração completa e independente. O `cfg/display.kdl` do notebook contém somente `eDP-1`; os demais monitores ficam na cópia do desktop.
-
-A inicialização da Turing Smart Screen fica somente em `setup/desktop/niri/cfg/autostart.kdl`. O notebook não inicia esse serviço.
-
-Quando o cursor de destino é diferente, a CLI preserva a versão anterior em `/mnt/backups/dotfiles`.
+No Notebook, a ação arquivada aplica `setup/notebook/niri/` e o cursor FrierenBLZ. O arquivo `cfg/display.kdl` do Notebook contém somente `eDP-1`.
 
 ### Noctalia
 
@@ -887,7 +875,7 @@ git push backup
 
 Os remotos devem estar previamente configurados: `origin` para o GitHub, `ogle` para o GitLab e `backup` para o Gitea. A CLI não cria nem altera URLs de remotos. Projetos com qualquer um desses remotos ausente são reportados como falha, sem envio parcial. Se o envio ao GitHub falhar, a CLI não envia esse projeto aos demais serviços. Após sucesso no GitHub, tenta GitLab e Gitea independentemente. Ela continua processando os outros projetos e apresenta todas as falhas ao final.
 
-Quando `/mnt/workspaces` não está pronto, a CLI usa `sudo install` para criá-lo, atribuí-lo ao usuário atual e aplicar a permissão `0700`. Ela também garante a existência da raiz `/mnt/workspaces` e cria o link simbólico `~/Projects`, que aponta para `/mnt/workspaces`.
+No Desktop, a preparação de `/mnt/workspaces` e do link `~/Projects` está em **Sistema Operacional → Armazenamento e projetos** na CLI atual. O envio dos projetos continua arquivado. No Notebook, a ação legada prepara o destino e o link antes do envio.
 
 A ação envia somente commits e referências alcançados pelo `git push` configurado. Ela não cria commits para alterações locais pendentes.
 
@@ -920,7 +908,6 @@ As duas exportações são concluídas antes da gravação dos arquivos. A CLI r
 │   └── wallpapers/
 ├── cmd/dotfiles/          # Código e testes da CLI
 ├── setup/
-│   ├── config/           # Base Niri compartilhada
 │   ├── desktop/          # Configurações ainda arquivadas do Desktop
 │   ├── notebook/         # Configurações específicas CachyOS
 │   ├── laptop/           # Laptop Omarchy (SSH implementado em Go)
