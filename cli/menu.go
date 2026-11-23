@@ -209,6 +209,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Configurar Obsidian", desc: "Instalar o aplicativo e aplicar a aparência", action: "setup-obsidian"},
 			{title: "Configurar Turing Smart Screen", desc: "Preparar Python 3.13, suporte a GPU AMD e tema Frieren", action: "setup-turing"},
 			{title: screenTitles[screenPreinstalled], desc: "Remover Alacritty, Meld e Shelly", goTo: screenPreinstalled},
+			{title: "Configurar Discord e BetterDiscord", desc: "Instalar o Discord Stable e importar temas e plugins", action: "setup-discord"},
 		}
 	case screenEssentials:
 		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}

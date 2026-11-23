@@ -86,6 +86,8 @@ func (installer packageInstaller) run(action, modules string) error {
 		}
 	case "setup-turing":
 		return installer.setupTuring()
+	case "setup-discord":
+		return installer.setupDiscord()
 	case "install-firefox":
 		official = []string{"firefox", "xdg-utils"}
 	case "install-rust":

@@ -22,7 +22,11 @@ func TestPreinstalledAppsMenu(t *testing.T) {
 		menu := newMenu(tt.hostname)
 		menu.screen, menu.osID = screenPrograms, tt.osID
 		items := menu.items()
-		entry := items[len(items)-1]
+		index := slices.IndexFunc(items, func(item menuItem) bool { return item.goTo == screenPreinstalled })
+		if index < 0 {
+			t.Fatal("submenu Aplicativos pré-instalados ausente")
+		}
+		entry := items[index]
 		if entry.goTo != screenPreinstalled || entry.disabled == tt.allowed {
 			t.Fatalf("submenu no perfil %s/%s: %+v", tt.hostname, tt.osID, entry)
 		}

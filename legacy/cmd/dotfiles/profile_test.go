@@ -132,7 +132,7 @@ func TestProfileSubmenusAndStatusUseSelectedSetup(t *testing.T) {
 
 func TestRepositoryProfilesProvideAllConfigurationSources(t *testing.T) {
 	forEachRepositoryProfile(t, func(t *testing.T, setupDir string) {
-		for _, name := range []string{"discord", "ollama"} {
+		for _, name := range []string{"ollama"} {
 			info, err := os.Stat(configPath(setupDir, name))
 			if filepath.Base(setupDir) == "desktop" {
 				if err != nil || !info.IsDir() {
@@ -231,7 +231,7 @@ func TestDesktopResolvesOnlyRemainingConfiguration(t *testing.T) {
 		for _, name := range []string{
 			"cursor/FrierenBLZ", "fastfetch/config.json", "fish/config.fish", "git/.gitignore",
 			"mise/mise.toml", "niri/cfg/misc.kdl", "noctalia/settings.toml", "pi/agent/settings.json",
-			"ssh/config", "obsidian", "turing-smart-screen-python",
+			"ssh/config", "obsidian", "turing-smart-screen-python", "discord",
 		} {
 			expected := filepath.Join(setupDir, name)
 			if path := configPath(setupDir, name); path != expected {

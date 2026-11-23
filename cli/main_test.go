@@ -112,7 +112,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				}
 				if got := menuTitles(programMenu.items()); !slices.Equal(got, []string{
 					"Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Terminal", "Instalar ArtCraft Launcher",
-					"Instalar Zed", "Configurar Obsidian", "Configurar Turing Smart Screen", "Aplicativos pré-instalados",
+					"Instalar Zed", "Configurar Obsidian", "Configurar Turing Smart Screen", "Aplicativos pré-instalados", "Configurar Discord e BetterDiscord",
 				}) {
 					t.Fatalf("menu Programas = %v", got)
 				}
@@ -128,6 +128,11 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 					if item.disabled != unavailable || err != nil || !slices.Equal(command.Args[1:], []string{"--packages", action}) {
 						t.Fatalf("ação de %s: %v, %v, %v", action, item, command, err)
 					}
+				}
+				discord := programMenu.items()[9]
+				discordCommand, err := actionCommand(discord.action, discord.title)
+				if discord.disabled || err != nil || !slices.Equal(discordCommand.Args[1:], []string{"--packages", "setup-discord"}) {
+					t.Fatalf("ação do Discord: %v, %v", discordCommand, err)
 				}
 				wallpapers := osMenu.items()[5]
 				wallpapersCommand, err := actionCommand(wallpapers.action, wallpapers.title)

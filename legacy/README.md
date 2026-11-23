@@ -14,7 +14,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | --- | --- |
 | Sistema | SSH, firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
 | Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Proton VPN CLI no Desktop |
-| Desktop | Foto de perfil, Niri, Noctalia, Firefox e papéis de parede no Notebook, Discord no Desktop |
+| Desktop | Foto de perfil, Niri, Noctalia, Firefox e papéis de parede no Notebook |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG no Notebook |
 
@@ -24,10 +24,9 @@ A [CLI atual](../README.md) reúne os instaladores e as configurações migradas
 
 | Área | O que falta migrar |
 | --- | --- |
-| Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go). |
 | Desenvolvimento e IA | [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
 
-No Desktop, o Fastfetch da CLI atual cria `~/.face` quando a foto está ausente. O ambiente Sandbox usa Docker em **Programação → Docker → Ambiente Sandbox**. Zed, Obsidian e Turing Smart Screen estão em **Programas** na CLI atual. Os papéis de parede ficam em `../cachyos/wallpapers/`, que também é a fonte dos fluxos arquivados.
+No Desktop, o Fastfetch da CLI atual cria `~/.face` quando a foto está ausente. O ambiente Sandbox usa Docker em **Programação → Docker → Ambiente Sandbox**. Zed, Obsidian, Turing Smart Screen e Discord estão em **Programas** na CLI atual. Os papéis de parede ficam em `../cachyos/wallpapers/`, que também é a fonte dos fluxos arquivados.
 
 Ficaram fora da migração do Desktop o Proton VPN CLI, a lixeira `~/.trash`, o login automático, o Thunderbird, o VS Code, o Android Studio, o Better Stack e as ações de backup de Btrfs, projetos, chaves SSH/GPG e perfis de navegador. O mapeamento histórico de `~/.vscode` e as ações de backup do Notebook estão descritos nas seções do código arquivado.
 
@@ -103,7 +102,7 @@ Os perfis arquivados usam `setup/desktop/` e `setup/notebook/`. A resolução pr
 
 O Notebook mantém seu `ssh/config` e tem seus próprios arquivos do Niri, Fish, Noctalia e Pi Agent. Reutiliza o `misc.kdl`, o cursor, o Fastfetch e o Mise de `../cachyos/` e usa os arquivos estáticos de Git dessa mesma árvore junto com `setup/notebook/git/.gitconfig`. A CLI atual tem os arquivos gerenciados do Niri para Desktop e preserva o config, o input e o display locais.
 
-Discord e Ollama continuam exclusivos de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
+Ollama continua exclusivo de `setup/desktop/`. Nos caminhos abaixo, `setup/<perfil>/` representa `setup/desktop/` ou `setup/notebook/`. No Notebook, a ação de Git substitui os links antigos por cópias regulares. A ação do Mise substitui o link antigo por uma cópia regular da configuração compartilhada.
 
 Os diretórios `setup/homelab/` (servidor Ubuntu), `setup/homeprod/` (Ubuntu) e `setup/macbook/` (macOS) ficam separados e não herdam configurações de `setup/config/` nem dos perfis CachyOS. O hostname `homelab` usa `setup/homelab/`; um hostname contendo `homeprod` usa `setup/homeprod/`. O MacBook ainda não tem ações suportadas. Hostnames desconhecidos ou com mais de um identificador são recusados antes de abrir o menu; nenhuma opção fica disponível.
 

@@ -168,9 +168,11 @@ func (m model) items() []item {
 		}
 		items = append(items,
 			item{title: "Desenvolvimento", desc: developmentDescription, goTo: screenDevelopment},
-			item{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop},
-			item{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents},
 		)
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Desktop", desc: "Aplicativos, aparência e ambiente gráfico", goTo: screenDesktop})
+		}
+		items = append(items, item{title: "Agentes de IA", desc: "Configurações de agentes e ferramentas de IA", goTo: screenAIAgents})
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Backup", desc: "Salvar dados pessoais em /mnt/backups/dotfiles", goTo: screenBackup})
 		}
@@ -202,27 +204,16 @@ func (m model) items() []item {
 		}
 		return append(items, item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }})
 	case screenDesktop:
-		var items []item
 		if m.device == deviceNotebook {
-			items = append(items,
-				item{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
-				item{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
-			)
+			return []item{
+				{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
+				{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
+				{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
+				{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
+				{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
+				{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
+			}
 		}
-		if m.device == deviceDesktop {
-			items = append(items,
-				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.setupDir) }},
-			)
-		}
-		if m.device == deviceNotebook {
-			items = append(items,
-				item{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-				item{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
-				item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
-				item{title: "Foto de perfil", desc: "Criar ~/.face usando a imagem deste repositório", job: func() job { return faceJob(m.dotfiles) }},
-			)
-		}
-		return items
 	case screenAIAgents:
 		if m.device == deviceDesktop {
 			return []item{{title: "Ollama", desc: "Instalar via curl e configurar serviço para GPU AMD", job: func() job { return ollamaJob(m.setupDir) }}}
