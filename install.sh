@@ -61,6 +61,14 @@ main() {
                         ;;
                 esac
             fi
+            niri_bindings=$dotfiles_dir/cachyos/niri/cfg/keybinds.kdl
+            if [ -f package/cachyos/niri/cfg/keybinds.kdl ] && [ -f "$niri_bindings" ] &&
+                [ ! -L "$niri_bindings" ] && [ ! -L "$dotfiles_dir/cachyos/niri/cfg" ] &&
+                [ ! -L "$dotfiles_dir/cachyos/niri" ] &&
+                [ "$(sha256sum < "$niri_bindings")" = '57b21034c1556562b5f6055b09322435ceb62da935463a4f3df40d325e293b10  -' ]
+            then
+                install -m 0644 package/cachyos/niri/cfg/keybinds.kdl "$niri_bindings"
+            fi
         fi
     elif [ -e "$dotfiles_dir" ] || [ -L "$dotfiles_dir" ]; then
         printf 'O caminho %s precisa ser um diretório.\n' "$dotfiles_dir" >&2

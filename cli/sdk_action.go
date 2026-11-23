@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -29,14 +30,14 @@ func (p profile) canMigrateSDK(osID string) bool {
 }
 
 func runSDKMigration(p profile) error {
-	return runDirectoryMigration(p, sdkRoot, "SDK", sdkDirectoryMappings)
+	return runDirectoryMigration(p, sdkRoot, "SDK", sdkDirectoryMappings, false)
 }
 
 func runStorageMigration(p profile) error {
-	return runDirectoryMigration(p, storageRoot, "Storage", storageDirectoryMappings)
+	return runDirectoryMigration(p, storageRoot, "Storage", storageDirectoryMappings, true)
 }
 
-func runDirectoryMigration(p profile, target, category string, mappings [][2]string) error {
+func runDirectoryMigration(p profile, target, category string, mappings [][2]string, archiveHomeOnly bool) error {
 	if !p.canMigrateSDK(systemOSID()) || os.Geteuid() == 0 {
 		return fmt.Errorf("a migração para %s exige CachyOS e deve ser executada pelo menu Desktop ou Laptop como usuário normal", target)
 	}
@@ -50,13 +51,17 @@ func runDirectoryMigration(p profile, target, category string, mappings [][2]str
 	for _, mapping := range mappings {
 		fmt.Printf("  ~/%s → %s\n", mapping[0], filepath.Join(target, mapping[1]))
 	}
-	fmt.Printf("\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", location.path)
+	if archiveHomeOnly {
+		fmt.Printf("\nAs pastas locais com conteúdo serão arquivadas em %s antes de criar os links. Feche os aplicativos que usam essas pastas.\n", location.path)
+	} else {
+		fmt.Printf("\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", location.path)
+	}
 	if err := console.confirm("Digite CONFIRMO para iniciar a migração: ", "CONFIRMO"); err != nil {
 		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	err = migrateDirectories(ctx, home, target, location, mappings, console.commands.interactive)
+	err = migrateDirectories(ctx, home, target, location, mappings, archiveHomeOnly, console.commands.interactive)
 	stop()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -67,7 +72,7 @@ func runDirectoryMigration(p profile, target, category string, mappings [][2]str
 	return err
 }
 
-func migrateDirectories(ctx context.Context, home, target string, location backupLocation, mappings [][2]string, run func(...string) error) error {
+func migrateDirectories(ctx context.Context, home, target string, location backupLocation, mappings [][2]string, archiveHomeOnly bool, run func(...string) error) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
@@ -88,16 +93,24 @@ func migrateDirectories(ctx context.Context, home, target string, location backu
 	if err := ensureDirectoryRoot(target, 0755, run); err != nil {
 		return err
 	}
-	if err := location.prepare(); err != nil {
-		return err
-	}
-
 	unlock, err := lockDirectory(target, "migração para "+target)
 	if err != nil {
 		return err
 	}
 	defer unlock()
 	ops := systemSDKOps(ctx, location.path)
+	ops.archiveHomeOnly = archiveHomeOnly
+	ops.prepareBackup = sync.OnceValue(location.prepare)
+	if !archiveHomeOnly {
+		if err := ops.prepareBackup(); err != nil {
+			return err
+		}
+		fmt.Println("Preparando as cópias e os backups…")
+	} else {
+		ops.reportArchive = func(source, backup string) {
+			fmt.Printf("Arquivando %s em %s…\n", source, backup)
+		}
+	}
 	ops.repairPermissions = func(path string) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -105,7 +118,6 @@ func migrateDirectories(ctx context.Context, home, target string, location backu
 		fmt.Printf("Corrigindo acesso do usuário em %s antes de migrar…\n", path)
 		return repairMigrationPermissions(path, os.Getuid(), os.Getgid(), run)
 	}
-	fmt.Println("Preparando as cópias e os backups…")
 	return prepareDirectoryLinks(home, target, mappings, ops)
 }
 

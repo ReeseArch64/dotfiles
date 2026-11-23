@@ -195,7 +195,7 @@ func screenItems(page screen, device profile) []menuItem {
 		}
 	case screenStorage:
 		return []menuItem{
-			{title: "Migrar pastas para /mnt/storage", desc: "Mover pastas pessoais e criar links no diretório pessoal", action: "storage-links"},
+			{title: "Migrar pastas para /mnt/storage", desc: "Arquivar as pastas locais com conteúdo e criar os links", action: "storage-links"},
 			{title: "Configurar ~/Projects", desc: "Criar o link para /mnt/workspaces", action: "setup-workspaces"},
 		}
 	case screenPrograms:

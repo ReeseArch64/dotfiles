@@ -54,7 +54,7 @@ As duas ações são implementadas em Go e guardam os arquivos substituídos em 
 
 No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /mnt/sdk** mostra os 27 links e pede confirmação antes de mover dados. A lista inclui `~/.local/share/mise` → `/mnt/sdk/Mise`, `~/go` → `/mnt/sdk/Go`, `~/.render` → `/mnt/sdk/Render` e `~/.maple` → `/mnt/sdk/Maple`. Em conflitos, os arquivos do home prevalecem e os originais são guardados em `/mnt/backups/dotfiles/SDK`. Feche os aplicativos que usam as pastas durante a migração. A CLI pede `sudo` ao preparar os diretórios de destino ou corrigir permissões de uma árvore inacessível.
 
-No Desktop e Laptop com CachyOS, **Sistema Operacional → Armazenamento e projetos → Migrar pastas para /mnt/storage** cria links para `Documents`, `Downloads`, `Pictures`, `Videos` e `Music`. A ação mescla os dados, dá prioridade aos arquivos da pasta pessoal em conflitos e preserva os diretórios anteriores em `/mnt/backups/dotfiles/Storage`.
+No Desktop e Laptop com CachyOS, **Sistema Operacional → Armazenamento e projetos → Migrar pastas para /mnt/storage** cria links para `Documents`, `Downloads`, `Pictures`, `Videos` e `Music`. A ação reutiliza os diretórios e os dados que já estão em `/mnt/storage`. Pastas reais com conteúdo na HOME são arquivadas em `/mnt/backups/dotfiles/Storage` antes de serem substituídas pelos links. Pastas vazias e links já corretos dispensam backup.
 
 **Sistema Operacional → Armazenamento e projetos → Configurar ~/Projects** prepara `/mnt/workspaces` com permissão `0700` e cria o link `~/Projects` apontando para ele. Se o caminho já contiver um arquivo, um diretório ou um link para outro destino, a ação pede que o caminho seja liberado antes de continuar.
 
@@ -128,7 +128,7 @@ No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prep
 
 ## Instalação
 
-O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` e o modelo do Mise das versões `1.10` a `1.22` quando ainda têm o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
+O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza os modelos originais do Fish da série `1.7.x`, do Mise das versões `1.10` a `1.22` e dos atalhos do Niri com Alacritty. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh

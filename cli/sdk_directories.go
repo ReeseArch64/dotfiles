@@ -4,17 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 type sdkMigrationOps struct {
 	ctx               context.Context
 	backupRoot        string
+	archiveHomeOnly   bool
+	prepareBackup     func() error
+	reportArchive     func(string, string)
 	recoveryCopy      func(string, string) error
 	copyTree          func(string, string) error
 	repairPermissions func(string) error
@@ -26,7 +32,7 @@ type sdkMigration struct {
 	home, target, stage, homeBackup, targetBackup, linkDir string
 	homeRetired, targetRetired                             string
 	createdParents                                         []string
-	hasHome, hasTarget, skip, existingLink                 bool
+	hasHome, hasTarget, skip, existingLink, homeEmpty      bool
 	homeMoved, targetMoved, targetInstalled, linkInstalled bool
 }
 
@@ -113,6 +119,14 @@ func runDirectoryMigrations(migrations []sdkMigration, ops sdkMigrationOps) (res
 			}
 		} else {
 			for _, m := range migrations {
+				if m.homeEmpty && m.homeRetired != "" {
+					if err := os.Remove(m.homeRetired); err != nil {
+						result = errors.Join(result, fmt.Errorf("pasta local preservada em %s: %w", m.homeRetired, err))
+					} else {
+						result = errors.Join(result, os.Remove(filepath.Dir(m.homeRetired)))
+					}
+					continue
+				}
 				for _, retired := range []string{m.homeRetired, m.targetRetired} {
 					if retired != "" {
 						result = errors.Join(result, forceRemoveAll(filepath.Dir(retired)))
@@ -214,7 +228,7 @@ func (m *sdkMigration) preflight(ops sdkMigrationOps) error {
 	for _, tree := range []struct {
 		path   string
 		exists bool
-	}{{m.home, m.hasHome}, {m.target, m.hasTarget}} {
+	}{{m.home, m.hasHome}, {m.target, m.hasTarget && !ops.archiveHomeOnly}} {
 		if tree.exists {
 			err := validateMigrationTree(tree.path)
 			if errors.Is(err, fs.ErrPermission) && ops.repairPermissions != nil {
@@ -228,7 +242,24 @@ func (m *sdkMigration) preflight(ops sdkMigrationOps) error {
 			}
 		}
 	}
+	if ops.archiveHomeOnly && m.hasHome {
+		m.homeEmpty, err = emptyMigrationDirectory(m.home)
+		return err
+	}
 	return nil
+}
+
+func emptyMigrationDirectory(path string) (bool, error) {
+	directory, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer directory.Close()
+	_, err = directory.Readdirnames(1)
+	if errors.Is(err, io.EOF) {
+		return true, nil
+	}
+	return false, err
 }
 
 func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
@@ -236,9 +267,14 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 		return nil
 	}
 	var err error
-	m.stage, err = os.MkdirTemp(filepath.Dir(m.target), ".sdk-stage-*")
-	if err != nil {
-		return err
+	if !ops.archiveHomeOnly || !m.hasTarget {
+		m.stage, err = os.MkdirTemp(filepath.Dir(m.target), ".sdk-stage-*")
+		if err != nil {
+			return err
+		}
+	}
+	if ops.archiveHomeOnly {
+		return m.prepareLink(ops)
 	}
 	if m.hasTarget {
 		if err := ops.copyTree(m.target, m.stage); err != nil {
@@ -275,9 +311,20 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 			return err
 		}
 	}
+	if err := m.prepareLink(ops); err != nil {
+		return err
+	}
+	if m.hasTarget {
+		m.targetBackup, err = reserveSDKBackup(ops.backupRoot, m.target, time.Now())
+	}
+	return err
+}
+
+func (m *sdkMigration) prepareLink(ops sdkMigrationOps) error {
 	if m.existingLink {
 		return nil
 	}
+	var err error
 	if err := m.prepareLinkParent(); err != nil {
 		return err
 	}
@@ -288,14 +335,13 @@ func (m *sdkMigration) prepare(ops sdkMigrationOps) error {
 	if err := ops.symlink(m.target, filepath.Join(m.linkDir, "link")); err != nil {
 		return err
 	}
-	if m.hasHome {
-		m.homeBackup, err = reserveSDKBackup(ops.backupRoot, m.home, time.Now())
-		if err != nil {
-			return err
+	if m.hasHome && !m.homeEmpty {
+		if ops.prepareBackup != nil {
+			if err := ops.prepareBackup(); err != nil {
+				return err
+			}
 		}
-	}
-	if m.hasTarget {
-		m.targetBackup, err = reserveSDKBackup(ops.backupRoot, m.target, time.Now())
+		m.homeBackup, err = reserveSDKBackup(ops.backupRoot, m.home, time.Now())
 	}
 	return err
 }
@@ -329,7 +375,7 @@ func (m *sdkMigration) activate(ops sdkMigrationOps) error {
 	if m.skip {
 		return nil
 	}
-	if m.hasTarget {
+	if m.hasTarget && !ops.archiveHomeOnly {
 		var err error
 		m.targetRetired, err = moveToBackup(m.target, m.targetBackup, ops)
 		if err != nil {
@@ -337,20 +383,39 @@ func (m *sdkMigration) activate(ops sdkMigrationOps) error {
 		}
 		m.targetMoved = true
 	}
-	if err := ops.rename(m.stage, m.target); err != nil {
-		return err
+	if m.stage != "" {
+		if err := ops.rename(m.stage, m.target); err != nil {
+			return err
+		}
+		m.targetInstalled = true
 	}
-	m.targetInstalled = true
 	if m.existingLink {
 		return nil
 	}
 	if m.hasHome {
 		var err error
-		m.homeRetired, err = moveToBackup(m.home, m.homeBackup, ops)
+		if m.homeEmpty {
+			m.homeRetired, err = retireDirectory(m.home, ops)
+		} else {
+			if ops.reportArchive != nil {
+				ops.reportArchive(m.home, m.homeBackup)
+			}
+			m.homeRetired, err = moveToBackup(m.home, m.homeBackup, ops)
+		}
 		if err != nil {
+			m.homeMoved = m.homeRetired != ""
 			return err
 		}
 		m.homeMoved = true
+		if m.homeEmpty {
+			empty, err := emptyMigrationDirectory(m.homeRetired)
+			if err != nil {
+				return err
+			}
+			if !empty {
+				return fmt.Errorf("%s recebeu arquivos durante a migração; feche os aplicativos que usam a pasta e tente novamente", m.home)
+			}
+		}
 	}
 	if err := ops.rename(filepath.Join(m.linkDir, "link"), m.home); err != nil {
 		return err
@@ -370,6 +435,12 @@ func (m *sdkMigration) restore(ops sdkMigrationOps) error {
 		}
 	}
 	if m.targetInstalled {
+		if ops.archiveHomeOnly {
+			if err := unix.Rmdir(m.target); err != nil && !errors.Is(err, os.ErrNotExist) {
+				result = errors.Join(result, fmt.Errorf("destino preservado em %s: %w", m.target, err))
+			}
+			return result
+		}
 		if err := ops.rename(m.target, m.stage); err != nil {
 			// Do not overwrite the newly installed target if rollback cannot move it.
 			return errors.Join(result, fmt.Errorf("restaurar %s (backup em %s): %w", m.target, m.targetBackup, err))

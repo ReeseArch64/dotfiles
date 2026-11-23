@@ -66,10 +66,25 @@ func moveToBackup(source, backup string, ops sdkMigrationOps) (string, error) {
 	if !errors.Is(err, syscall.EXDEV) {
 		return "", err
 	}
+	if ops.archiveHomeOnly {
+		// Stop writes via the old HOME path before copying to a different filesystem.
+		retired, err := retireDirectory(source, ops)
+		if err != nil {
+			return "", err
+		}
+		if err := ops.copyTree(retired, backup); err != nil {
+			return retired, fmt.Errorf("copiar backup de %s: %w", source, errors.Join(err, forceRemoveAll(backup)))
+		}
+		return retired, nil
+	}
 	if err := ops.copyTree(source, backup); err != nil {
 		_ = forceRemoveAll(backup)
 		return "", fmt.Errorf("copiar backup (origem intacta em %s): %w", source, err)
 	}
+	return retireDirectory(source, ops)
+}
+
+func retireDirectory(source string, ops sdkMigrationOps) (string, error) {
 	container, err := os.MkdirTemp(filepath.Dir(source), ".dotfiles-original-*")
 	if err != nil {
 		return "", err
