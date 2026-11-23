@@ -157,13 +157,20 @@ func TestInstallNiriCursorCopiesThemeToIcons(t *testing.T) {
 
 func TestNiriJobCopiesConfigurationAndCursor(t *testing.T) {
 	testBackupStore(t)
-	configured := niriJobFor("/tmp/dotfiles", "/tmp/home", func() time.Time { return time.Time{} })
 	want := []string{
 		"Copiar configuração para ~/.config/niri",
 		"Copiar cursor FrierenBLZ para ~/.icons",
 	}
-	if labels := jobStepLabels(configured); !slices.Equal(labels, want) {
-		t.Fatalf("passos inesperados: %v", labels)
+	now := func() time.Time { return time.Time{} }
+	for _, device := range []deviceProfile{deviceDesktop, deviceNotebook} {
+		count := 1
+		if device == deviceNotebook {
+			count = 2
+		}
+		configured := niriJobFor("/tmp/dotfiles", "/tmp/home", now, device)
+		if labels := jobStepLabels(configured); !slices.Equal(labels, want[:count]) {
+			t.Fatalf("passos inesperados para %s: %v", device, labels)
+		}
 	}
 }
 

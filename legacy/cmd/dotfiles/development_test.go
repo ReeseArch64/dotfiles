@@ -29,6 +29,21 @@ func TestAzureLoginFailureDoesNotBlockDevelopment(t *testing.T) {
 	}
 }
 
+func TestDesktopDevelopmentRunsOnlyRustAndBetterStack(t *testing.T) {
+	want := []string{
+		"Instalar toolchain Rust estável",
+		"Verificar rustc e cargo",
+		"Instalar Better Stack CLI",
+		"Autenticar no Better Stack",
+	}
+	if packages := missingPkgs("rustup", "curl"); len(packages) != 0 {
+		want = append([]string{pacmanSyncStep().label, pacmanInstallStep(packages...).label}, want...)
+	}
+	if labels := jobStepLabels(rustAndBetterStackJob()); !slices.Equal(labels, want) {
+		t.Fatalf("passos do Desktop = %v", labels)
+	}
+}
+
 func TestAzureOptionalLoginFailsWithoutPrompt(t *testing.T) {
 	home := t.TempDir()
 	bin := filepath.Join(home, ".local", "share", "mise", "shims")

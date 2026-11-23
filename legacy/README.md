@@ -20,9 +20,9 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 ### Migração do Desktop
 
-Drivers, Docker, Git/GPG, Linear CLI, Pi Agent e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
+Drivers, Docker, Git/GPG, Linear CLI, Pi Agent, papéis de parede e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
 
-A CLI atual também oferece a instalação do Mise e os logins das CLIs, a configuração do Fish e do Fastfetch e a instalação do cursor FrierenBLZ. No legado, alguns desses passos continuam dentro de ações que ainda têm etapas pendentes.
+No Desktop, use a CLI atual para instalar o Mise, fazer login nas CLIs migradas, configurar Fish e Fastfetch e instalar o cursor FrierenBLZ. O ambiente de desenvolvimento do legado passou a oferecer apenas Rust estável e Better Stack. A ação de ferramentas de terminal do legado mantém os utilitários pendentes.
 
 | Área | O que ainda está no legado do Desktop |
 | --- | --- |
@@ -519,7 +519,9 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 
 ### Ambiente de Desenvolvimento
 
-`Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
+No Desktop, `Desenvolvimento > Rust e Better Stack` instala o Rust estável, verifica `rustc` e `cargo` e instala e autentica a CLI do Better Stack. Use `Programação > Mise`, `Programação > Login das CLIs` e `Sistema Operacional > Fish` na CLI atual para as outras etapas.
+
+No Notebook, `Desenvolvimento > Ambiente de Desenvolvimento` executa toda a configuração em uma única ação:
 
 1. Instala o `mise` via yay.
 2. Copia `../cachyos/mise/mise.toml` para `~/.config/mise/config.toml`, com prioridade para o arquivo específico do perfil quando existir.
@@ -527,7 +529,7 @@ Use um e-mail verificado nas plataformas para associar as assinaturas à sua con
 4. Instala Fish, `rustup`, o toolkit `tk` para Python e as dependências de compilação do PHP via Pacman (`sudo pacman -S --needed`): `base-devel`, `autoconf`, `bison`, `re2c`, `pkgconf`, `libxml2`, `openssl`, `curl`, `libzip`, `sqlite`, `oniguruma`, `libpng`, `libjpeg-turbo`, `freetype2`, `icu`, `readline`, `gettext`, `libsodium` e `libxslt`.
 5. Instala todas as ferramentas declaradas no `mise.toml`, incluindo PHP na versão `latest`.
 6. Autentica AWS, Google Cloud, Railway, Firebase e Cloudflare. Tenta autenticar no Azure, mas continua se o login falhar.
-7. Copia a configuração do Fish para `~/.config/fish/config.fish`. A fonte do Desktop fica em `../cachyos/fish/config.fish` e a do notebook em `setup/notebook/fish/config.fish`.
+7. Copia a configuração do Fish para `~/.config/fish/config.fish`. A fonte fica em `setup/notebook/fish/config.fish`.
 8. Instala e seleciona a toolchain Rust estável.
 9. Valida `rustc --version` e `cargo --version`.
 10. Instala Better Stack CLI em `~/.local/bin/bs` pelo script oficial.
@@ -574,11 +576,11 @@ az login
 
 O Wrangler fica disponível como `wrangler`. Ele não exige login separado nesta ação.
 
-A Vercel CLI é instalada pelo Mise e fica disponível como `vercel`. Para autenticar, execute `vercel login` manualmente após a instalação. Para instalar nos dois perfis, use `Desenvolvimento > Ambiente de Desenvolvimento`; se o Mise já estiver configurado, execute `mise install`.
+A Vercel CLI é instalada pelo Mise e fica disponível como `vercel`. Para autenticar, execute `vercel login` manualmente após a instalação. No Notebook, use `Desenvolvimento > Ambiente de Desenvolvimento`. No Desktop, use `Programação > Mise` na CLI atual.
 
-A Neon CLI também é instalada pelo Mise nos dois perfis. Usa o pacote oficial `neon`, recomendado para novas instalações, e disponibiliza o comando `neon`. Após instalar com a mesma ação ou com `mise install`, execute `neon login` para autenticar.
+O Mise também instala a Neon CLI. No Notebook, execute `neon login` após instalar. No Desktop, use `Programação > Login das CLIs > Neon` na CLI atual.
 
-Os perfis desktop e notebook incluem o alias `gpa` (`git push origin && git push ogle && git push backup`): envia para GitHub, GitLab e Gitea, interrompendo se algum push falhar. Os três remotos devem estar configurados no repositório. O alias `piu` (`pi update --all`) substitui `pu` e atualiza tanto o Pi Agent quanto suas extensões.
+As configurações Fish dos perfis Desktop e Notebook incluem o alias `gpa` (`git push origin && git push ogle && git push backup`): envia para GitHub, GitLab e Gitea, interrompendo se algum push falhar. Os três remotos devem estar configurados no repositório. O alias `piu` (`pi update --all`) substitui `pu` e atualiza tanto o Pi Agent quanto suas extensões.
 
 A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/dotfiles-mise.fish` para evitar ativação duplicada. Também remove `~/.bashrc`, `~/.bash_logout`, `~/.bash_profile` e `~/.zshrc`.
 
@@ -625,7 +627,9 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 
 ### Ferramentas de terminal
 
-`Desenvolvimento > Ferramentas de terminal` instala os seguintes grupos.
+No Desktop, `Desenvolvimento > Ferramentas de terminal` oferece scc, usql, Proton VPN CLI, mprocs, Posting, LunarVim quando ausente e os pacotes Hurl, FFmpeg, mpv, yt-dlp, scrcpy, Android Tools, Hyperfine, Just, CMake, Ninja e Ventoy. A ação instala `curl` e `uv` como dependências e inclui Neovim quando precisa instalar o LunarVim. Fastfetch, Proton Pass e os utilitários já migrados ficam nos menus da CLI atual.
+
+No Notebook, a ação instala os seguintes grupos.
 
 **yay:**
 
@@ -636,7 +640,7 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 - Posting, instalado pelo `uv` com Python 3.13
 - usql-bin, instalado pelo pacote AUR
 - proton-vpn-cli, instalado pelo pacote AUR (Desktop e Notebook)
-- proton-pass-cli-bin, instalado pelo pacote AUR (Desktop e Notebook)
+- proton-pass-cli-bin, instalado pelo pacote AUR
 
 **Pacman:**
 
@@ -688,7 +692,7 @@ A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente,
 
 ### Niri
 
-`Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O `misc.kdl` vem de `../cachyos/niri/cfg/misc.kdl` quando não há configuração específica. O cursor de `../cachyos/cursor/FrierenBLZ/` é copiado para `~/.icons/FrierenBLZ`, também permitindo arquivos específicos do perfil.
+`Desktop > Niri` combina `setup/config/niri/` com `setup/<perfil>/niri/` e instala a árvore completa em `~/.config/niri`. Os arquivos específicos do perfil têm prioridade; monitores e autostart continuam separados. O `misc.kdl` vem de `../cachyos/niri/cfg/misc.kdl` quando não há configuração específica. No Notebook, a ação também copia o cursor de `../cachyos/cursor/FrierenBLZ/` para `~/.icons/FrierenBLZ`, com prioridade aos arquivos específicos do perfil. No Desktop, depois de instalar a configuração do Niri, use `Sistema Operacional > Mouse personalizado` na CLI atual.
 
 O atalho `Mod+Enter` dessa configuração abre o Kitty.
 
@@ -727,7 +731,7 @@ O backup e a restauração de navegador e chaveiro foram removidos da CLI. Arqui
 
 ### Turing Smart Screen (somente Desktop)
 
-`Desktop > Turing Smart Screen` instala `turing-smart-screen-python` com Python 3.13, suporte à GPU AMD (Radeon RX 7600) e tema Frieren. Requer o `mise` instalado; configure primeiro `Desenvolvimento > Ambiente de Desenvolvimento`.
+`Desktop > Turing Smart Screen` instala `turing-smart-screen-python` com Python 3.13, suporte à GPU AMD (Radeon RX 7600) e tema Frieren. Requer o `mise` instalado. Use `Programação > Mise` na CLI atual.
 
 A ação executa etapas separadas:
 
