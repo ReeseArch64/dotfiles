@@ -185,7 +185,7 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 		}
 		installNoctaliaTestPlugins(t, pluginDir)
 		for _, screen := range []screen{screenNoctalia, screenPiAgent} {
-			if screen == screenPiAgent && device != deviceNotebook {
+			if device != deviceNotebook {
 				continue
 			}
 			m.screen = screen
@@ -201,9 +201,11 @@ func TestProfileConfigurationSubmenusAndDevelopment(t *testing.T) {
 		if device == deviceNotebook && (!m.piAgent.settingsOK || !m.piAgent.themeOK || m.piAgent.configErr != nil) {
 			t.Fatalf("Pi não usa perfil selecionado: %#v", m.piAgent)
 		}
-		for _, file := range m.noctalia.files {
-			if !file.ok || !strings.HasPrefix(file.source, m.setupDir+string(filepath.Separator)) {
-				t.Fatalf("Noctalia não usa perfil selecionado: %#v", file)
+		if device == deviceNotebook {
+			for _, file := range m.noctalia.files {
+				if !file.ok || !strings.HasPrefix(file.source, m.setupDir+string(filepath.Separator)) {
+					t.Fatalf("Noctalia não usa perfil selecionado: %#v", file)
+				}
 			}
 		}
 		m.screen = screenDevelopment

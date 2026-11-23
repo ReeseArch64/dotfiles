@@ -16,7 +16,7 @@ func TestTerminalToolsUseSupportedMprocsAndPostingInstallers(t *testing.T) {
 			return "/usr/bin/lvim", nil
 		}
 		return "", errors.New("ausente")
-	}, deviceNotebook)
+	})
 	labels := jobStepLabels(configured)
 	mprocsIndex := slices.Index(labels, "Instalar mprocs via Dekit")
 	postingIndex := slices.Index(labels, "Instalar Posting via uv")
@@ -106,7 +106,7 @@ func TestLunarVimInstallStepUsesReleaseBranch(t *testing.T) {
 func TestTerminalToolsJobInstallsMissingLunarVim(t *testing.T) {
 	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "", errors.New("ausente")
-	}, deviceNotebook)
+	})
 	if len(configured.steps) == 0 || configured.steps[len(configured.steps)-1].label != "Instalar LunarVim" {
 		t.Fatal("instalação do LunarVim ausente")
 	}
@@ -115,7 +115,7 @@ func TestTerminalToolsJobInstallsMissingLunarVim(t *testing.T) {
 func TestTerminalToolsJobConfiguresFastfetch(t *testing.T) {
 	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "/home/user/.local/bin/lvim", nil
-	}, deviceNotebook)
+	})
 	want := map[string]bool{
 		"Copiar configuração para ~/.config/fastfetch": false,
 	}
@@ -134,40 +134,10 @@ func TestTerminalToolsJobConfiguresFastfetch(t *testing.T) {
 func TestTerminalToolsJobKeepsExistingLunarVim(t *testing.T) {
 	configured := terminalToolsJobFor("/tmp/dotfiles", "/tmp/home", func(string) (string, error) {
 		return "/home/user/.local/bin/lvim", nil
-	}, deviceNotebook)
+	})
 	for _, current := range configured.steps {
 		if current.label == "Instalar LunarVim" {
 			t.Fatal("LunarVim instalado novamente")
 		}
 	}
-}
-
-func TestDesktopTerminalToolsInstallOnlyPendingTools(t *testing.T) {
-	m := newModel(t.TempDir())
-	m.screen = screenDevelopment
-	for _, entry := range m.items() {
-		if entry.title != "Ferramentas de terminal" {
-			continue
-		}
-		labels := jobStepLabels(entry.job())
-		for _, label := range []string{"Copiar configuração para ~/.config/fastfetch", "Instalar viddy via yay", "Instalar proton-pass-cli-bin via yay"} {
-			if slices.Contains(labels, label) {
-				t.Fatalf("etapa já migrada no Desktop: %s", label)
-			}
-		}
-		if slices.Contains(labels, "Instalar neovim via yay") && !slices.Contains(labels, "Instalar LunarVim") {
-			t.Fatalf("Neovim aparece fora da instalação do LunarVim: %v", labels)
-		}
-		for _, pkg := range missingPkgs("scc", "usql-bin", "proton-vpn-cli") {
-			if !slices.Contains(labels, yayInstallStep(pkg).label) {
-				t.Fatalf("pacote AUR pendente ausente no Desktop: %s", pkg)
-			}
-		}
-		official := missingPkgs("hurl", "ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "hyperfine", "just", "cmake", "ninja", "ventoy", "curl", "uv")
-		if len(official) != 0 && !slices.Contains(labels, pacmanInstallStep(official...).label) {
-			t.Fatalf("pacotes Pacman no Desktop: %v", labels)
-		}
-		return
-	}
-	t.Fatal("ação de ferramentas ausente")
 }

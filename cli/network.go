@@ -308,6 +308,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--cursor"}
 	case "wallpapers":
 		args = []string{"--wallpapers"}
+	case "setup-noctalia":
+		args = []string{"--setup-noctalia"}
 	case "firefox-backup":
 		args = []string{"--firefox-backup"}
 	case "sdk-links":
@@ -324,7 +326,7 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--setup-docker"}
 	case "setup-fish", "setup-fastfetch":
 		args = []string{"--terminal-config", strings.TrimPrefix(action, "setup-")}
-	case "essential-tools", "install-yay", "terminal-tools", "install-kitty", "install-artcraft-launcher", "install-firefox", "install-rust", "drivers", "proton-pass":
+	case "essential-tools", "install-yay", "terminal-tools", "install-posting", "install-lunarvim", "install-kitty", "install-artcraft-launcher", "install-firefox", "install-rust", "drivers", "proton-pass":
 		args = []string{"--packages", action}
 	default:
 		if name, ok := strings.CutPrefix(action, "mise-login-"); ok {

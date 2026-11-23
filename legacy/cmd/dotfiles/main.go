@@ -208,10 +208,11 @@ func (m model) items() []item {
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob})
 		}
-		return append(items,
-			item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob},
-			item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir, m.device) }},
-		)
+		items = append(items, item{title: "Android CLI", desc: "Instalar a CLI do Android via curl", job: androidCLIJob})
+		if m.device == deviceDesktop {
+			return append(items, item{title: "Proton VPN CLI", desc: "Instalar pelo yay", job: protonVPNJob})
+		}
+		return append(items, item{title: "Ferramentas de terminal", desc: "Instalar editores e utilitários de terminal", job: func() job { return terminalToolsJob(m.setupDir) }})
 	case screenDesktop:
 		niriDescription := "Copiar a configuração completa do Niri"
 		if m.device == deviceNotebook {
@@ -223,9 +224,6 @@ func (m model) items() []item {
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob})
 		}
-		items = append(items,
-			item{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-		)
 		if m.device == deviceDesktop {
 			items = append(items,
 				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.setupDir) }},
@@ -235,6 +233,7 @@ func (m model) items() []item {
 		}
 		if m.device == deviceNotebook {
 			items = append(items,
+				item{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
 				item{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
 				item{title: "Wallpapers", desc: "Copiar imagens para ~/.wallpapers", job: func() job { return wallpapersJob(m.dotfiles) }},
 			)
@@ -273,7 +272,9 @@ func (m model) items() []item {
 			return m.gpgItems()
 		}
 	case screenNoctalia:
-		return m.noctaliaItems()
+		if m.device == deviceNotebook {
+			return m.noctaliaItems()
+		}
 	case screenCleanup:
 		if m.device == deviceNotebook {
 			return m.cleanupItems()

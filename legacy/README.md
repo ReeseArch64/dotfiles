@@ -20,7 +20,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 ### Migração do Desktop
 
-Drivers, Docker, Git/GPG, Rust, Firefox, Linear CLI, Pi Agent, papéis de parede e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
+Drivers, Docker, Git/GPG, Rust, Firefox, Linear CLI, Pi Agent, Noctalia, papéis de parede e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
 
 No Desktop, use a CLI atual para instalar o Mise, fazer login nas CLIs migradas, configurar Fish e Fastfetch e instalar o cursor FrierenBLZ. A ação de ferramentas de terminal do legado mantém os utilitários pendentes.
 
@@ -28,9 +28,9 @@ No Desktop, use a CLI atual para instalar o Mise, fazer login nas CLIs migradas,
 | --- | --- |
 | SSH e firewall | Configuração de cliente com aliases e identidades por destino, servidor SSH desativado e bloqueio de SSH de entrada. A CLI atual usa uma identidade por dispositivo e permite SSH pela LAN quando o firewall é configurado. |
 | Armazenamento e backup | Migração de pastas pessoais para `/mnt/storage`, lixeira em `~/.trash`, preparação de `/mnt/workspaces` com `~/Projects`, snapshot Btrfs e backup de projetos e chaves SSH/GPG. A ação de SDK atual cobre `~/.local/share/mise` e outros diretórios. `~/.local` inteiro, `~/.vscode` e `~/go` constam na lista legada. |
-| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, papéis de parede, backup do Firefox e preparação da foto pelo Fastfetch. |
+| Ambiente gráfico | Configuração completa do Niri por perfil e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, papéis de parede, backup do Firefox e preparação da foto pelo Fastfetch. |
 | Aplicativos | Discord/BetterDiscord, Obsidian e Turing Smart Screen. |
-| Desenvolvimento | Sandbox Podman/Distrobox, Zed, Android CLI e utilitários como Posting, mprocs, LunarVim, usql e Proton VPN CLI. |
+| Desenvolvimento | Sandbox Podman/Distrobox, Zed, Android CLI e Proton VPN CLI. |
 | Agentes de IA | Configuração do Ollama para GPU AMD. |
 
 As ações de Pacman e yay instalam somente os pacotes ausentes. Antes de cada instalação, a CLI atualiza as bases com `sudo pacman -Syy`.
@@ -619,7 +619,7 @@ O comando é executado com `bash -o pipefail` para detectar também falhas no do
 
 ### Ferramentas de terminal
 
-No Desktop, `Desenvolvimento > Ferramentas de terminal` oferece scc, usql, Proton VPN CLI, mprocs, Posting, LunarVim quando ausente e os pacotes Hurl, FFmpeg, mpv, yt-dlp, scrcpy, Android Tools, Hyperfine, Just, CMake, Ninja e Ventoy. A ação instala `curl` e `uv` como dependências e inclui Neovim quando precisa instalar o LunarVim. Fastfetch, Proton Pass e os utilitários já migrados ficam nos menus da CLI atual.
+No Desktop, use **Programas → Ferramentas de Terminal** na CLI atual. A opção **Desenvolvimento → Proton VPN CLI** continua no código legado.
 
 No Notebook, a ação instala os seguintes grupos.
 
@@ -696,7 +696,7 @@ Quando o cursor de destino é diferente, a CLI preserva a versão anterior em `/
 
 ### Noctalia
 
-`Desktop > Noctalia` exige estes plugins:
+No Desktop, use **Sistema Operacional → Noctalia** na CLI atual. No Notebook, `Desktop > Noctalia` exige estes plugins:
 
 - `containers`
 - `github-kanban`

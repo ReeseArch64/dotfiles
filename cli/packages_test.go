@@ -59,8 +59,8 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 			"env -u BROWSER xdg-settings set default-web-browser firefox.desktop",
 		}},
 		{"terminal-tools", []string{
-			"sudo pacman -S --needed -- bat eza btop fzf ripgrep fd jq yq zoxide ncdu tealdeer wl-clipboard atuin starship yazi sshfs glow",
-			"yay -S --needed -- viddy",
+			"sudo pacman -S --needed -- bat eza btop fzf ripgrep fd jq yq zoxide ncdu tealdeer wl-clipboard atuin starship yazi sshfs glow ffmpeg mpv yt-dlp scrcpy android-tools hurl hyperfine just cmake ninja",
+			"yay -S --needed -- viddy ventoy scc usql-bin mprocs",
 		}},
 		{"install-yay", nil},
 	}
@@ -81,6 +81,18 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 	installer, commands := newPackageInstallerTest(t, "CANCELAR\n")
 	if err := installer.run("terminal-tools", ""); err == nil || len(*commands) != 0 {
 		t.Fatalf("cancelamento executou comandos: %v, %v", *commands, err)
+	}
+}
+
+func TestInstallPostingUsesPython313(t *testing.T) {
+	installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+	installer.which = func(string) (string, error) { return "", exec.ErrNotFound }
+	if err := installer.run("install-posting", ""); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"sudo pacman -S --needed -- uv", "/usr/bin/uv tool install --python 3.13 posting<3"}
+	if !slices.Equal(*commands, want) {
+		t.Fatalf("comandos = %v, esperado %v", *commands, want)
 	}
 }
 

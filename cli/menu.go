@@ -183,6 +183,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
 			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
+			{title: "Noctalia", desc: "Aplicar settings.toml e state.toml e conferir plugins", action: "setup-noctalia"},
 		}
 	case screenPrograms:
 		return []menuItem{
@@ -199,6 +200,8 @@ func screenItems(page screen, device profile) []menuItem {
 		return []menuItem{
 			{title: "Instalar yay", desc: "Compilar o pacote do AUR em ~/.aur/yay", action: "install-yay"},
 			{title: "Instalar ferramentas de terminal", desc: "Instalar utilitários como bat, jq e ripgrep", action: "terminal-tools"},
+			{title: "Instalar Posting", desc: "Instalar o cliente HTTP com uv e Python 3.13", action: "install-posting"},
+			{title: "Instalar LunarVim", desc: "Instalar o editor com Neovim 0.9.5 pelo Mise", action: "install-lunarvim"},
 		}
 	case screenDrivers:
 		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}

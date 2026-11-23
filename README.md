@@ -60,11 +60,17 @@ No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /m
 
 As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
 
+**Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` do legado em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins `containers`, `github-kanban` e `zed-provider`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
+
 ## Programas
 
 **Programas → Ferramentas Essenciais** instala `base-devel`, `curl`, `wget` e `rate-mirrors`.
 
 **Programas → Ferramentas de Terminal** instala `bat`, `eza`, `btop`, `fzf`, `ripgrep`, `fd`, `jq`, `yq`, `zoxide`, `ncdu`, `tealdeer`, `wl-clipboard`, `atuin`, `starship`, `yazi`, `sshfs`, `glow` e `viddy`. A opção **Instalar yay** garante `git` e `base-devel` antes de clonar e compilar o pacote do AUR em `~/.aur/yay`, inclusive quando `~/.aur` aponta para `/mnt/sdk/Aur`. O instalador reutiliza o yay se ele já estiver disponível.
+
+Em **Programas → Ferramentas de Terminal**, a instalação em lote também inclui `ffmpeg`, `mpv`, `yt-dlp`, `scrcpy`, `android-tools`, `hurl`, `hyperfine`, `just`, `cmake` e `ninja` pelo Pacman, e `ventoy`, `scc`, `usql-bin` e `mprocs` pelo yay.
+
+**Instalar Posting** instala a versão 2 com `uv` e Python 3.13. **Instalar LunarVim** usa a versão 1.4 do editor com Neovim 0.9.5 pelo Mise. Por padrão, os executáveis são disponibilizados em `~/.local/bin`. [Posting 2 e 3](https://posting.sh/guide/migrating/) · [Instalação do LunarVim](https://www.lunarvim.org/docs/installation)
 
 **Programas → Drivers** instala os headers correspondentes aos kernels instalados, `base-devel` e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
 

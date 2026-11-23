@@ -80,7 +80,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Fish", "Fastfetch", "Servidor", "Papéis de parede",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Fish", "Fastfetch", "Servidor", "Papéis de parede", "Noctalia",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}
@@ -107,6 +107,11 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if wallpapers.disabled || err != nil || !slices.Equal(wallpapersCommand.Args[1:], []string{"--wallpapers"}) {
 					t.Fatalf("ação de papéis de parede: %v, %v", wallpapersCommand, err)
 				}
+				noctalia := osMenu.items()[6]
+				noctaliaCommand, err := actionCommand(noctalia.action, noctalia.title)
+				if noctalia.disabled || err != nil || !slices.Equal(noctaliaCommand.Args[1:], []string{"--setup-noctalia"}) {
+					t.Fatalf("ação do Noctalia: %v, %v", noctaliaCommand, err)
+				}
 				terminal, _ := programMenu.handleKey("4")
 				terminalItems := terminal.(model).items()
 				if got := menuTitles(terminalItems); !slices.Equal(got, []string{"Instalar Kitty"}) {
@@ -127,7 +132,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 						t.Fatalf("ação de %s: %v, %v", app, command, err)
 					}
 				}
-				for index, actions := range [][]string{{"essential-tools"}, {"install-yay", "terminal-tools"}, {"drivers"}} {
+				for index, actions := range [][]string{{"essential-tools"}, {"install-yay", "terminal-tools", "install-posting", "install-lunarvim"}, {"drivers"}} {
 					child, _ := programMenu.selectItem(programMenu.items()[index])
 					items := child.(model).items()
 					if len(items) != len(actions) {

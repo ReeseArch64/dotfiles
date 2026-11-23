@@ -17,6 +17,7 @@ var essentialPackages = []string{"base-devel", "curl", "wget", "rate-mirrors"}
 var terminalPackages = []string{
 	"bat", "eza", "btop", "fzf", "ripgrep", "fd", "jq", "yq", "zoxide",
 	"ncdu", "tealdeer", "wl-clipboard", "atuin", "starship", "yazi", "sshfs", "glow",
+	"ffmpeg", "mpv", "yt-dlp", "scrcpy", "android-tools", "hurl", "hyperfine", "just", "cmake", "ninja",
 }
 
 type packageInstaller struct {
@@ -51,17 +52,27 @@ func runPackageAction(profile profile, action string) error {
 
 func (installer packageInstaller) run(action, modules string) error {
 	var official []string
-	var aur string
+	var aur []string
 	switch action {
 	case "essential-tools":
 		official = essentialPackages
 	case "terminal-tools":
 		official = terminalPackages
-		aur = "viddy"
+		aur = []string{"viddy", "ventoy", "scc", "usql-bin", "mprocs"}
+	case "install-posting":
+		if installer.userToolInstalled("posting") {
+			return nil
+		}
+		official = []string{"uv"}
+	case "install-lunarvim":
+		if installer.userToolInstalled("lvim") {
+			return nil
+		}
+		official = []string{"mise", "git", "curl", "base-devel", "ripgrep", "fd"}
 	case "install-kitty":
 		official = []string{"kitty"}
 	case "install-artcraft-launcher":
-		aur = "artcraft-launcher-bin"
+		aur = []string{"artcraft-launcher-bin"}
 	case "install-firefox":
 		official = []string{"firefox", "xdg-utils"}
 	case "install-rust":
@@ -78,7 +89,7 @@ func (installer packageInstaller) run(action, modules string) error {
 		if err := installer.checkProtonPassFirefox(); err != nil {
 			return err
 		}
-		aur = "proton-pass-cli-bin"
+		aur = []string{"proton-pass-cli-bin"}
 	case "install-yay":
 	default:
 		return errors.New("ação de instalação inválida")
@@ -87,10 +98,10 @@ func (installer packageInstaller) run(action, modules string) error {
 	if len(official) > 0 {
 		fmt.Fprintln(installer.console.output, "Pacotes dos repositórios:", strings.Join(official, ", "))
 	}
-	if aur != "" {
-		fmt.Fprintln(installer.console.output, "Pacote do AUR:", aur)
+	if len(aur) != 0 {
+		fmt.Fprintln(installer.console.output, "Pacotes do AUR:", strings.Join(aur, ", "))
 	}
-	if action == "install-yay" || aur != "" {
+	if action == "install-yay" || len(aur) != 0 {
 		fmt.Fprintln(installer.console.output, "Se necessário, instalar git e base-devel e compilar yay em ~/.aur/yay.")
 	}
 	if action == "proton-pass" {
@@ -108,18 +119,17 @@ func (installer packageInstaller) run(action, modules string) error {
 	if action == "install-yay" {
 		return installer.ensureYay()
 	}
-	if aur != "" && !installer.installed(aur) {
+	aur = slices.DeleteFunc(aur, installer.installed)
+	if len(aur) != 0 {
 		if err := installer.ensureYay(); err != nil {
 			return err
 		}
-	} else {
-		aur = ""
 	}
 	if err := installer.console.ensurePackages(official...); err != nil {
 		return err
 	}
-	if aur != "" {
-		if err := installer.console.commands.interactive("yay", "-S", "--needed", "--", aur); err != nil {
+	if len(aur) != 0 {
+		if err := installer.console.commands.interactive(append([]string{"yay", "-S", "--needed", "--"}, aur...)...); err != nil {
 			return err
 		}
 	}
@@ -133,8 +143,22 @@ func (installer packageInstaller) run(action, modules string) error {
 		return setFirefoxDefault(installer.console.commands)
 	case "install-rust":
 		return configureRust(installer.console)
+	case "install-posting":
+		return installer.console.commands.interactive("/usr/bin/uv", "tool", "install", "--python", "3.13", "posting<3")
+	case "install-lunarvim":
+		return installLunarVim(installer.console)
 	}
 	return nil
+}
+
+func (installer packageInstaller) userToolInstalled(name string) bool {
+	for _, path := range []string{name, filepath.Join(installer.console.home, ".local", "bin", name)} {
+		if _, err := installer.which(path); err == nil {
+			fmt.Fprintln(installer.console.output, name, "já está instalado.")
+			return true
+		}
+	}
+	return false
 }
 
 func setFirefoxDefault(commands sshCommands) error {

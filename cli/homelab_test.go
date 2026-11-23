@@ -45,8 +45,12 @@ func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 			current = next.(model)
 		}
 		items := current.items()
-		if tt.action == "tools" && (len(items) == 0 || !items[0].disabled) {
-			t.Fatal("yay deveria permanecer desabilitado no Homelab")
+		if tt.action == "tools" {
+			for _, item := range items {
+				if item.action != "terminal-tools" && !item.disabled {
+					t.Fatalf("instalador de workstation habilitado no Homelab: %s", item.action)
+				}
+			}
 		}
 		index := slices.IndexFunc(items, func(item menuItem) bool {
 			return current.profile.menuAction(item.action) == "homelab-"+tt.action
