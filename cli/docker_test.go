@@ -23,7 +23,7 @@ func TestDockerMenu(t *testing.T) {
 			}
 		}
 		m.screen = screenProgramming
-		if hostname != "desktop" {
+		if m.profile.sshKeyName() == "" {
 			for _, item := range m.items() {
 				if item.goTo == screenDocker {
 					t.Fatalf("Docker aparece no menu de programação de %s", hostname)
@@ -41,9 +41,12 @@ func TestDockerMenu(t *testing.T) {
 		if !strings.Contains(view, "docker-machine ausente") || lipgloss.Height(view) != docker.height {
 			t.Fatalf("status Docker inválido: %s", view)
 		}
-		command, err := actionCommand(docker.items()[0].action, docker.items()[0].title)
-		if err != nil || !slices.Equal(command.Args[1:], []string{"--setup-docker"}) {
-			t.Fatalf("comando Docker inesperado: %v, %v", command, err)
+		for i, flag := range []string{"--setup-docker", "--setup-distrobox"} {
+			item := docker.items()[i]
+			command, err := actionCommand(item.action, item.title)
+			if item.disabled || err != nil || !slices.Equal(command.Args[1:], []string{flag}) {
+				t.Fatalf("comando %s em %s: %v, %v", flag, hostname, item, err)
+			}
 		}
 	}
 }

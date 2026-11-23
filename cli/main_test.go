@@ -41,11 +41,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 			if tt.keyName != "" {
 				programming, _ := m.selectItem(m.items()[3])
 				programmingMenu := programming.(model)
-				wantProgramming := []string{"Git", "Mise"}
-				if m.profile.prefix == "desktop" {
-					wantProgramming = append(wantProgramming, "Docker")
-				}
-				wantProgramming = append(wantProgramming, "Login das CLIs", "Instalar Rust", "Instalar Android CLI")
+				wantProgramming := []string{"Git", "Mise", "Docker", "Login das CLIs", "Instalar Rust", "Instalar Android CLI"}
 				if got := menuTitles(programmingMenu.items()); !slices.Equal(got, wantProgramming) {
 					t.Fatalf("menu de programação = %v", got)
 				}
@@ -91,7 +87,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				}
 				niri := osMenu.items()[8]
 				niriCommand, err := actionCommand(niri.action, niri.title)
-				if niri.disabled != (m.profile.prefix != "desktop") || err != nil || !slices.Equal(niriCommand.Args[1:], []string{"--setup-niri"}) {
+				if niri.disabled || err != nil || !slices.Equal(niriCommand.Args[1:], []string{"--setup-niri"}) {
 					t.Fatalf("ação do Niri: %v, %v", niriCommand, err)
 				}
 				osMenu.osID = "cachyos"
@@ -129,6 +125,12 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 					unavailable := action == "setup-turing" && m.profile.prefix != "desktop"
 					if item.disabled != unavailable || err != nil || !slices.Equal(command.Args[1:], []string{"--packages", action}) {
 						t.Fatalf("ação de %s: %v, %v, %v", action, item, command, err)
+					}
+					if unavailable {
+						next, run := programMenu.selectItem(item)
+						if next.(model).screen != screenPrograms || run != nil {
+							t.Fatal("Turing Smart Screen bloqueado iniciou uma ação")
+						}
 					}
 				}
 				for index, action := range []string{"setup-discord", "install-android-studio"} {

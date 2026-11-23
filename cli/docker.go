@@ -27,8 +27,8 @@ const dockerDaemonConfig = `{
 var dockerTools = []string{"docker", "docker-compose", "docker-buildx", "docker-machine", "lazydocker"}
 
 func runDockerSetup(device profile) error {
-	if device.prefix != "desktop" || os.Geteuid() == 0 {
-		return errors.New("execute a configuração do Docker pelo menu Desktop como usuário normal")
+	if device.sshKeyName() == "" || os.Geteuid() == 0 {
+		return errors.New("execute a configuração do Docker pelo menu Desktop ou Laptop como usuário normal")
 	}
 	account, err := user.Current()
 	if err != nil {
@@ -144,8 +144,8 @@ func dockerHasCredentials(configDir string, commands sshCommands) bool {
 }
 
 func runPrivilegedDocker(device profile) error {
-	if device.prefix != "desktop" {
-		return errors.New("ação disponível apenas no perfil Desktop")
+	if device.sshKeyName() == "" {
+		return errors.New("ação disponível nos perfis Desktop e Laptop")
 	}
 	account, err := sudoAccount()
 	if err != nil {
@@ -163,8 +163,8 @@ func runPrivilegedDocker(device profile) error {
 }
 
 func writeDockerBackup(p profile) error {
-	if p.prefix != "desktop" || os.Geteuid() == 0 {
-		return errors.New("execute o backup do Docker pelo menu Desktop como usuário normal")
+	if p.sshKeyName() == "" || os.Geteuid() == 0 {
+		return errors.New("execute o backup do Docker pelo menu Desktop ou Laptop como usuário normal")
 	}
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {

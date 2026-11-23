@@ -25,16 +25,20 @@ func TestPiAgentMenu(t *testing.T) {
 		next, _ := menu.handleKey("6")
 		group := next.(model)
 		items := group.items()
-		if hostname == "desktop" {
-			if len(items) != 2 || items[1].disabled || items[1].title != "Configurar Ollama (AMD)" {
-				t.Fatalf("ação do Ollama ausente: %v", items)
+		if len(items) != 2 || items[1].disabled != (hostname == "laptop") || items[1].title != "Configurar Ollama (AMD)" {
+			t.Fatalf("opção do Ollama em %s: %v", hostname, items)
+		}
+		ollama := items[1]
+		if ollama.disabled {
+			next, run := group.handleKey("2")
+			if next.(model).screen != screenAIAgents || run != nil {
+				t.Fatal("Ollama bloqueado iniciou uma ação")
 			}
-			command, err := actionCommand(items[1].action, items[1].title)
+		} else {
+			command, err := actionCommand(ollama.action, ollama.title)
 			if err != nil || !slices.Equal(command.Args[1:], []string{"--packages", "setup-ollama"}) {
 				t.Fatalf("ação do Ollama: %v, %v", command, err)
 			}
-		} else if len(items) != 1 {
-			t.Fatalf("agentes de IA no Laptop = %v", items)
 		}
 		next, _ = group.handleKey("1")
 		page := next.(model)

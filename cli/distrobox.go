@@ -14,8 +14,8 @@ const sandboxName = "sandbox"
 const sandboxImage = "docker.io/library/archlinux:latest"
 
 func runDistroboxSetup(device profile) error {
-	if device.prefix != "desktop" || os.Geteuid() == 0 {
-		return errors.New("configure o Ambiente Sandbox pelo menu Desktop como usuário normal")
+	if device.sshKeyName() == "" || os.Geteuid() == 0 {
+		return errors.New("configure o Ambiente Sandbox pelo menu Desktop ou Laptop como usuário normal")
 	}
 	account, err := user.Current()
 	if err != nil {

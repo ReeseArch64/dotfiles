@@ -16,8 +16,8 @@ var niriManagedFiles = []string{
 }
 
 func runNiriSetup(p profile) error {
-	if p.prefix != "desktop" || os.Geteuid() == 0 {
-		return errors.New("configure o Niri pelo perfil Desktop como usuário normal")
+	if p.sshKeyName() == "" || os.Geteuid() == 0 {
+		return errors.New("configure o Niri pelo menu Desktop ou Laptop como usuário normal")
 	}
 	if _, err := exec.LookPath("niri"); err != nil {
 		return errors.New("instale o Niri antes de aplicar a configuração")

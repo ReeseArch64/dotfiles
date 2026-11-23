@@ -155,14 +155,10 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return homelab
 	case item.goTo == screenSystem || item.goTo == screenPrograms:
 		return workstation || homelab
-	case item.goTo == screenDocker || item.action == "setup-docker" || item.action == "setup-distrobox":
-		return m.profile.prefix == "desktop"
 	case item.action == "setup-turing" || item.action == "setup-ollama":
 		return m.profile.prefix == "desktop"
 	case item.goTo == screenStorage || item.action == "sdk-links" || item.action == "storage-links" || item.action == "setup-workspaces":
 		return m.profile.canMigrateSDK(m.osID)
-	case item.action == "setup-niri":
-		return m.profile.prefix == "desktop"
 	case item.goTo == screenPreinstalled || item.action == "remove-preinstalled":
 		return m.profile.canRemovePreinstalledApps(m.osID)
 	case item.goTo == screenFish || item.goTo == screenFastfetch || item.goTo == screenTerminalTools ||
@@ -191,7 +187,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
 			{title: "Noctalia", desc: "Aplicar settings.toml e state.toml e conferir plugins", action: "setup-noctalia"},
 			{title: screenTitles[screenStorage], desc: "Migrar pastas pessoais e preparar ~/Projects", goTo: screenStorage},
-			{title: "Niri", desc: "Aplicar regras, atalhos e autostart do Desktop", action: "setup-niri"},
+			{title: "Niri", desc: "Aplicar regras, atalhos e autostart do Dotfiles", action: "setup-niri"},
 		}
 	case screenStorage:
 		return []menuItem{
@@ -246,7 +242,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Git", desc: "Instalar Git e configurar a assinatura GPG", goTo: screenGit},
 			{title: "Mise", desc: "Configurar o Mise e instalar as ferramentas", goTo: screenMise},
 		}
-		if device.prefix == "desktop" {
+		if device.sshKeyName() != "" {
 			items = append(items, menuItem{title: "Docker", desc: "Instalar pacotes, ativar o serviço e autenticar", goTo: screenDocker})
 		}
 		return append(items,
@@ -255,11 +251,10 @@ func screenItems(page screen, device profile) []menuItem {
 			menuItem{title: "Instalar Android CLI", desc: "Instalar o comando android do Google", action: "install-android-cli"},
 		)
 	case screenAIAgents:
-		items := []menuItem{{title: "Pi Agent", desc: "Configurar o Pi e seus pacotes", goTo: screenPiAgent}}
-		if device.prefix == "desktop" {
-			items = append(items, menuItem{title: "Configurar Ollama (AMD)", desc: "Ativar ROCm e armazenar os modelos em /mnt/storage", action: "setup-ollama"})
+		return []menuItem{
+			{title: "Pi Agent", desc: "Configurar o Pi e seus pacotes", goTo: screenPiAgent},
+			{title: "Configurar Ollama (AMD)", desc: "Ativar ROCm e armazenar os modelos em /mnt/storage", action: "setup-ollama"},
 		}
-		return items
 	case screenPiAgent:
 		return []menuItem{{title: "Configurar Pi Agent", desc: "Aplicar settings.json e instalar as extensões", action: "setup-pi-agent"}}
 	case screenMiseLogins:
