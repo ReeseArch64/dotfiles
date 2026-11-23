@@ -13,7 +13,7 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 | Área | Ações |
 | --- | --- |
 | Sistema | SSH, Firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
-| Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Sandbox, Zed e Proton VPN CLI no Desktop |
+| Desenvolvimento | Git, GPG, Linear CLI e ferramentas de terminal no Notebook, Android CLI nos dois perfis e Zed e Proton VPN CLI no Desktop |
 | Desktop | Foto de perfil nos dois perfis, Niri, Noctalia, Firefox e papéis de parede no Notebook e Discord, Obsidian e Turing Smart Screen no Desktop |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG no Notebook |
@@ -25,9 +25,9 @@ A [CLI atual](../README.md) reúne os instaladores e as configurações migradas
 | Área | O que falta migrar |
 | --- | --- |
 | Aplicativos | [Discord com BetterDiscord](cmd/dotfiles/discord.go), [Obsidian com suas configurações](#obsidian) e [Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren](#turing-smart-screen-somente-desktop). |
-| Desenvolvimento e IA | [Podman/Distrobox](#ambiente-sandbox), [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
+| Desenvolvimento e IA | [Zed](#zed), [Android CLI do Google](#android-cli) e [Ollama com ROCm para GPU AMD](#ollama). O pacote `android-tools` já está na CLI atual. |
 
-O snapshot Btrfs, o envio de projetos e a exportação de chaves GPG estão no menu **Backup** da CLI atual. O backup dedicado de chaves SSH saiu do Desktop e permanece arquivado no Notebook.
+O backup Btrfs, o envio de projetos e a exportação de chaves GPG estão no menu **Backup** da CLI atual. O backup dedicado de chaves SSH saiu do Desktop e permanece arquivado no Notebook. O ambiente Sandbox passou a usar Docker e está em **Programação → Docker → Ambiente Sandbox** na CLI atual.
 
 Três fluxos já têm ações correspondentes na CLI atual, com diferenças de comportamento.
 
@@ -582,24 +582,6 @@ A cópia substitui o `config.fish` atual. Ela remove o antigo arquivo `conf.d/do
 
 Abra um novo terminal para carregar a configuração do Fish e a ativação do Mise.
 
-
-### Ambiente Sandbox
-
-`Desenvolvimento > Ambiente Sandbox` executa estas etapas:
-
-1. Instala `podman`, `podman-compose` e `distrobox` via Pacman.
-2. Instala `podman-tui-bin` via yay/AUR.
-3. Define `container_manager="podman"` em `~/.config/distrobox/distrobox.conf`.
-4. Preserva as outras opções existentes no arquivo do Distrobox.
-5. Executa `distrobox create --name sandbox --image archlinux`.
-
-Entre no ambiente depois da criação:
-
-```bash
-distrobox enter sandbox
-```
-
-Os pacotes instalados dentro do contêiner não alteram a base do CachyOS. O Distrobox integra o diretório pessoal por padrão e não funciona como limite de segurança.
 
 ### Zed
 

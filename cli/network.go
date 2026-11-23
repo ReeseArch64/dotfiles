@@ -326,8 +326,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--setup-pi-agent"}
 	case "remove-preinstalled":
 		args = []string{"--remove-preinstalled"}
-	case "setup-docker":
-		args = []string{"--setup-docker"}
+	case "setup-docker", "setup-distrobox":
+		args = []string{"--" + action}
 	case "setup-fish", "setup-fastfetch":
 		args = []string{"--terminal-config", strings.TrimPrefix(action, "setup-")}
 	case "essential-tools", "install-yay", "terminal-tools", "install-posting", "install-lunarvim", "install-kitty", "install-artcraft-launcher", "install-firefox", "install-rust", "drivers", "proton-pass":

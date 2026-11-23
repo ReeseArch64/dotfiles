@@ -29,15 +29,15 @@ func TestWorkstationBackupMenuActions(t *testing.T) {
 	}
 }
 
-func TestBackupRootSnapshot(t *testing.T) {
+func TestBackupBtrfsRoot(t *testing.T) {
 	for _, tc := range []struct {
-		name, sshID, targetFS, wantError string
-		snapshotError                    bool
+		name, sshID, stream, wantError string
+		sendError                      bool
 	}{
-		{name: "separate-home", sshID: "259", targetFS: "btrfs root-uuid"},
-		{name: "ssh-inside-root", sshID: "256", targetFS: "btrfs root-uuid", wantError: "incluiria ~/.ssh"},
-		{name: "different-filesystem", sshID: "259", targetFS: "btrfs other-uuid", wantError: "mesmo sistema"},
-		{name: "snapshot-fails", sshID: "259", targetFS: "btrfs root-uuid", wantError: "falha simulada", snapshotError: true},
+		{name: "stream-to-regular-directory", sshID: "259", stream: btrfsStreamMagic + "fixture"},
+		{name: "ssh-inside-root", sshID: "256", wantError: "incluiria ~/.ssh"},
+		{name: "send-fails", sshID: "259", stream: btrfsStreamMagic, wantError: "falha simulada", sendError: true},
+		{name: "invalid-stream", sshID: "259", stream: "not a stream", wantError: "stream Btrfs válido"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()
@@ -49,8 +49,6 @@ func TestBackupRootSnapshot(t *testing.T) {
 				capture: func(_ string, args ...string) (string, error) {
 					path := args[len(args)-1]
 					switch {
-					case args[0] == "findmnt" && path == location.path:
-						return tc.targetFS, nil
 					case args[0] == "findmnt" && (path == "/" || path == sshPath):
 						return "btrfs root-uuid", nil
 					case args[0] == "btrfs" && path == "/":
@@ -62,26 +60,26 @@ func TestBackupRootSnapshot(t *testing.T) {
 						return "", nil
 					}
 				},
-				interactive: func(args ...string) error {
-					if !slices.Equal(args[:5], []string{"sudo", "btrfs", "subvolume", "snapshot", "/"}) || !pathInside(location.path, args[5]) {
-						t.Fatalf("snapshot inesperado: %v", args)
-					}
-					if tc.snapshotError {
-						return errors.New(tc.wantError)
-					}
-					if tc.wantError != "" {
-						t.Fatal("tentou criar snapshot sem passar pelas verificações")
-					}
-					return os.Mkdir(args[5], 0700)
-				},
 			}
-			destination, err := backupRootSnapshot(location, home, commands)
-			if tc.wantError == "" {
-				if err != nil || filepath.Base(destination) != "original" {
-					t.Fatalf("snapshot = %q, %v", destination, err)
+			destination, err := backupBtrfsRoot(location, home, commands, func(file *os.File) error {
+				if tc.sshID == "256" {
+					t.Fatal("iniciou o backup com ~/.ssh na raiz")
 				}
-				if _, err := os.Stat(destination); err != nil {
-					t.Fatal(err)
+				if _, err := file.WriteString(tc.stream); err != nil {
+					return err
+				}
+				if tc.sendError {
+					return errors.New(tc.wantError)
+				}
+				return nil
+			})
+			if tc.wantError == "" {
+				if err != nil || filepath.Dir(destination) != backups || filepath.Ext(destination) != ".btrfs" {
+					t.Fatalf("stream = %q, %v", destination, err)
+				}
+				sdkTestContent(t, destination, tc.stream)
+				if info, err := os.Stat(destination); err != nil || info.Mode().Perm() != 0600 {
+					t.Fatalf("permissão do stream: %v, %v", info, err)
 				}
 				return
 			}

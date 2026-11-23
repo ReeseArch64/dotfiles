@@ -72,7 +72,7 @@ As duas ações pedem confirmação antes de copiar a configuração e guardam a
 
 O menu **Backup** aparece nos perfis Desktop e Laptop e pede confirmação antes de executar cada ação.
 
-- **Ponto de restauração Btrfs** cria um snapshot gravável do subvolume `/` em `/mnt/backups/dotfiles/Snapshots`. O destino precisa estar no mesmo sistema de arquivos Btrfs. A operação é bloqueada se o snapshot incluir a pasta `~/.ssh` do usuário. O snapshot cobre somente o subvolume raiz. [Documentação do Btrfs sobre snapshots](https://btrfs.readthedocs.io/en/latest/btrfs-subvolume.html)
+- **Backup Btrfs da raiz** cria um snapshot temporário somente leitura do subvolume `/` e grava um stream completo com `btrfs send` em `/mnt/backups/dotfiles/Snapshots/root-*.btrfs`. O arquivo pode ficar em outro disco ou sistema de arquivos. Use um volume separado da raiz para manter os backups anteriores fora dos próximos snapshots. A operação cobre somente o subvolume raiz e é bloqueada se ele incluir a pasta `~/.ssh` do usuário. Para restaurar, use `sudo btrfs receive -f <arquivo.btrfs> <diretório-em-Btrfs>` em um destino de recuperação. [Documentação do Btrfs sobre envio e recebimento](https://btrfs.readthedocs.io/en/stable/Send-receive.html)
 - **Backup de projetos locais** encontra repositórios Git e worktrees em `/mnt/workspaces`. Para cada projeto com os três remotos configurados, envia primeiro ao GitHub (`origin`). Se esse envio funcionar, tenta o GitLab (`ogle`) e o Gitea (`backup`). A ação usa `git push` com as configurações de cada projeto e apresenta as falhas ao final.
 - **Backup das chaves GPG** exporta as chaves públicas e privadas em ASCII Armor. Cada geração fica em um diretório privado em `/mnt/backups/dotfiles/GPG`, com permissão `0600` para o arquivo de chaves privadas.
 
@@ -115,6 +115,8 @@ O Mise instala a EAS CLI (`eas`) para os serviços do Expo. Em **Login das CLIs 
 No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/mnt/backups/dotfiles/Docker/daemon.json.backup-*`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
 
 A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
+
+**Programação → Docker → Ambiente Sandbox** instala Docker e Distrobox quando necessário e cria o contêiner `sandbox` com a imagem oficial do Arch Linux. A ação reaproveita um Docker acessível e um Distrobox com esse nome. Define Docker na configuração do Distrobox, preserva as outras opções e guarda uma cópia da configuração anterior em `/mnt/backups/dotfiles/Distrobox`. Se `~/.distroboxrc` existir, a ação usa esse arquivo devido à sua precedência. Para entrar, execute `distrobox enter sandbox`. O Distrobox compartilha o diretório pessoal com o contêiner. [Configuração do Distrobox](https://distrobox.it/#configure)
 
 ## Agentes de IA
 

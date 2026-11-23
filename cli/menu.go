@@ -157,7 +157,7 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return homelab
 	case item.goTo == screenSystem || item.goTo == screenPrograms:
 		return workstation || homelab
-	case item.goTo == screenDocker || item.action == "setup-docker":
+	case item.goTo == screenDocker || item.action == "setup-docker" || item.action == "setup-distrobox":
 		return m.profile.prefix == "desktop"
 	case item.goTo == screenStorage || item.action == "sdk-links" || item.action == "storage-links" || item.action == "setup-workspaces":
 		return m.profile.canMigrateSDK(m.osID)
@@ -219,7 +219,10 @@ func screenItems(page screen, device profile) []menuItem {
 	case screenDrivers:
 		return []menuItem{{title: "Instalar headers e utilitários gráficos", action: "drivers"}}
 	case screenDocker:
-		return []menuItem{{title: "Configurar Docker", desc: "Instalar Docker, Compose, Buildx, Machine e LazyDocker", action: "setup-docker"}}
+		return []menuItem{
+			{title: "Configurar Docker", desc: "Instalar Docker, Compose, Buildx, Machine e LazyDocker", action: "setup-docker"},
+			{title: "Ambiente Sandbox", desc: "Criar um Distrobox Arch Linux com Docker", action: "setup-distrobox"},
+		}
 	case screenFish:
 		return []menuItem{{title: "Configurar Fish", desc: "Instalar as dependências e aplicar o config.fish", action: "setup-fish"}}
 	case screenFastfetch:
@@ -288,7 +291,7 @@ func screenItems(page screen, device profile) []menuItem {
 		}
 	case screenBackup:
 		return []menuItem{
-			{title: "Ponto de restauração Btrfs", desc: "Criar um snapshot do subvolume raiz", action: "backup-snapshot"},
+			{title: "Backup Btrfs da raiz", desc: "Salvar o subvolume raiz em um arquivo Btrfs", action: "backup-snapshot"},
 			{title: "Backup de projetos locais", desc: "Enviar projetos ao GitHub, GitLab e Gitea", action: "backup-projects"},
 			{title: "Backup das chaves GPG", desc: "Exportar as chaves públicas e privadas", action: "backup-gpg"},
 		}
@@ -306,7 +309,7 @@ func screenItems(page screen, device profile) []menuItem {
 		{title: "CasaOS", desc: "Instalar o CasaOS no Ubuntu", goTo: screenCasaOS},
 		{title: "Agentes de IA", desc: "Configurar o Pi Agent", goTo: screenAIAgents},
 		{title: screenTitles[screenPrograms], desc: "Instalar programas e remover aplicativos pré-instalados", goTo: screenPrograms},
-		{title: screenTitles[screenBackup], desc: "Criar snapshots, enviar projetos e exportar chaves GPG", goTo: screenBackup},
+		{title: screenTitles[screenBackup], desc: "Salvar a raiz Btrfs, enviar projetos e exportar chaves GPG", goTo: screenBackup},
 		{title: "Sair", desc: "Até a próxima!", quit: true},
 	}
 }

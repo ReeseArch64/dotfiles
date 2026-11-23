@@ -202,10 +202,7 @@ func (m model) items() []item {
 			)
 		}
 		if m.device == deviceDesktop {
-			items = append(items,
-				item{title: "Ambiente Sandbox", desc: "Configurar Podman e criar um Distrobox Arch Linux isolado", job: sandboxEnvironmentJob},
-				item{title: "Instalar Zed", desc: "Instalar o editor Zed via yay", job: zedJob},
-			)
+			items = append(items, item{title: "Instalar Zed", desc: "Instalar o editor Zed via yay", job: zedJob})
 		}
 		if m.device == deviceNotebook {
 			items = append(items, item{title: "Linear CLI", desc: "Instalar a CLI do Linear via curl", job: linearCLIJob})

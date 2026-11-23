@@ -25,13 +25,13 @@ func runBackupAction(p profile, action string) error {
 	switch action {
 	case "snapshot":
 		location := managedBackup("Snapshots", console.commands.interactive)
-		description = "Criar um snapshot Btrfs de / em " + location.path + "."
+		description = "Gravar um backup Btrfs completo de / em " + location.path + "."
 		backup = func() (string, error) {
 			home, err := os.UserHomeDir()
 			if err != nil {
 				return "", err
 			}
-			return backupRootSnapshot(location, home, console.commands)
+			return backupBtrfsRoot(location, home, console.commands, sendBtrfsRoot)
 		}
 	case "projects":
 		description = "Enviar commits de /mnt/workspaces aos remotos Git origin, ogle e backup."
@@ -69,17 +69,17 @@ func runBackupAction(p profile, action string) error {
 	return err
 }
 
-func backupRootSnapshot(location backupLocation, home string, commands sshCommands) (string, error) {
+func checkBtrfsBackupSource(home string, commands sshCommands) error {
 	findFilesystem := func(path string) ([]string, error) {
 		output, err := commands.capture("", "findmnt", "-rn", "-o", "FSTYPE,UUID", "-T", path)
 		return strings.Fields(output), err
 	}
 	source, err := findFilesystem("/")
 	if err != nil {
-		return "", err
+		return err
 	}
 	if len(source) != 2 || source[0] != "btrfs" {
-		return "", errors.New("o snapshot exige um subvolume Btrfs em /")
+		return errors.New("o backup exige um subvolume Btrfs em /")
 	}
 
 	// Check the user's SSH files against the containing subvolume, including linked directories.
@@ -88,14 +88,14 @@ func backupRootSnapshot(location backupLocation, home string, commands sshComman
 		sshPath, err = filepath.EvalSymlinks(home)
 	}
 	if err != nil {
-		return "", err
+		return err
 	}
 	sshFilesystem, err := findFilesystem(sshPath)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if len(sshFilesystem) == 0 || (sshFilesystem[0] == "btrfs" && len(sshFilesystem) != 2) {
-		return "", fmt.Errorf("não foi possível identificar o sistema de arquivos de %s", sshPath)
+		return fmt.Errorf("não foi possível identificar o sistema de arquivos de %s", sshPath)
 	}
 	if sshFilesystem[0] == "btrfs" && sshFilesystem[1] == source[1] {
 		rootID := func(path string) (uint64, error) {
@@ -107,38 +107,17 @@ func backupRootSnapshot(location backupLocation, home string, commands sshComman
 		}
 		sourceID, err := rootID("/")
 		if err != nil {
-			return "", err
+			return err
 		}
 		sshID, err := rootID(sshPath)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if sshID == sourceID {
-			return "", errors.New("o snapshot incluiria ~/.ssh no subvolume raiz")
+			return errors.New("o backup incluiria ~/.ssh no subvolume raiz")
 		}
 	}
-	if err := location.prepare(); err != nil {
-		return "", err
-	}
-	target, err := findFilesystem(location.path)
-	if err != nil {
-		return "", err
-	}
-	if len(target) != 2 || target[0] != "btrfs" || target[1] != source[1] {
-		return "", fmt.Errorf("/ e %s precisam estar no mesmo sistema de arquivos Btrfs", location.path)
-	}
-	directory, err := os.MkdirTemp(location.path, "root-"+time.Now().UTC().Format("20060102T150405Z")+"-*")
-	if err != nil {
-		return "", err
-	}
-	destination := filepath.Join(directory, "original")
-	if err := commands.interactive("sudo", "btrfs", "subvolume", "snapshot", "/", destination); err != nil {
-		if _, statErr := os.Lstat(destination); errors.Is(statErr, os.ErrNotExist) {
-			return "", errors.Join(err, os.Remove(directory))
-		}
-		return "", fmt.Errorf("verifique o destino %s: %w", destination, err)
-	}
-	return destination, nil
+	return nil
 }
 
 func exportGPGKeys(private bool) ([]byte, error) {
