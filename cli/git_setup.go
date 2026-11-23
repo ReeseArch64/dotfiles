@@ -99,11 +99,8 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 		}
 	}
 
-	var previous string
-	if info, err := os.Stat(files[0].path); err == nil && info.Mode().IsRegular() {
-		previous, _ = readConfig(files[0].path, "user.signingkey")
-	}
-	fingerprint, err := gitSigningKey(console, name, email, hostname, previous)
+	previous, _ := capture("", "git", "config", "--global", "--includes", "--get", "user.signingkey")
+	signingKey, err := gitSigningKey(console, name, email, hostname, strings.TrimSpace(previous))
 	if err != nil {
 		return err
 	}
@@ -116,7 +113,7 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 	if err := os.WriteFile(candidate, files[0].contents, 0600); err != nil {
 		return err
 	}
-	if _, err := capture("", "git", "config", "--file", candidate, "--replace-all", "user.signingkey", fingerprint); err != nil {
+	if _, err := capture("", "git", "config", "--file", candidate, "--replace-all", "user.signingkey", signingKey); err != nil {
 		return err
 	}
 	files[0].contents, err = os.ReadFile(candidate)
@@ -128,7 +125,7 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 		fmt.Fprintln(console.output, "Backup do Git:", backup)
 	}
 	if err == nil {
-		fmt.Fprintln(console.output, "Git configurado com a chave GPG", fingerprint)
+		fmt.Fprintln(console.output, "Git configurado com a chave GPG", signingKey)
 	}
 	return err
 }

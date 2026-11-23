@@ -15,27 +15,30 @@ import (
 )
 
 func gitSigningKey(console sshConsole, name, email, hostname, previous string) (string, error) {
-	output, err := console.commands.capture("", "gpg", "--batch", "--with-colons", "--with-fingerprint", "--list-secret-keys")
+	list := []string{"gpg", "--batch", "--with-colons", "--with-fingerprint", "--with-subkey-fingerprint", "--list-secret-keys"}
+	if previous != "" {
+		selector, force := strings.CutSuffix(previous, "!")
+		var exactKey string
+		if force {
+			exactKey = strings.TrimPrefix(strings.ToUpper(selector), "0X")
+		}
+		if output, err := console.commands.capture("", append(list, "--", selector)...); err == nil &&
+			(!force || exactKey != "") && len(signingFingerprints(output, "", exactKey)) == 1 {
+			return previous, nil
+		}
+	}
+	output, err := console.commands.capture("", list...)
 	if err != nil {
 		return "", err
 	}
-	keys := signingFingerprints(output, email)
-	previous = strings.TrimSuffix(strings.TrimPrefix(strings.ToUpper(previous), "0X"), "!")
-	if (len(previous) == 16 || validSigningFingerprint(previous)) && len(keys) > 0 {
-		var matches []string
-		for _, key := range keys {
-			if strings.HasSuffix(key, previous) {
-				matches = append(matches, key)
-			}
-		}
-		if len(matches) == 1 {
-			return matches[0], nil
-		}
+	keys := signingFingerprints(output, email, "")
+	if len(keys) == 0 {
+		keys = signingFingerprints(output, "", "")
 	}
 	switch len(keys) {
 	case 0:
-		fmt.Fprintf(console.output, "Nenhuma chave GPG de assinatura encontrada para %s. Será criada uma Ed25519 válida por dois anos.\n", email)
-		fingerprint, err := generateGitSigningKey(console, fmt.Sprintf("%s (%s) <%s>", name, hostname, email))
+		fmt.Fprintf(console.output, "Nenhuma chave GPG de assinatura encontrada. Será criada uma RSA de 4096 bits para %s, válida por dois anos.\n", email)
+		fingerprint, err := generateGitSigningKey(console, name, email, hostname)
 		if err != nil {
 			return "", err
 		}
@@ -75,10 +78,10 @@ func validSigningFingerprint(fingerprint string) bool {
 	return err == nil
 }
 
-func signingFingerprints(listing, email string) []string {
+func signingFingerprints(listing, email, exactKey string) []string {
 	var fingerprints []string
 	var fingerprint string
-	var active, signing, matchesEmail, primary bool
+	var active, signing, matchesEmail, primary, eligible bool
 	finish := func() {
 		if active && signing && matchesEmail && validSigningFingerprint(fingerprint) && !slices.Contains(fingerprints, fingerprint) {
 			fingerprints = append(fingerprints, fingerprint)
@@ -90,14 +93,17 @@ func signingFingerprints(listing, email string) []string {
 		case "sec":
 			finish()
 			active = len(fields) > 11 && validGPGRecord(fields[1]) && !strings.Contains(fields[11], "D")
-			signing, matchesEmail, fingerprint, primary = false, false, "", true
-			signing = active && localSigningRecord(fields)
+			signing, matchesEmail, fingerprint, primary = false, email == "", "", true
+			eligible = active && localSigningRecord(fields)
 		case "ssb":
 			primary = false
-			signing = signing || (active && localSigningRecord(fields))
+			eligible = active && localSigningRecord(fields)
 		case "fpr":
-			if primary && len(fields) > 9 && fingerprint == "" {
-				fingerprint = fields[9]
+			if len(fields) > 9 {
+				if primary && fingerprint == "" {
+					fingerprint = fields[9]
+				}
+				signing = signing || (eligible && strings.HasSuffix(fields[9], exactKey))
 			}
 		case "uid":
 			if len(fields) > 9 && validGPGRecord(fields[1]) {
@@ -125,7 +131,7 @@ func validGPGRecord(validity string) bool {
 	}
 }
 
-func generateGitSigningKey(console sshConsole, identity string) (string, error) {
+func generateGitSigningKey(console sshConsole, name, email, hostname string) (string, error) {
 	fd := os.Stdin.Fd()
 	if !term.IsTerminal(fd) {
 		return "", errors.New("a geração da chave GPG precisa de um terminal interativo")
@@ -150,19 +156,46 @@ func generateGitSigningKey(console sshConsole, identity string) (string, error) 
 	if !bytes.Equal(password, confirmation) {
 		return "", errors.New("as senhas não coincidem")
 	}
+	return createGitSigningKey(name, email, hostname, password)
+}
+
+func createGitSigningKey(name, email, hostname string, password []byte) (string, error) {
 	input := make([]byte, len(password)+1)
 	copy(input, password)
 	input[len(password)] = '\n'
 	defer clear(input)
-	command := exec.Command("gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase-fd", "0",
-		"--status-fd", "1", "--quick-generate-key", identity, "ed25519", "sign", "2y")
-	command.Stdin = bytes.NewReader(input)
-	command.Stderr = os.Stderr
-	output, err := command.Output()
+	reader, writer, err := os.Pipe()
 	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+	defer writer.Close()
+	command := exec.Command("gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase-fd", "3",
+		"--status-fd", "1", "--default-new-key-algo", "rsa4096", "--gen-key")
+	// Batch generation needs an explicit Key-Length to override GnuPG's batch default.
+	command.Stdin = strings.NewReader(fmt.Sprintf(`Key-Type: RSA
+Key-Length: 4096
+Key-Usage: sign
+Name-Real: %s
+Name-Comment: %s
+Name-Email: %s
+Expire-Date: 2y
+%%commit
+`, name, hostname, email))
+	command.ExtraFiles = []*os.File{reader}
+	command.Stderr = os.Stderr
+	var output bytes.Buffer
+	command.Stdout = &output
+	if err := command.Start(); err != nil {
 		return "", fmt.Errorf("gerar chave GPG: %w", err)
 	}
-	for _, line := range strings.Split(string(output), "\n") {
+	_ = reader.Close()
+	_, writeErr := writer.Write(input)
+	closeErr := writer.Close()
+	if err := errors.Join(command.Wait(), writeErr, closeErr); err != nil {
+		return "", fmt.Errorf("gerar chave GPG: %w", err)
+	}
+	for _, line := range strings.Split(output.String(), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) >= 4 && fields[0] == "[GNUPG:]" && fields[1] == "KEY_CREATED" && validSigningFingerprint(fields[3]) {
 			return fields[3], nil
