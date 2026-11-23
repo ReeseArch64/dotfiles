@@ -12,15 +12,15 @@ As ações de configuração implementadas no repositório se dividem em cinco �
 
 | Área | Ações |
 | --- | --- |
-| Sistema | SSH, Firewall, Docker no Notebook e remoção de aplicativos pré-instalados |
+| Sistema | SSH, Firewall, Docker e remoção de aplicativos pré-instalados no Notebook |
 | Desenvolvimento | Git, GPG e Linear CLI no Notebook, ambientes de desenvolvimento e sandbox, IDEs e ferramentas de terminal |
-| Desktop | Niri, Noctalia, Mozilla Firefox, Thunderbird, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
+| Desktop | Niri, Noctalia, Mozilla Firefox, Obsidian, Turing Smart Screen, wallpapers e foto de perfil |
 | Agentes de IA | Pi Agent no Notebook e Ollama com GPU AMD no Desktop |
 | Backup | Ponto de restauração Btrfs, projetos locais e chaves SSH/GPG |
 
 ### Migração do Desktop
 
-Drivers, Docker, Git/GPG, Linear CLI e Pi Agent saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
+Drivers, Docker, Git/GPG, Linear CLI, Pi Agent e a remoção dos aplicativos pré-instalados saíram dos menus legados do Desktop. Use a [CLI atual](../README.md) para essas ações. O Notebook continua usando as implementações e os arquivos compartilhados do legado.
 
 A CLI atual também oferece a instalação do Mise e os logins das CLIs, a configuração do Fish e do Fastfetch e a instalação do cursor FrierenBLZ. No legado, alguns desses passos continuam dentro de ações que ainda têm etapas pendentes.
 
@@ -28,8 +28,8 @@ A CLI atual também oferece a instalação do Mise e os logins das CLIs, a confi
 | --- | --- |
 | SSH e firewall | Configuração de cliente com aliases e identidades por destino, servidor SSH desativado e bloqueio de SSH de entrada. A CLI atual usa uma identidade por dispositivo e permite SSH pela LAN quando o firewall é configurado. |
 | Armazenamento e backup | Migração de pastas pessoais para `/mnt/storage`, lixeira em `~/.trash`, preparação de `/mnt/workspaces` com `~/Projects`, snapshot Btrfs e backup de projetos e chaves SSH/GPG. A ação de SDK atual cobre `~/.local/share/mise` e outros diretórios. `~/.local` inteiro, `~/.vscode` e `~/go` constam na lista legada. |
-| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia, login automático no SDDM, wallpapers, instalador do Firefox e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, backup do Firefox e preparação da foto pelo Fastfetch. |
-| Aplicativos | Thunderbird, Discord/BetterDiscord, Obsidian, Turing Smart Screen e remoção dos aplicativos pré-instalados. |
+| Ambiente gráfico | Configuração completa do Niri por perfil, Noctalia, wallpapers, instalador do Firefox e ação de foto de perfil que substitui a imagem existente. A CLI atual já tem cursor, backup do Firefox e preparação da foto pelo Fastfetch. |
+| Aplicativos | Discord/BetterDiscord, Obsidian e Turing Smart Screen. |
 | Desenvolvimento | Sandbox Podman/Distrobox, instaladores de IDEs e Android CLI, Rust estável, Better Stack CLI e utilitários como Posting, mprocs, LunarVim, usql e Proton VPN CLI. |
 | Agentes de IA | Configuração do Ollama para GPU AMD. |
 
@@ -384,7 +384,7 @@ Durante uma ação, aguarde todos os passos. A CLI entrega o terminal aos comand
 
 ### Aplicativos pré-instalados
 
-`Sistema > Aplicativos pré-instalados > Remover aplicativos` remove estes pacotes do CachyOS:
+No Notebook, `Sistema > Aplicativos pré-instalados > Remover aplicativos` remove estes pacotes do CachyOS:
 
 - `alacritty`
 - `meld`
@@ -682,7 +682,7 @@ A ação copia `../cachyos/fastfetch/config.jsonc` para `~/.config/fastfetch/con
 
 ### Login automático
 
-Em desktop e notebook, execute `Desktop > Login automático` para entrar direto no Niri ao ligar, sem pedir senha no SDDM. A ação usa o usuário que executou a CLI (não execute com `sudo`), preserva as outras configurações e não reinicia a sessão atual. O efeito começa na próxima inicialização.
+No Notebook, execute `Desktop > Login automático` para entrar direto no Niri ao ligar, sem pedir senha no SDDM. A ação usa o usuário que executou a CLI (não execute com `sudo`), preserva as outras configurações e não reinicia a sessão atual. O efeito começa na próxima inicialização.
 
 A configuração fica em `/etc/sddm.conf`; o arquivo anterior, quando existente, é salvo uma única vez em `/etc/sddm.conf.before-autologin`. Para desfazer, restaure esse backup ou remova a seção `[Autologin]` criada pela ação. A senha da conta, o sudo, o bloqueio de tela e uma eventual senha de criptografia do disco não são alterados. Qualquer pessoa com acesso físico poderá entrar na sessão ao ligar o computador.
 
@@ -720,10 +720,6 @@ A CLI não baixa plugins. Após a validação, ela copia `settings.toml` e `stat
 `Desktop > Mozilla Firefox` instala `firefox` e `xdg-utils` via Pacman e define `firefox.desktop` como navegador padrão. A opção está disponível no desktop e no notebook. Os atalhos do Niri e o Noctalia usam Firefox.
 
 O backup e a restauração de navegador e chaveiro foram removidos da CLI. Arquivos de backup criados anteriormente permanecem no disco.
-
-### Thunderbird
-
-`Desktop > Thunderbird` instala o pacote `thunderbird` via Pacman quando ele ainda não está instalado.
 
 ### Obsidian
 

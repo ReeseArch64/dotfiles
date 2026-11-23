@@ -99,8 +99,8 @@ func (m model) View() string {
 	if lipgloss.Height(content) > height {
 		content = layout(true, true, true)
 	}
-	if m.screen == screenMiseLogins && lipgloss.Height(content) > height {
-		menuLimit = max(1, len(miseLogins)-(lipgloss.Height(content)-height))
+	if (m.screen == screenMiseLogins || m.screen == screenSystem) && lipgloss.Height(content) > height {
+		menuLimit = max(1, len(m.items())-(lipgloss.Height(content)-height))
 		content = layout(true, true, true)
 	}
 	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)

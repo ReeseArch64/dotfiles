@@ -69,7 +69,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				system, _ := m.selectItem(m.items()[0])
 				osMenu := system.(model)
 				if got := menuTitles(osMenu.items()); !slices.Equal(got, []string{
-					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor", "Instalar ArtCraft Launcher",
+					"Mouse personalizado", "Migrar pastas para /mnt/sdk", "Ferramentas Essenciais", "Ferramentas de Terminal", "Drivers", "Fish", "Fastfetch", "Terminal", "Servidor", "Instalar ArtCraft Launcher", "Aplicativos pré-instalados",
 				}) {
 					t.Fatalf("menu do sistema = %v", got)
 				}

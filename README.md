@@ -60,6 +60,8 @@ No Desktop e Laptop com CachyOS, **Sistema Operacional → Migrar pastas para /m
 
 **Sistema Operacional → Terminal → Instalar Kitty** instala o pacote `kitty` pelo Pacman após confirmação.
 
+No Desktop e Laptop com CachyOS, **Sistema Operacional → Aplicativos pré-instalados → Remover aplicativos** exige o Kitty instalado. Após confirmação, desinstala os pacotes encontrados entre `alacritty`, `meld` e `shelly` com `pacman -Rns`. A ação também apaga `~/.config/alacritty`, `~/.cache/alacritty`, `~/.config/meld`, `~/.local/share/meld` e `~/.cache/meld` quando existirem. [Manual do Pacman](https://man.archlinux.org/man/pacman.8.en#REMOVE_OPTIONS_(APPLY_TO_-R))
+
 **Sistema Operacional → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay após confirmação no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
 
 **Sistema Operacional → Fish → Configurar Fish** instala `fish`, `mise`, `eza`, `bat`, `util-linux` e `man-db` e aplica `~/.config/fish/config.fish`. Quando os pacotes específicos do CachyOS estão disponíveis, instala também a configuração de notificações e o utilitário de mirrors. A saudação usa o Fastfetch quando ele e sua configuração estiverem disponíveis.

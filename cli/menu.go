@@ -18,6 +18,7 @@ const (
 	screenFish
 	screenFastfetch
 	screenTerminal
+	screenPreinstalled
 	screenServer
 	screenProgramming
 	screenAIAgents
@@ -68,6 +69,7 @@ var screenTitles = map[screen]string{
 	screenFish:          "Fish",
 	screenFastfetch:     "Fastfetch",
 	screenTerminal:      "Terminal",
+	screenPreinstalled:  "Aplicativos pré-instalados",
 	screenServer:        "Servidor",
 	screenProgramming:   "Programação",
 	screenAIAgents:      "Agentes de IA",
@@ -153,6 +155,8 @@ func (m model) menuItemAvailable(item menuItem) bool {
 		return m.profile.prefix == "desktop"
 	case item.action == "sdk-links":
 		return m.profile.canMigrateSDK(m.osID)
+	case item.goTo == screenPreinstalled || item.action == "remove-preinstalled":
+		return m.profile.canRemovePreinstalledApps(m.osID)
 	case item.goTo == screenFish || item.goTo == screenFastfetch || item.goTo == screenTerminalTools ||
 		item.action == "setup-fish" || item.action == "setup-fastfetch" || item.action == "terminal-tools":
 		return workstation || homelab
@@ -181,6 +185,7 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Terminal", desc: "Instalar o Kitty", goTo: screenTerminal},
 			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 			{title: "Instalar ArtCraft Launcher", desc: "Instalar artcraft-launcher-bin pelo yay", action: "install-artcraft-launcher"},
+			{title: screenTitles[screenPreinstalled], desc: "Remover Alacritty, Meld e Shelly", goTo: screenPreinstalled},
 		}
 	case screenEssentials:
 		return []menuItem{{title: "Instalar ferramentas essenciais", action: "essential-tools"}}
@@ -199,6 +204,8 @@ func screenItems(page screen, device profile) []menuItem {
 		return []menuItem{{title: "Configurar Fastfetch", desc: "Instalar Fastfetch e Chafa e preparar a foto de perfil", action: "setup-fastfetch"}}
 	case screenTerminal:
 		return []menuItem{{title: "Instalar Kitty", desc: "Instalar o terminal pelo Pacman", action: "install-kitty"}}
+	case screenPreinstalled:
+		return []menuItem{{title: "Remover aplicativos", desc: "Desinstalar Alacritty, Meld e Shelly e apagar seus dados", action: "remove-preinstalled"}}
 	case screenServer:
 		return []menuItem{
 			{title: "Liberar porta 53 (DNS)", desc: "Desativar o stub do systemd-resolved e preservar a resolução DNS", action: "homelab-dns"},

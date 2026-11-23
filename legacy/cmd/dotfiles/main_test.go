@@ -59,12 +59,12 @@ func TestMainMenuOptions(t *testing.T) {
 func TestMainMenuCategoriesContainAllActions(t *testing.T) {
 	model := newModel(t.TempDir())
 	categories := map[screen][]string{
-		screenSystem:      {"SSH", "Firewall", "Aplicativos pré-instalados"},
+		screenSystem:      {"SSH", "Firewall"},
 		screenDevelopment: {"Ambiente de Desenvolvimento", "Ambiente Sandbox", "Instalar IDEs", "Android CLI", "Ferramentas de terminal"},
-		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Mozilla Firefox", "Thunderbird", "Discord", "Obsidian", "Turing Smart Screen", "Wallpapers", "Foto de perfil"},
+		screenDesktop:     {"Niri", "Noctalia", "Mozilla Firefox", "Discord", "Obsidian", "Turing Smart Screen", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Ollama"},
 		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
-		screenCleanup:     {"Remover aplicativos"},
+		screenCleanup:     nil,
 		screenDocker:      nil,
 		screenGit:         nil,
 		screenGPG:         nil,
@@ -85,6 +85,7 @@ func TestNotebookMenuContainsOnlySelectedActions(t *testing.T) {
 		screenDevelopment: {"Git", "GPG", "Ambiente de Desenvolvimento", "Linear CLI", "Android CLI", "Ferramentas de terminal"},
 		screenDesktop:     {"Niri", "Login automático", "Noctalia", "Mozilla Firefox", "Wallpapers", "Foto de perfil"},
 		screenAIAgents:    {"Pi Agent"},
+		screenCleanup:     {"Remover aplicativos"},
 		screenBackup:      {"Ponto de Restauração", "Backup de Projetos Locais", "Backup das Chaves SSH", "Backup das Chaves GPG"},
 	}
 	for category, want := range categories {

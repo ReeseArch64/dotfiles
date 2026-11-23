@@ -161,7 +161,7 @@ func (m model) items() []item {
 		systemDescription := "SSH, firewall e Docker"
 		developmentDescription := "Git, ambientes e IDEs"
 		if m.device == deviceDesktop {
-			systemDescription = "SSH, firewall e remoção de aplicativos pré-instalados"
+			systemDescription = "SSH e firewall"
 			developmentDescription = "Ambientes e ferramentas de desenvolvimento"
 		}
 		return []item{
@@ -184,9 +184,12 @@ func (m model) items() []item {
 			{title: "Firewall", desc: firewallDescription, goTo: screenFirewall},
 		}
 		if m.device == deviceNotebook {
-			items = append(items, item{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker})
+			items = append(items,
+				item{title: "Docker", desc: "Instalar ferramentas, ativar o serviço e autenticar", goTo: screenDocker},
+				item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup},
+			)
 		}
-		return append(items, item{title: "Aplicativos pré-instalados", desc: "Remover aplicativos do CachyOS após instalar o Kitty", goTo: screenCleanup})
+		return items
 	case screenDevelopment:
 		var items []item
 		if m.device == deviceNotebook {
@@ -212,13 +215,16 @@ func (m model) items() []item {
 	case screenDesktop:
 		items := []item{
 			{title: "Niri", desc: "Copiar configuração e cursor FrierenBLZ", job: func() job { return niriJob(m.setupDir) }},
-			{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob},
-			{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
-			{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
 		}
+		if m.device == deviceNotebook {
+			items = append(items, item{title: "Login automático", desc: "Entrar direto no Niri ao ligar, sem senha no SDDM", job: autologinJob})
+		}
+		items = append(items,
+			item{title: "Noctalia", desc: "Verificar plugins e configurar ~/.local/state/noctalia", goTo: screenNoctalia},
+			item{title: "Mozilla Firefox", desc: "Instalar o navegador e defini-lo como padrão", job: firefoxJob},
+		)
 		if m.device == deviceDesktop {
 			items = append(items,
-				item{title: "Thunderbird", desc: "Instalar o cliente de e-mail via Pacman", job: thunderbirdJob},
 				item{title: "Discord", desc: "Instalar Discord, BetterDiscord e aplicar sua configuração", job: func() job { return discordJob(m.setupDir) }},
 				item{title: "Obsidian", desc: "Instalar o aplicativo e copiar sua configuração", job: func() job { return obsidianJob(m.setupDir) }},
 				item{title: "Turing Smart Screen", desc: "Instalar com Python 3.13, GPU AMD e tema Frieren", job: func() job { return turingScreenJob(m.setupDir) }},
@@ -263,7 +269,9 @@ func (m model) items() []item {
 	case screenNoctalia:
 		return m.noctaliaItems()
 	case screenCleanup:
-		return m.cleanupItems()
+		if m.device == deviceNotebook {
+			return m.cleanupItems()
+		}
 	}
 	return nil
 }

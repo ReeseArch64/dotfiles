@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.25.1"
+const version = "1.26.0"
 
 type profile struct {
 	prefix      string
@@ -115,6 +115,8 @@ func main() {
 			action = runMiseSetup
 		case "--setup-pi-agent":
 			action = runPiAgentSetup
+		case "--remove-preinstalled":
+			action = runPreinstalledCleanup
 		case "--setup-docker":
 			action = runDockerSetup
 		case "--apply-docker":
