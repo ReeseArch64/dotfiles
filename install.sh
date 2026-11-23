@@ -45,7 +45,7 @@ main() {
                 install -m 0644 package/cachyos/fish/config.fish "$fish_template"
             fi
             mise_template=$dotfiles_dir/cachyos/mise/mise.toml
-            # Upgrade the original templates from releases 1.10 through 1.19.
+            # Upgrade the original templates from releases 1.10 through 1.20.
             if [ -f package/cachyos/mise/mise.toml ] && [ -f "$mise_template" ] &&
                 [ ! -L "$mise_template" ] && [ ! -L "$dotfiles_dir/cachyos/mise" ]
             then
@@ -53,7 +53,8 @@ main() {
                     'b86df137b10200eaf638dd256657ce0de50ffc8759617a9c7b45e80fe7ee9bb7  -'|\
                     '8f4e2ec67693106769359d70eaa92095d907707abfbb0d75bafd3bd36e3ed343  -'|\
                     'b633ce4567fbfa9554e2dc24eae48cad30f1e31234757b763daa82b25c52d691  -'|\
-                    '8e99e7cb3e6672716fe5141a405acf8882896451e140c83dfd5defe35d376fc4  -')
+                    '8e99e7cb3e6672716fe5141a405acf8882896451e140c83dfd5defe35d376fc4  -'|\
+                    '516d0cac0c0bf89cd8a1f91cd66211c1e721fea7204f2dfdd61bd0b8fe407d22  -')
                         install -m 0644 package/cachyos/mise/mise.toml "$mise_template"
                         ;;
                 esac

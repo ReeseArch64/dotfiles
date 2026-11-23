@@ -44,6 +44,11 @@ const (
 	screenLoginWrangler
 	screenLoginVercel
 	screenLoginNeon
+	screenLoginClaude
+	screenLoginCodex
+	screenLoginCopilot
+	screenLoginGemini
+	screenLoginAntigravity
 	screenLoginNPM
 	screenJob
 )

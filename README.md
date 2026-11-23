@@ -76,6 +76,8 @@ O `~/.gitconfig` recebe o fingerprint local em `user.signingkey` e habilita GPG 
 
 No Desktop e Laptop, o menu **Programação → Login das CLIs** inclui AWS, Google Cloud, Azure, Railway, GitHub, GitLab, Heroku, Render, Sentry, Linear, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon e npm. Cada ação abre o login da própria ferramenta e usa a versão ativa do Mise, a última versão instalada ou o executável disponível no `PATH`. O Linear usa a CLI `schpet/linear-cli`, já usada no legado, e pede uma chave pessoal para armazenar no chaveiro do sistema.
 
+O Mise também instala Claude Code, Codex, Pi, GitHub Copilot CLI, Gemini CLI e Antigravity CLI. O menu de login tem opções para Claude Code, Codex, Copilot, Gemini e Antigravity. No Gemini, use `/auth` para escolher o método de autenticação e `/quit` para voltar ao menu.
+
 No perfil Desktop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/etc/docker/dotfiles-backup-*/daemon.json`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
 
 A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
@@ -88,7 +90,7 @@ O tar é privado e contém dados sensíveis. A senha principal do Firefox, quand
 
 ## Instalação
 
-O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` e o modelo do Mise das versões `1.10` a `1.19` quando ainda têm o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
+O instalador baixa a última release para Linux `amd64`, verifica o SHA-256 e instala o binário em `~/.local/bin`. Prepara `~/.dotfiles` e adiciona os arquivos CachyOS e Ubuntu que estiverem faltando. Também atualiza o modelo do Fish da série `1.7.x` e o modelo do Mise das versões `1.10` a `1.20` quando ainda têm o conteúdo original. O Go é necessário para compilar, e o OpenSSH é necessário ao gerar uma chave.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ReeseArch64/dotfiles/main/install.sh | sh

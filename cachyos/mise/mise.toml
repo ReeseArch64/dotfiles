@@ -14,6 +14,13 @@ k9s = { version = "latest" }
 kind = { version = "latest" }
 kubectl = { version = "latest" }
 
+claude = { version = "latest" }
+codex = { version = "latest" }
+pi = { version = "latest" }
+copilot = { version = "latest" }
+gemini = { version = "latest" }
+antigravity-cli = { version = "latest" }
+
 java = ["temurin-21", "temurin-17", "temurin-11", "temurin-8"]
 gradle = { version = "latest" }
 maven = { version = "latest" }

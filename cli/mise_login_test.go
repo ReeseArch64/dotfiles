@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -25,7 +26,7 @@ func TestMiseLoginMenus(t *testing.T) {
 		}
 		next, _ := menu.selectItem(entry)
 		list := next.(model)
-		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Render", "Sentry", "Linear", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "npm"}
+		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Render", "Sentry", "Linear", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "Claude Code", "Codex", "GitHub Copilot CLI", "Gemini CLI", "Antigravity CLI", "npm"}
 		if got := menuTitles(list.items()); !slices.Equal(got, want) {
 			t.Fatalf("ferramentas no menu: %v", got)
 		}
@@ -65,6 +66,10 @@ func TestMiseLoginDispatch(t *testing.T) {
 		{"Render instalado e inativo", screenLoginRender, errors.New("não está ativo"), "2.38.0", []string{"github:render-oss/cli@2.38.0", "--", "/mise/bin/render", "login"}, ""},
 		{"Sentry", screenLoginSentry, nil, "", []string{"--", "/mise/bin/sentry", "auth", "login"}, ""},
 		{"Linear instalado e inativo", screenLoginLinear, errors.New("não está ativo"), "3.1.0", []string{"github:schpet/linear-cli@3.1.0", "--", "/mise/bin/linear", "auth", "login"}, ""},
+		{"Claude Code", screenLoginClaude, nil, "", []string{"--", "/mise/bin/claude", "auth", "login"}, ""},
+		{"Codex", screenLoginCodex, nil, "", []string{"--", "/mise/bin/codex", "login"}, ""},
+		{"GitHub Copilot CLI", screenLoginCopilot, nil, "", []string{"--", "/mise/bin/copilot", "login"}, ""},
+		{"Antigravity instalado e inativo", screenLoginAntigravity, errors.New("não está ativo"), "1.5.15", []string{"antigravity-cli@1.5.15", "--", "/mise/bin/agy", "acp", "--login"}, ""},
 		{"GitHub ausente", screenLoginGitHub, errors.New("ferramenta ausente"), "", nil, "executável gh não encontrado"},
 		{"AWS instalada e inativa", screenLoginAWS, errors.New("não está ativo"), "2.33.0", []string{"awscli@2.33.0", "--", "/mise/bin/aws", "login"}, ""},
 	} {
@@ -109,6 +114,31 @@ func TestMiseLoginDispatch(t *testing.T) {
 				t.Fatalf("execução: %v, erro %v, esperava %v", invoked, err, want)
 			}
 		})
+	}
+}
+
+func TestGeminiLoginStartsInTemporaryWorkspace(t *testing.T) {
+	login, _ := miseLoginForScreen(screenLoginGemini)
+	var output bytes.Buffer
+	var workspace string
+	console := sshConsole{output: &output, commands: sshCommands{
+		capture: func(string, ...string) (string, error) { return "/mise/bin/gemini\n", nil },
+		interactive: func(args ...string) error {
+			if len(args) != 10 || !slices.Equal(args[5:8], []string{"exec", "--", "env"}) || args[9] != "/mise/bin/gemini" {
+				t.Fatalf("comando Gemini: %v", args)
+			}
+			workspace = strings.TrimPrefix(args[8], "--chdir=")
+			if files, err := os.ReadDir(workspace); err != nil || len(files) != 0 {
+				t.Fatalf("esperava diretório temporário vazio: %v, %v", files, err)
+			}
+			return nil
+		},
+	}}
+	if err := login.run(&console); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(workspace); !errors.Is(err, os.ErrNotExist) || !strings.Contains(output.String(), "/auth") {
+		t.Fatalf("diretório temporário ou instruções: %v, %q", err, output.String())
 	}
 }
 

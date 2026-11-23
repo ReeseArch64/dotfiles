@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -33,6 +34,11 @@ var miseLogins = []miseLogin{
 	{screenLoginWrangler, "Cloudflare Wrangler", "wrangler", []string{"wrangler", "login"}},
 	{screenLoginVercel, "Vercel", "npm:vercel", []string{"vercel", "login"}},
 	{screenLoginNeon, "Neon", "npm:neon", []string{"neon", "auth"}},
+	{screenLoginClaude, "Claude Code", "claude", []string{"claude", "auth", "login"}},
+	{screenLoginCodex, "Codex", "codex", []string{"codex", "login"}},
+	{screenLoginCopilot, "GitHub Copilot CLI", "copilot", []string{"copilot", "login"}},
+	{screenLoginGemini, "Gemini CLI", "gemini", []string{"gemini"}},
+	{screenLoginAntigravity, "Antigravity CLI", "antigravity-cli", []string{"agy", "acp", "--login"}},
 	{screenLoginNPM, "npm", "node", []string{"npm", "login"}},
 }
 
@@ -46,6 +52,9 @@ func miseLoginForScreen(page screen) (miseLogin, bool) {
 }
 
 func (login miseLogin) commandLine() string {
+	if login.page == screenLoginGemini {
+		return "Abrir o Gemini CLI e usar /auth"
+	}
 	return strings.Join(login.argv, " ")
 }
 
@@ -73,6 +82,16 @@ func (login miseLogin) run(console *sshConsole) error {
 	args, err := login.command(console.commands)
 	if err != nil {
 		return err
+	}
+	if login.page == screenLoginGemini {
+		workspace, err := os.MkdirTemp("", "dotfiles-gemini-login-*")
+		if err != nil {
+			return fmt.Errorf("criar pasta temporária para o Gemini: %w", err)
+		}
+		defer os.RemoveAll(workspace)
+		// Keep Mise resolution outside projects and give the Gemini session an empty workspace.
+		args = slices.Insert(args, len(args)-1, "env", "--chdir="+workspace)
+		fmt.Fprintln(console.output, "Use /auth para escolher a autenticação e /quit para voltar ao menu.")
 	}
 	args = append(args, login.argv[1:]...)
 	if err := console.commands.interactive(args...); err != nil {
