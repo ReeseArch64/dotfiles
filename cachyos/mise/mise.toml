@@ -5,6 +5,8 @@ railway = { version = "latest" }
 firebase = { version = "latest" }
 azure-cli = { version = "latest" }
 gh = { version = "latest" }
+glab = { version = "latest" }
+heroku = { version = "latest" }
 k9s = { version = "latest" }
 kind = { version = "latest" }
 kubectl = { version = "latest" }

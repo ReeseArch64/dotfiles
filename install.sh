@@ -45,12 +45,16 @@ main() {
                 install -m 0644 package/cachyos/fish/config.fish "$fish_template"
             fi
             mise_template=$dotfiles_dir/cachyos/mise/mise.toml
-            # The template shared by releases 1.10–1.16 predates GitHub CLI.
+            # Upgrade the original templates from releases 1.10 through 1.17.
             if [ -f package/cachyos/mise/mise.toml ] && [ -f "$mise_template" ] &&
-                [ ! -L "$mise_template" ] && [ ! -L "$dotfiles_dir/cachyos/mise" ] &&
-                [ "$(sha256sum < "$mise_template")" = 'b86df137b10200eaf638dd256657ce0de50ffc8759617a9c7b45e80fe7ee9bb7  -' ]
+                [ ! -L "$mise_template" ] && [ ! -L "$dotfiles_dir/cachyos/mise" ]
             then
-                install -m 0644 package/cachyos/mise/mise.toml "$mise_template"
+                case "$(sha256sum < "$mise_template")" in
+                    'b86df137b10200eaf638dd256657ce0de50ffc8759617a9c7b45e80fe7ee9bb7  -'|\
+                    '8f4e2ec67693106769359d70eaa92095d907707abfbb0d75bafd3bd36e3ed343  -')
+                        install -m 0644 package/cachyos/mise/mise.toml "$mise_template"
+                        ;;
+                esac
             fi
         fi
     elif [ -e "$dotfiles_dir" ] || [ -L "$dotfiles_dir" ]; then

@@ -34,14 +34,14 @@ const (
 	screenLoginAzure
 	screenLoginRailway
 	screenLoginGitHub
+	screenLoginGitLab
+	screenLoginHeroku
 	screenLoginFirebase
 	screenLoginCloudflare
 	screenLoginWrangler
 	screenLoginVercel
 	screenLoginNeon
 	screenLoginNPM
-	screenLoginPNPM
-	screenLoginUV
 	screenJob
 )
 

@@ -23,14 +23,14 @@ var miseLogins = []miseLogin{
 	{screenLoginAzure, "Azure", "azure-cli", []string{"az", "login"}},
 	{screenLoginRailway, "Railway", "railway", []string{"railway", "login"}},
 	{screenLoginGitHub, "GitHub", "gh", []string{"gh", "auth", "login"}},
+	{screenLoginGitLab, "GitLab", "glab", []string{"glab", "auth", "login"}},
+	{screenLoginHeroku, "Heroku", "heroku", []string{"heroku", "login"}},
 	{screenLoginFirebase, "Firebase", "firebase", []string{"firebase", "login"}},
 	{screenLoginCloudflare, "Cloudflare CLI", "npm:cf", []string{"cf", "auth", "login"}},
 	{screenLoginWrangler, "Cloudflare Wrangler", "wrangler", []string{"wrangler", "login"}},
 	{screenLoginVercel, "Vercel", "npm:vercel", []string{"vercel", "login"}},
 	{screenLoginNeon, "Neon", "npm:neon", []string{"neon", "auth"}},
 	{screenLoginNPM, "npm", "node", []string{"npm", "login"}},
-	{screenLoginPNPM, "pnpm", "pnpm", []string{"pnpm", "login"}},
-	{screenLoginUV, "uv", "uv", []string{"uv", "auth", "login"}},
 }
 
 func miseLoginForScreen(page screen) (miseLogin, bool) {
@@ -43,11 +43,7 @@ func miseLoginForScreen(page screen) (miseLogin, bool) {
 }
 
 func (login miseLogin) commandLine() string {
-	line := strings.Join(login.argv, " ")
-	if login.page == screenLoginUV {
-		line += " <serviço>"
-	}
-	return line
+	return strings.Join(login.argv, " ")
 }
 
 func runMiseLogin(device profile, name string) error {
@@ -76,16 +72,6 @@ func (login miseLogin) run(console *sshConsole) error {
 		return err
 	}
 	args = append(args, login.argv[1:]...)
-	if login.page == screenLoginUV {
-		service, err := console.prompt("Domínio ou URL do serviço: ")
-		if err != nil {
-			return err
-		}
-		if service == "" {
-			return errors.New("informe o domínio ou a URL do serviço")
-		}
-		args = append(args, "--", service)
-	}
 	if err := console.commands.interactive(args...); err != nil {
 		return fmt.Errorf("login de %s: %w", login.title, err)
 	}

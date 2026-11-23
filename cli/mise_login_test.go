@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -27,7 +25,7 @@ func TestMiseLoginMenus(t *testing.T) {
 		}
 		next, _ := menu.selectItem(entry)
 		list := next.(model)
-		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "npm", "pnpm", "uv"}
+		want := []string{"AWS", "Google Cloud", "Azure", "Railway", "GitHub", "GitLab", "Heroku", "Firebase", "Cloudflare CLI", "Cloudflare Wrangler", "Vercel", "Neon", "npm"}
 		if got := menuTitles(list.items()); !slices.Equal(got, want) {
 			t.Fatalf("ferramentas no menu: %v", got)
 		}
@@ -46,7 +44,7 @@ func TestMiseLoginMenus(t *testing.T) {
 		list.height = 18
 		last, _ := list.handleKey("up")
 		view := last.(model).View()
-		if !strings.Contains(view, "uv auth login") || lipgloss.Height(view) != list.height {
+		if !strings.Contains(view, "npm login") || lipgloss.Height(view) != list.height {
 			t.Fatalf("último login não aparece no terminal compacto: %s", view)
 		}
 	}
@@ -56,18 +54,16 @@ func TestMiseLoginDispatch(t *testing.T) {
 	for _, tt := range []struct {
 		name      string
 		page      screen
-		input     string
 		lookupErr error
 		installed string
 		wantArgs  []string
 		wantErr   string
 	}{
-		{"GitHub", screenLoginGitHub, "", nil, "", []string{"--", "/mise/bin/gh", "auth", "login"}, ""},
-		{"uv", screenLoginUV, "packages.example.org\n", nil, "", []string{"--", "/mise/bin/uv", "auth", "login", "--", "packages.example.org"}, ""},
-		{"uv sem serviço", screenLoginUV, "\n", nil, "", nil, "informe o domínio"},
-		{"GitHub ausente", screenLoginGitHub, "", errors.New("ferramenta ausente"), "", nil, "executável gh não encontrado"},
-		{"pnpm instalado e inativo", screenLoginPNPM, "", errors.New("não está ativo"), "12.21.0", []string{"pnpm@12.21.0", "--", "/mise/bin/pnpm", "login"}, ""},
-		{"AWS instalada e inativa", screenLoginAWS, "", errors.New("não está ativo"), "2.33.0", []string{"awscli@2.33.0", "--", "/mise/bin/aws", "login"}, ""},
+		{"GitHub", screenLoginGitHub, nil, "", []string{"--", "/mise/bin/gh", "auth", "login"}, ""},
+		{"GitLab", screenLoginGitLab, nil, "", []string{"--", "/mise/bin/glab", "auth", "login"}, ""},
+		{"Heroku instalado e inativo", screenLoginHeroku, errors.New("não está ativo"), "11.0.0", []string{"heroku@11.0.0", "--", "/mise/bin/heroku", "login"}, ""},
+		{"GitHub ausente", screenLoginGitHub, errors.New("ferramenta ausente"), "", nil, "executável gh não encontrado"},
+		{"AWS instalada e inativa", screenLoginAWS, errors.New("não está ativo"), "2.33.0", []string{"awscli@2.33.0", "--", "/mise/bin/aws", "login"}, ""},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			login, ok := miseLoginForScreen(tt.page)
@@ -78,8 +74,6 @@ func TestMiseLoginDispatch(t *testing.T) {
 			prefix := []string{"env", "MISE_AUTO_INSTALL=0", "mise", "--cd", "/"}
 			var invoked []string
 			console := sshConsole{
-				input:  bufio.NewReader(strings.NewReader(tt.input)),
-				output: io.Discard,
 				commands: sshCommands{
 					capture: func(_ string, args ...string) (string, error) {
 						path := "/mise/bin/" + login.argv[0] + "\n"
