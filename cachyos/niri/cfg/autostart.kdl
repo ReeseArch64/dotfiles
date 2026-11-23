@@ -1,3 +1,4 @@
-spawn-at-startup "noctalia"
+// ────────────── Startup Applications ──────────────
+// https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
-spawn-sh-at-startup "if [ -x /usr/bin/turing-smart-screen ] && [ -x \"$HOME/.local/share/turing-screen-venv/bin/python\" ]; then PATH=\"$HOME/.local/share/turing-screen-venv/bin:$PATH\" exec /usr/bin/turing-smart-screen main; fi"
+    spawn-at-startup "noctalia"
