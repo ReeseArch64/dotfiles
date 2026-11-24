@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -10,7 +9,7 @@ import (
 
 const workspacesRoot = "/mnt/workspaces"
 
-func runWorkspacesSetup(p profile) error {
+func runWorkspacesSetup(p profile, console sshConsole) error {
 	if !p.canMigrateSDK(systemOSID()) || os.Geteuid() == 0 {
 		return errors.New("configure /mnt/workspaces pelo menu Desktop ou Laptop no CachyOS como usuário normal")
 	}
@@ -18,20 +17,11 @@ func runWorkspacesSetup(p profile) error {
 	if err != nil {
 		return err
 	}
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	printActionHeader()
-	fmt.Fprintln(console.output, "Preparar /mnt/workspaces e criar o link ~/Projects.")
-	if err := console.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
+	if err := configureWorkspaces(home, workspacesRoot, console.commands.interactive); err != nil {
 		return err
 	}
-	err = configureWorkspaces(home, workspacesRoot, console.commands.interactive)
-	if err == nil {
-		fmt.Fprintln(console.output, "~/Projects aponta para", workspacesRoot)
-	} else {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	fmt.Fprintln(console.output, "~/Projects aponta para", workspacesRoot)
+	return nil
 }
 
 func configureWorkspaces(home, root string, run func(...string) error) error {

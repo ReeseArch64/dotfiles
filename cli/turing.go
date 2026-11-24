@@ -46,9 +46,6 @@ func (installer packageInstaller) setupTuring() error {
 		}
 	}
 	fmt.Fprintln(c.output, "Instalar Turing Smart Screen com Python 3.13, suporte AMD e tema Frieren.")
-	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	venv := filepath.Join(c.home, ".local", "share", "turing-screen-venv")
 	unlock, err := lockOperation(venv, "configuração da Turing Smart Screen")
 	if err != nil {

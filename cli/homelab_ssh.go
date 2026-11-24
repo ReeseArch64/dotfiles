@@ -17,9 +17,6 @@ const (
 
 func configureHomelabSSH(c *sshConsole, username string) error {
 	fmt.Fprintln(c.output, "Instalar OpenSSH, autorizar uma chave Ed25519 para teste e restringir o login após confirmação.")
-	if err := c.confirm("Digite CONFIRMO para preparar o SSH: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	if err := c.ensureUbuntuPackages("openssh-server", "openssh-client"); err != nil {
 		return err
 	}
@@ -74,7 +71,7 @@ func configureHomelabSSH(c *sshConsole, username string) error {
 	}
 	fmt.Fprintf(c.output, "Mantenha esta sessão aberta. Em outro terminal, conecte como %s com a chave privada correspondente e execute sudo -v.\n", username)
 	fmt.Fprintln(c.output, "No teste use IdentitiesOnly=yes, IdentityAgent=none, PasswordAuthentication=no e KbdInteractiveAuthentication=no.")
-	if err := c.confirm("Após testar, digite CONFIRMO para manter só esta chave e exigir autenticação por chave: ", "CONFIRMO"); err != nil {
+	if err := c.confirm("O acesso foi testado? Manter só esta chave e exigir autenticação por chave?"); err != nil {
 		return fmt.Errorf("a chave foi adicionada para teste: %w", err)
 	}
 	if err := managedBackup("SSHD", c.commands.interactive).prepare(); err != nil {

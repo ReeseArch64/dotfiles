@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-func runPiAgentSetup(device profile) error {
+func runPiAgentSetup(device profile, console sshConsole) error {
 	if device.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("configure o Pi Agent pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -25,23 +24,12 @@ func runPiAgentSetup(device profile) error {
 	if !filepath.IsAbs(home) || !filepath.IsAbs(agentDir) {
 		return errors.New("as pastas pessoal e do Pi Agent precisam ter caminhos absolutos")
 	}
-	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
+	console.home = home
 	location := managedBackup("Pi", console.commands.interactive)
-	printActionHeader()
 	fmt.Fprintln(console.output, "Aplicar settings.json em", agentDir)
 	fmt.Fprintln(console.output, "Preparar o Pi pelo Mise e instalar ou atualizar as extensões do modelo.")
 	fmt.Fprintln(console.output, "Arquivos substituídos recebem backup em", location.path)
-	err = console.confirm("Digite CONFIRMO para configurar o Pi Agent: ", "CONFIRMO")
-	if err == nil {
-		err = configurePiAgent(console, cachyosAsset(home, "pi", "agent/settings.json"), agentDir, location, exec.LookPath)
-	}
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	} else {
-		fmt.Fprintln(console.output, "Pi Agent configurado.")
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	return configurePiAgent(console, cachyosAsset(home, "pi", "agent/settings.json"), agentDir, location, exec.LookPath)
 }
 
 func configurePiAgent(console sshConsole, source, agentDir string, location backupLocation, lookup func(string) (string, error)) error {

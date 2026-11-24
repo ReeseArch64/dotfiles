@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -12,7 +11,7 @@ import (
 	"strings"
 )
 
-func runTerminalConfig(p profile, app string) error {
+func runTerminalConfig(p profile, app string, console sshConsole) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute a configuração pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -34,24 +33,19 @@ func runTerminalConfig(p profile, app string) error {
 	}
 	source := cachyosAsset(home, app, filename)
 	destination := filepath.Join(home, ".config", app, filename)
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup(name, console.commands.interactive)
 	lock := filepath.Join(home, app)
 	packages := terminalConfigPackages(app, console.commands)
 	if app == "fish" && findMise(home, exec.LookPath) == "" {
 		packages = append(packages, "mise")
 	}
-	printActionHeader()
 	fmt.Fprintln(console.output, "Aplicar a configuração em", destination)
 	fmt.Fprintln(console.output, "Instalar se estiverem ausentes:", strings.Join(packages, ", "))
 	if app == "fastfetch" {
 		fmt.Fprintln(console.output, "Copiar a foto de perfil para ~/.face se ainda não existir.")
 	}
 	fmt.Fprintln(console.output, "A configuração anterior recebe backup em", location.path)
-	err = console.confirm("Digite CONFIRMO para aplicar: ", "CONFIRMO")
-	if err == nil {
-		err = console.ensurePackages(packages...)
-	}
+	err = console.ensurePackages(packages...)
 	if err == nil && app == "fastfetch" {
 		err = ensureProfilePhoto(cachyosAsset(home, app, "face.jpg"), filepath.Join(home, ".face"), lock)
 	}
@@ -62,12 +56,6 @@ func runTerminalConfig(p profile, app string) error {
 			fmt.Fprintln(console.output, "Backup:", backup)
 		}
 	}
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	} else {
-		fmt.Fprintln(console.output, "Configuração aplicada.")
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 

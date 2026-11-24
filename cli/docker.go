@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -26,7 +25,7 @@ const dockerDaemonConfig = `{
 
 var dockerTools = []string{"docker", "docker-compose", "docker-buildx", "docker-machine", "lazydocker"}
 
-func runDockerSetup(device profile) error {
+func runDockerSetup(device profile, console sshConsole) error {
 	if device.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute a configuração do Docker pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -38,14 +37,8 @@ func runDockerSetup(device profile) error {
 	if err != nil {
 		return err
 	}
-	console := sshConsole{home: account.HomeDir, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	printActionHeader()
-	err = configureDocker(&console, account.Username, executable, exec.LookPath, managedBackup("Docker", console.commands.interactive))
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	console.home = account.HomeDir
+	return configureDocker(&console, account.Username, executable, exec.LookPath, managedBackup("Docker", console.commands.interactive))
 }
 
 func configureDocker(c *sshConsole, username, executable string, lookup func(string) (string, error), location backupLocation) error {
@@ -58,10 +51,8 @@ func configureDocker(c *sshConsole, username, executable string, lookup func(str
 		defer cancel()
 		return dockerHasCredentials(configDir, sshCommandsWithContext(ctx))
 	}
-	if !hasCredentials() {
-		if _, err := lookup("firefox"); err != nil {
-			return errors.New("instale o Firefox antes de configurar o login no Docker Hub")
-		}
+	if _, err := lookup("firefox"); err != nil {
+		return errors.New("instale o Firefox antes de configurar o Docker")
 	}
 
 	packages := append(slices.Clone(dockerTools), "util-linux", "xdg-utils")
@@ -69,9 +60,6 @@ func configureDocker(c *sshConsole, username, executable string, lookup func(str
 	fmt.Fprintln(c.output, "Aplicar /etc/docker/daemon.json com data-root=/var/lib/docker e storage-driver=overlay2, guardando uma cópia do arquivo anterior.")
 	fmt.Fprintln(c.output, "Habilitar docker.service, adicionar", username, "ao grupo docker e definir Firefox como navegador padrão.")
 	fmt.Fprintln(c.output, "Iniciar login no Docker Hub se ainda não houver credenciais locais.")
-	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	if err := c.ensurePackages(packages...); err != nil {
 		return fmt.Errorf("instalar pacotes Docker: %w", err)
 	}

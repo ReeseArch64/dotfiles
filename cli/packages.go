@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -26,7 +25,7 @@ type packageInstaller struct {
 	build   func(string) error
 }
 
-func runPackageAction(profile profile, action string) error {
+func runPackageAction(profile profile, action string, console sshConsole) error {
 	if profile.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute a instalação pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -43,17 +42,15 @@ func runPackageAction(profile profile, action string) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
-	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	installer := packageInstaller{console: &console, which: exec.LookPath, build: buildYay}
-	printActionHeader()
-	err = installer.run(action, "/usr/lib/modules")
-	if err == nil {
-		fmt.Fprintln(console.output, "Instalação concluída.")
-	} else {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	console.home = home
+	installer := newPackageInstaller(&console)
+	return installer.run(action, "/usr/lib/modules")
+}
+
+func newPackageInstaller(console *sshConsole) packageInstaller {
+	return packageInstaller{console: console, which: exec.LookPath, build: func(target string) error {
+		return buildYay(target, console.commands.terminal)
+	}}
 }
 
 func (installer packageInstaller) run(action, modules string) error {
@@ -142,9 +139,6 @@ func (installer packageInstaller) run(action, modules string) error {
 	}
 	if action == "setup-obsidian" {
 		fmt.Fprintln(installer.console.output, "Aplicar aparência e snippet Noctalia em ~/.obsidian.")
-	}
-	if err := installer.console.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
-		return err
 	}
 	if action == "install-yay" {
 		return installer.ensureYay()
@@ -389,7 +383,7 @@ func (installer packageInstaller) checkYayClone(target string) error {
 	return sshRegular(filepath.Join(target, "PKGBUILD"), false)
 }
 
-func buildYay(target string) error {
+func buildYay(target string, run func(*exec.Cmd) error) error {
 	staging, err := os.MkdirTemp(filepath.Dir(target), ".dotfiles-yay-build-*")
 	if err != nil {
 		return err
@@ -399,6 +393,5 @@ func buildYay(target string) error {
 	cmd := exec.Command("makepkg", "-si", "BUILDDIR="+staging, "PKGDEST="+staging,
 		"SRCDEST="+staging, "SRCPKGDEST="+staging, "LOGDEST="+staging)
 	cmd.Dir = target
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	return cmd.Run()
+	return run(cmd)
 }

@@ -51,15 +51,15 @@ func TestAuthorizedKeysKeepCommentsAndAllowNewDevices(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sshAnswers(c, second+" device-futuro", "ADICIONAR")
+	sshAnswers(c, second+" device-futuro")
 	if err := c.manageKeys("add"); err != nil {
 		t.Fatal(err)
 	}
-	sshAnswers(c, second, "ADICIONAR")
+	sshAnswers(c, second)
 	if err := c.manageKeys("add"); err == nil {
 		t.Fatal("aceitou uma chave duplicada")
 	}
-	sshAnswers(c, "1", "REMOVER")
+	sshAnswers(c, "1", "s")
 	if err := c.manageKeys("remove"); err != nil {
 		t.Fatal(err)
 	}

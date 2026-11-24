@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +15,7 @@ var niriManagedFiles = []string{
 	"cfg/misc.kdl", "cfg/rules.kdl", "noctalia.kdl",
 }
 
-func runNiriSetup(p profile) error {
+func setupNiri(p profile, output io.Writer, commands sshCommands) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("configure o Niri pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -38,28 +38,16 @@ func runNiriSetup(p profile) error {
 		return fmt.Errorf("NIRI_CONFIG aponta para %s. A ação configura %s", custom, target)
 	}
 	source := filepath.Dir(filepath.Dir(dotfilesAsset(home, "cachyos", "niri", "cfg", "rules.kdl")))
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	location := managedBackup("Niri", console.commands.interactive)
-	printActionHeader()
-	fmt.Fprintln(console.output, "Aplicar os arquivos do Dotfiles em", target)
-	fmt.Fprintln(console.output, "Preservar config.kdl, cfg/input.kdl e cfg/display.kdl.")
-	fmt.Fprintln(console.output, "Arquivos substituídos recebem backup em", location.path)
-	if err := console.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
-		return err
-	}
-	backup, err := configureNiri(source, target, home, location, func(candidate string) error {
-		_, err := console.commands.capture("", "niri", "validate", "--config", candidate)
+	backup, err := configureNiri(source, target, home, managedBackup("Niri", commands.interactive), func(candidate string) error {
+		_, err := commands.capture("", "niri", "validate", "--config", candidate)
 		return err
 	})
 	if backup != "" {
-		fmt.Fprintln(console.output, "Backup:", backup)
+		fmt.Fprintln(output, "Backup:", backup)
 	}
 	if err == nil {
-		fmt.Fprintln(console.output, "Configuração do Niri aplicada.")
-	} else {
-		fmt.Fprintln(console.output, err)
+		fmt.Fprintln(output, "Configuração aplicada em", target)
 	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 

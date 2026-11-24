@@ -102,9 +102,6 @@ func installHomelabFastfetch(c *sshConsole) error {
 
 func installHomelabTools(c *sshConsole, lookup func(string) (string, error)) error {
 	fmt.Fprintln(c.output, "Instalar LazyDocker, jq, ripgrep, fd, fzf, bat, Git e ncdu no Ubuntu.")
-	if err := c.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	_, lazydockerErr := c.commands.capture("", "lazydocker", "--version")
 	var asset homelabToolAsset
 	if lazydockerErr != nil {

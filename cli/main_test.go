@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os/exec"
 	"slices"
 	"strings"
 	"testing"
@@ -8,6 +10,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
+
+func actionCommand(action, _ string) (*exec.Cmd, error) {
+	args := actionArgs(action)
+	if consoleActionForArgs(args) == nil {
+		return nil, fmt.Errorf("ação sem handler: %s", action)
+	}
+	return exec.Command("dotfiles", args...), nil
+}
 
 func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 	tests := []struct {
@@ -145,7 +155,13 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if wallpapers.disabled || err != nil || !slices.Equal(wallpapersCommand.Args[1:], []string{"--wallpapers"}) {
 					t.Fatalf("ação de papéis de parede: %v, %v", wallpapersCommand, err)
 				}
-				noctalia := osMenu.items()[6]
+				next, _ := osMenu.selectItem(osMenu.items()[6])
+				noctaliaMenu := next.(model)
+				if noctaliaMenu.screen != screenNoctalia || !noctaliaMenu.items()[1].disabled {
+					t.Fatal("Noctalia deve verificar os requisitos antes de aplicar")
+				}
+				noctaliaMenu.dependency = dependencyResult{request: noctaliaMenu.statusRequest}
+				noctalia := noctaliaMenu.items()[1]
 				noctaliaCommand, err := actionCommand(noctalia.action, noctalia.title)
 				if noctalia.disabled || err != nil || !slices.Equal(noctaliaCommand.Args[1:], []string{"--setup-noctalia"}) {
 					t.Fatalf("ação do Noctalia: %v, %v", noctaliaCommand, err)
@@ -188,7 +204,7 @@ func TestMenuSelectsSSHKeyByHostname(t *testing.T) {
 				if got := menuTitles(securityMenu.items()); !slices.Equal(got, []string{"SSH", "Firewall", "Proton Pass"}) {
 					t.Fatalf("menu Segurança = %v", got)
 				}
-				if securityMenu.items()[2].action != "proton-pass" {
+				if securityMenu.items()[2].goTo != screenProtonPass {
 					t.Fatal("ação do Proton Pass ausente")
 				}
 				submenu, _ := securityMenu.selectItem(securityMenu.items()[0])
@@ -223,6 +239,9 @@ func TestMenuStructureAndAvailability(t *testing.T) {
 		t.Run(tt.hostname, func(t *testing.T) {
 			menu := newMenu(tt.hostname)
 			menu.status.sshReady = true
+			menu.statusRequest = 1
+			menu.dependency = dependencyResult{request: 1}
+			menu.docker = dockerStatus{loaded: true, firefox: true}
 			for page := screenMain; page < screenJob; page++ {
 				menu.screen = page
 				items := menu.items()

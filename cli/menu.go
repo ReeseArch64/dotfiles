@@ -58,6 +58,8 @@ const (
 	screenLoginGemini
 	screenLoginAntigravity
 	screenLoginNPM
+	screenNoctalia
+	screenProtonPass
 	screenJob
 )
 
@@ -87,10 +89,11 @@ var screenTitles = map[screen]string{
 	screenCasaOS:        "CasaOS",
 	screenWebBrowser:    "Navegador Web",
 	screenMiseLogins:    "Login das CLIs",
+	screenNoctalia:      "Noctalia",
+	screenProtonPass:    "Proton Pass",
 }
 
 type tickMsg time.Time
-type actionResult struct{ err error }
 type statusResult struct {
 	request int
 	status  networkStatus
@@ -105,9 +108,12 @@ type model struct {
 	stack         []screen
 	cursor        [screenJob]int
 	job           *jobRun
+	jobScroll     int
+	prompt        *jobPrompt
 	status        networkStatus
 	docker        dockerStatus
 	statusRequest int
+	dependency    dependencyResult
 }
 
 func newMenu(hostname string) model {
@@ -138,8 +144,9 @@ func (m model) items() []menuItem {
 	items := screenItems(m.screen, m.profile)
 	for i := range items {
 		items[i].disabled = !m.menuItemAvailable(items[i])
-		if items[i].goTo == screenFirewall && items[i].disabled && m.profile.sshKeyName() != "" {
-			items[i].desc = "Requer SSH configurado"
+		if reason := m.dependencyBlock(items[i]); reason != "" {
+			items[i].disabled = true
+			items[i].desc = reason
 		}
 	}
 	return items
@@ -185,9 +192,14 @@ func screenItems(page screen, device profile) []menuItem {
 			{title: "Fastfetch", desc: "Configurar as informações exibidas no terminal", goTo: screenFastfetch},
 			{title: "Servidor", desc: "Configurar DNS e swap do servidor", goTo: screenServer},
 			{title: "Papéis de parede", desc: "Copiar as imagens para ~/.wallpapers", action: "wallpapers"},
-			{title: "Noctalia", desc: "Aplicar settings.toml e state.toml e conferir plugins", action: "setup-noctalia"},
+			{title: "Noctalia", desc: "Conferir plugins e aplicar a configuração", goTo: screenNoctalia},
 			{title: screenTitles[screenStorage], desc: "Migrar pastas pessoais e preparar ~/Projects", goTo: screenStorage},
 			{title: "Niri", desc: "Aplicar regras, atalhos e autostart do Dotfiles", action: "setup-niri"},
+		}
+	case screenNoctalia:
+		return []menuItem{
+			{title: "Requisitos dos plugins", desc: "Verificar os plugins instalados e os que faltam", action: "noctalia-requirements"},
+			{title: "Aplicar configuração", desc: "Aplicar settings.toml e state.toml", action: "setup-noctalia"},
 		}
 	case screenStorage:
 		return []menuItem{
@@ -271,8 +283,10 @@ func screenItems(page screen, device profile) []menuItem {
 		return []menuItem{
 			{title: "SSH", desc: "Configurar SSH e gerenciar chaves autorizadas", goTo: screenSSH},
 			{title: "Firewall", desc: "Ativar o UFW e aplicar a política da LAN", goTo: screenFirewall},
-			{title: "Proton Pass", desc: "Instalar a CLI e iniciar o login (requer Firefox configurado)", action: "proton-pass"},
+			{title: "Proton Pass", desc: "Instalar a CLI e iniciar o login", goTo: screenProtonPass},
 		}
+	case screenProtonPass:
+		return []menuItem{{title: "Instalar e fazer login", desc: "Instalar a CLI e executar pass-cli login", action: "proton-pass"}}
 	case screenSSH:
 		return []menuItem{
 			{title: "Configurar SSH", desc: "Configurar o acesso por chave pública", action: "configure"},
@@ -316,7 +330,14 @@ func (m model) loadStatus() tea.Cmd {
 }
 
 func (m model) refresh() (model, tea.Cmd) {
+	if check := dependencyCheck(m.screen); check != nil {
+		m.statusRequest++
+		m.dependency = dependencyResult{}
+		request := m.statusRequest
+		return m, func() tea.Msg { return dependencyResult{request, check()} }
+	}
 	if m.screen == screenDocker {
+		m.docker = dockerStatus{}
 		m.statusRequest++
 		request := m.statusRequest
 		return m, func() tea.Msg { return dockerStatusResult{request, readDockerStatus()} }
@@ -343,11 +364,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.request == m.statusRequest {
 			m.docker = msg.status
 		}
+	case dependencyResult:
+		if msg.request == m.statusRequest {
+			m.dependency = msg
+		}
 	case actionResult:
 		if m.job != nil {
-			m.job.done, m.job.err = true, msg.err
+			m.job.done, m.job.result = true, msg
 		}
+	case jobPrompt:
+		m.prompt = &msg
+		return m, nil
+	case jobTerminalRequest:
+		return m, openJobTerminal(msg)
+	case jobTerminalResult:
+		msg.request.reply <- msg.err
+		return m, m.job.nextEvent()
 	case tea.KeyMsg:
+		if m.prompt != nil {
+			return m.handlePromptKey(msg)
+		}
 		if m.screen == screenJob {
 			return m.handleJobKey(msg.String())
 		}
@@ -359,7 +395,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) handleJobKey(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "ctrl+c":
-		return m, tea.Quit
+		if m.job.done {
+			return m, tea.Quit
+		}
+	case "up", "k", "down", "j":
+		width, rows := m.jobSize()
+		limit := max(len(m.job.lines(width))-rows, 0)
+		step := 1
+		if key == "up" || key == "k" {
+			step = -1
+		}
+		m.jobScroll = min(max(min(m.jobScroll, limit)+step, 0), limit)
 	case "enter", "esc", "left", "h", "backspace", " ", "q":
 		if m.job.done {
 			m.job = nil
@@ -425,20 +471,18 @@ func nextMenuItem(items []menuItem, index, direction int) int {
 
 func (m model) selectItem(item menuItem) (tea.Model, tea.Cmd) {
 	switch {
-	case item.disabled:
+	case item.disabled || !m.menuItemAvailable(item) || m.dependencyBlock(item) != "":
 		return m, nil
 	case item.quit:
 		return m, tea.Quit
 	case item.action != "":
 		m.stack = append(m.stack, m.screen)
 		m.screen = screenJob
-		m.job = &jobRun{title: item.title}
-		command, err := actionCommand(m.profile.menuAction(item.action), item.title)
-		if err != nil {
-			m.job.done, m.job.err = true, err
-			return m, nil
-		}
-		return m, tea.ExecProcess(command, func(err error) tea.Msg { return actionResult{err} })
+		m.jobScroll = 0
+		action := m.profile.menuAction(item.action)
+		var cmd tea.Cmd
+		m.job, cmd = startLocalJob(m.profile, item.title, consoleActionForArgs(actionArgs(action)))
+		return m, cmd
 	default:
 		m.stack = append(m.stack, m.screen)
 		m.screen = item.goTo

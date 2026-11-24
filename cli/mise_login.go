@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -55,12 +54,12 @@ func miseLoginForScreen(page screen) (miseLogin, bool) {
 
 func (login miseLogin) commandLine() string {
 	if login.page == screenLoginGemini {
-		return "Abrir o Gemini CLI e usar /auth"
+		return "Use /auth para entrar e /quit para voltar"
 	}
 	return strings.Join(login.argv, " ")
 }
 
-func runMiseLogin(device profile, name string) error {
+func runMiseLogin(device profile, name string, console sshConsole) error {
 	if device.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute o login pelo menu Programação do Desktop ou Laptop como usuário normal")
 	}
@@ -72,14 +71,8 @@ func runMiseLogin(device profile, name string) error {
 		if err != nil {
 			return err
 		}
-		console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-		printActionHeader()
-		err = login.run(&console)
-		if err != nil {
-			fmt.Fprintln(console.output, err)
-		}
-		_, _ = console.prompt("\nEnter para voltar ao menu...")
-		return err
+		console.home = home
+		return login.run(&console)
 	}
 	return errors.New("CLI de login inválida")
 }

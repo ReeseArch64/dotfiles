@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +16,7 @@ const cursorTheme = "FrierenBLZ"
 
 var miscInclude = regexp.MustCompile(`(?m)^[\t ]*include[\t ]+"(?:\./)?cfg/misc\.kdl"[\t ;]*(?://[^\n]*)?$`)
 
-func runCursorAction(p profile) error {
+func setupCursor(p profile, output io.Writer, commands sshCommands) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("execute a configuração do cursor pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -48,21 +48,13 @@ func runCursorAction(p profile) error {
 		}
 	}
 
-	printActionHeader()
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	result, err := installCursor(assets, config, home, managedBackup("Niri", console.commands.interactive), func(candidate string) error {
-		_, err := console.commands.capture("", "niri", "validate", "--config", candidate)
+	result, err := installCursor(assets, config, home, managedBackup("Niri", commands.interactive), func(candidate string) error {
+		_, err := commands.capture("", "niri", "validate", "--config", candidate)
 		return err
 	})
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	} else {
-		fmt.Fprintln(console.output, "Cursor FrierenBLZ configurado no Niri.")
-		for _, backup := range result {
-			fmt.Fprintln(console.output, "Backup:", backup)
-		}
+	for _, backup := range result {
+		fmt.Fprintln(output, "Backup:", backup)
 	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 

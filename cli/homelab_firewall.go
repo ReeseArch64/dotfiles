@@ -38,7 +38,7 @@ func configureHomelabFirewall(c *sshConsole) error {
 		return err
 	}
 	fmt.Fprintf(c.output, "O UFW permitirá entrada em todas as portas e protocolos pela LAN %s (%s). As regras existentes e o acesso da sessão SSH atual serão preservados.\n", lan.subnet, lan.device)
-	if err := c.confirm("Digite CONFIRMO para aplicar o firewall: ", "CONFIRMO"); err != nil {
+	if err := c.confirm("Ativar o firewall com a política de acesso pela LAN?"); err != nil {
 		return err
 	}
 	if err := c.ensureUbuntuPackages("ufw"); err != nil {

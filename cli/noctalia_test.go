@@ -22,8 +22,9 @@ func TestNoctaliaRequiresPluginsAndBacksUpChangedFiles(t *testing.T) {
 		"androidconnect", "github-activity", "godot-provider", "kuma-status", "kumacat", "pomodoro-heatmap",
 		"process-manager", "proton-pass", "shipyard", "ufw", "zed-provider",
 	}
-	const missingPrefix = "baixe os plugins ausentes no Noctalia: "
-	if _, err := configureNoctalia(source, directory, home, location); err == nil || err.Error() != missingPrefix+strings.Join(community, ", ")+", world_clock" {
+	const missingPrefix = "Instale os plugins abaixo no Noctalia e execute esta ação novamente:\n\n"
+	want := missingPrefix + "• community/" + strings.Join(community, "\n• community/") + "\n• official/world_clock"
+	if _, err := configureNoctalia(source, directory, home, location); err == nil || err.Error() != want {
 		t.Fatalf("lista de plugins ausentes incorreta: %v", err)
 	}
 	sdkTestContent(t, settings, "previous settings")
@@ -34,7 +35,7 @@ func TestNoctaliaRequiresPluginsAndBacksUpChangedFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := configureNoctalia(source, directory, home, location); err == nil || err.Error() != missingPrefix+"world_clock" {
+	if _, err := configureNoctalia(source, directory, home, location); err == nil || err.Error() != missingPrefix+"• official/world_clock" {
 		t.Fatalf("a configuração deve exigir o World Clock oficial: %v", err)
 	}
 	if err := os.MkdirAll(filepath.Join(plugins, "official", "world_clock"), 0755); err != nil {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -13,7 +12,7 @@ import (
 const sandboxName = "sandbox"
 const sandboxImage = "docker.io/library/archlinux:latest"
 
-func runDistroboxSetup(device profile) error {
+func runDistroboxSetup(device profile, console sshConsole) error {
 	if device.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("configure o Ambiente Sandbox pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -25,24 +24,14 @@ func runDistroboxSetup(device profile) error {
 	if !filepath.IsAbs(configHome) {
 		configHome = filepath.Join(account.HomeDir, ".config")
 	}
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	printActionHeader()
 	fmt.Fprintln(console.output, "Instalar Docker e Distrobox quando necessário e criar o contêiner sandbox com Arch Linux.")
 	fmt.Fprintln(console.output, "Se o Docker local precisar de configuração, iniciar docker.service e liberar o acesso pelo grupo docker.")
-	if err := console.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	unblock, err := lockOperation("distrobox-sandbox", "configuração do Distrobox")
 	if err != nil {
 		return err
 	}
-	err = configureDistrobox(&console, account, configHome, managedBackup("Distrobox", console.commands.interactive))
-	unblock()
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	defer unblock()
+	return configureDistrobox(&console, account, configHome, managedBackup("Distrobox", console.commands.interactive))
 }
 
 func configureDistrobox(c *sshConsole, account *user.User, configHome string, backup backupLocation) error {

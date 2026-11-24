@@ -31,7 +31,7 @@ func TestInstallAndroidCLIReusesWorkingLocalBinary(t *testing.T) {
 func TestInstallAndroidCLIChecksResultAndPropagatesFailures(t *testing.T) {
 	for _, scenario := range []string{"instalado", "falha no download", "binário ausente"} {
 		t.Run(scenario, func(t *testing.T) {
-			installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+			installer, commands := newPackageInstallerTest(t, "")
 			binary := filepath.Join(installer.console.home, ".local", "bin", "android")
 			installer.which = func(string) (string, error) { return "", exec.ErrNotFound }
 			verified := false

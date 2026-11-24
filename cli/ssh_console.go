@@ -19,6 +19,12 @@ import (
 type sshCommands struct {
 	capture     func(input string, argv ...string) (string, error)
 	interactive func(argv ...string) error
+	terminal    func(*exec.Cmd) error
+}
+
+func runInTerminal(cmd *exec.Cmd) error {
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	return cmd.Run()
 }
 
 func systemSSHCommands() sshCommands {
@@ -37,10 +43,9 @@ func sshCommandsWithContext(ctx context.Context) sshCommands {
 			return string(output), nil
 		},
 		interactive: func(argv ...string) error {
-			cmd := exec.Command(argv[0], argv[1:]...)
-			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-			return cmd.Run()
+			return runInTerminal(exec.Command(argv[0], argv[1:]...))
 		},
+		terminal: runInTerminal,
 	}
 }
 
@@ -137,14 +142,33 @@ func writeAuthorizedKeys(path string, lines []string) error {
 	return writeConfigAtomic(path, []byte(content), 0600)
 }
 
+type promptKind int
+
+const (
+	promptText promptKind = iota
+	promptConfirm
+	promptContinue
+)
+
+var errActionCanceled = errors.New("operação cancelada")
+
 type sshConsole struct {
 	home, keyName string
 	input         *bufio.Reader
 	output        io.Writer
 	commands      sshCommands
+	ask           func(promptKind, string) (string, error)
+	withTerminal  func(func() error) error
+}
+
+func terminalConsole() sshConsole {
+	return sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 }
 
 func (c *sshConsole) prompt(label string) (string, error) {
+	if c.ask != nil {
+		return c.ask(promptText, label)
+	}
 	fmt.Fprint(c.output, label)
 	line, err := c.input.ReadString('\n')
 	if err != nil {
@@ -153,15 +177,28 @@ func (c *sshConsole) prompt(label string) (string, error) {
 	return strings.TrimSpace(line), nil
 }
 
-func (c *sshConsole) confirm(label, expected string) error {
-	answer, err := c.prompt(label)
+func (c *sshConsole) confirm(label string) error {
+	if c.ask != nil {
+		_, err := c.ask(promptConfirm, label)
+		return err
+	}
+	answer, err := c.prompt(label + " [s/N] ")
 	if err != nil {
 		return err
 	}
-	if answer != expected {
-		return errors.New("operação cancelada")
+	if !strings.EqualFold(answer, "s") {
+		return errActionCanceled
 	}
 	return nil
+}
+
+func (c *sshConsole) proceed(label string) error {
+	if c.ask != nil {
+		_, err := c.ask(promptContinue, label)
+		return err
+	}
+	_, err := c.prompt(label + " Pressione Enter para continuar… ")
+	return err
 }
 
 func (c *sshConsole) display(keys authorizedKeys) error {
@@ -214,9 +251,6 @@ func (c *sshConsole) manageKeys(action string) error {
 			}
 		}
 		fmt.Fprintln(c.output, fingerprint)
-		if err := c.confirm("Digite ADICIONAR para autorizar: ", "ADICIONAR"); err != nil {
-			return err
-		}
 		if err := writeAuthorizedKeys(path, append(keys.lines, pasted)); err != nil {
 			return err
 		}
@@ -241,7 +275,7 @@ func (c *sshConsole) manageKeys(action string) error {
 		}
 		_, fingerprint, _ := validatePublicKey(strings.TrimSpace(keys.lines[keys.indices[number-1]]), c.commands)
 		fmt.Fprintln(c.output, fingerprint+"\nMantenha a sessão atual aberta e confirme acesso por outra chave.")
-		if err := c.confirm("Digite REMOVER para confirmar: ", "REMOVER"); err != nil {
+		if err := c.confirm("Remover esta chave autorizada?"); err != nil {
 			return err
 		}
 		index := keys.indices[number-1]

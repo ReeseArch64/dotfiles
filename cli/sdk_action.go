@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -29,15 +29,15 @@ func (p profile) canMigrateSDK(osID string) bool {
 	return p.sshKeyName() != "" && osID == "cachyos"
 }
 
-func runSDKMigration(p profile) error {
-	return runDirectoryMigration(p, sdkRoot, "SDK", sdkDirectoryMappings, false)
+func runSDKMigration(p profile, console sshConsole) error {
+	return runDirectoryMigration(p, sdkRoot, "SDK", sdkDirectoryMappings, false, console)
 }
 
-func runStorageMigration(p profile) error {
-	return runDirectoryMigration(p, storageRoot, "Storage", storageDirectoryMappings, true)
+func runStorageMigration(p profile, console sshConsole) error {
+	return runDirectoryMigration(p, storageRoot, "Storage", storageDirectoryMappings, true, console)
 }
 
-func runDirectoryMigration(p profile, target, category string, mappings [][2]string, archiveHomeOnly bool) error {
+func runDirectoryMigration(p profile, target, category string, mappings [][2]string, archiveHomeOnly bool, console sshConsole) error {
 	if !p.canMigrateSDK(systemOSID()) || os.Geteuid() == 0 {
 		return fmt.Errorf("a migração para %s exige CachyOS e deve ser executada pelo menu Desktop ou Laptop como usuário normal", target)
 	}
@@ -45,34 +45,29 @@ func runDirectoryMigration(p profile, target, category string, mappings [][2]str
 	if err != nil {
 		return err
 	}
-	printActionHeader()
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
 	location := managedBackup(category, console.commands.interactive)
 	for _, mapping := range mappings {
-		fmt.Printf("  ~/%s → %s\n", mapping[0], filepath.Join(target, mapping[1]))
+		fmt.Fprintf(console.output, "  ~/%s → %s\n", mapping[0], filepath.Join(target, mapping[1]))
 	}
 	if archiveHomeOnly {
-		fmt.Printf("\nAs pastas locais com conteúdo serão arquivadas em %s antes de criar os links. Feche os aplicativos que usam essas pastas.\n", location.path)
+		fmt.Fprintf(console.output, "\nAs pastas locais com conteúdo serão arquivadas em %s antes de criar os links. Feche os aplicativos que usam essas pastas.\n", location.path)
 	} else {
-		fmt.Printf("\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", location.path)
+		fmt.Fprintf(console.output, "\nOs diretórios anteriores recebem backup em %s. Feche os aplicativos que usam essas pastas.\n", location.path)
 	}
-	if err := console.confirm("Digite CONFIRMO para iniciar a migração: ", "CONFIRMO"); err != nil {
+	if err := console.confirm("Substituir os diretórios locais por links?"); err != nil {
 		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	err = migrateDirectories(ctx, home, target, location, mappings, archiveHomeOnly, console.commands.interactive)
-	stop()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	} else {
-		fmt.Println("Links configurados para", target)
+	defer stop()
+	if err := migrateDirectories(ctx, home, target, location, mappings, archiveHomeOnly, console.commands.interactive, console.output); err != nil {
+		return err
 	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	fmt.Fprintln(console.output, "Links configurados para", target)
+	return nil
 }
 
-func migrateDirectories(ctx context.Context, home, target string, location backupLocation, mappings [][2]string, archiveHomeOnly bool, run func(...string) error) error {
+func migrateDirectories(ctx context.Context, home, target string, location backupLocation, mappings [][2]string, archiveHomeOnly bool, run func(...string) error, output io.Writer) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
@@ -105,17 +100,17 @@ func migrateDirectories(ctx context.Context, home, target string, location backu
 		if err := ops.prepareBackup(); err != nil {
 			return err
 		}
-		fmt.Println("Preparando as cópias e os backups…")
+		fmt.Fprintln(output, "Preparando as cópias e os backups…")
 	} else {
 		ops.reportArchive = func(source, backup string) {
-			fmt.Printf("Arquivando %s em %s…\n", source, backup)
+			fmt.Fprintf(output, "Arquivando %s em %s…\n", source, backup)
 		}
 	}
 	ops.repairPermissions = func(path string) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		fmt.Printf("Corrigindo acesso do usuário em %s antes de migrar…\n", path)
+		fmt.Fprintf(output, "Corrigindo acesso do usuário em %s antes de migrar…\n", path)
 		return repairMigrationPermissions(path, os.Getuid(), os.Getgid(), run)
 	}
 	return prepareDirectoryLinks(home, target, mappings, ops)

@@ -29,9 +29,6 @@ func (installer packageInstaller) setupDiscord() error {
 	}
 	fmt.Fprintln(c.output, "Instalar o Discord Stable pelo Pacman, aplicar BetterDiscord e importar os temas e plugins do Dotfiles.")
 	fmt.Fprintln(c.output, "Esta ação modifica o Discord nativo do usuário. Feche o Discord antes da aplicação.")
-	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	unlock, err := lockOperation(betterDiscord, "configuração do BetterDiscord")
 	if err != nil {
 		return err
@@ -98,7 +95,7 @@ func waitForDiscordResources(c *sshConsole, root string, launch func() error) (s
 		if err := launch(); err != nil {
 			return "", fmt.Errorf("abrir o Discord: %w", err)
 		}
-		if _, err := c.prompt("Aguarde o Discord inicializar, encerre-o pela bandeja e pressione Enter... "); err != nil {
+		if err := c.proceed("Aguarde o Discord inicializar e encerre-o pela bandeja."); err != nil {
 			return "", err
 		}
 		resources, err = discordResources(root)
@@ -122,7 +119,7 @@ func waitForDiscordResources(c *sshConsole, root string, launch func() error) (s
 		if err != nil {
 			return "", fmt.Errorf("verificar se o Discord foi encerrado: %w", err)
 		}
-		if _, err := c.prompt("Encerre o Discord pela bandeja e pressione Enter... "); err != nil {
+		if err := c.proceed("Encerre o Discord pela bandeja."); err != nil {
 			return "", err
 		}
 	}

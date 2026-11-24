@@ -35,9 +35,6 @@ func (installer packageInstaller) installPosting() error {
 	} else {
 		fmt.Fprintln(console.output, "Pacotes dos repositórios: uv")
 	}
-	if err := console.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	if command == nil {
 		if err := console.ensurePackages("uv"); err != nil {
 			return err

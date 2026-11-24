@@ -63,9 +63,6 @@ func (installer packageInstaller) setupOllama() error {
 	c := installer.console
 	fmt.Fprintln(c.output, "Configurar Ollama com ROCm para GPU AMD.")
 	fmt.Fprintln(c.output, "Armazenar modelos em", ollamaModels, "e disponibilizar a API em 127.0.0.1:11434.")
-	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	unlock, err := lockOperation(ollamaDropIn, "configuração do Ollama")
 	if err != nil {
 		return err

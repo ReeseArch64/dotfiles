@@ -16,9 +16,6 @@ func configureHomelabTerminal(c *sshConsole, username string, fish bool) error {
 	} else {
 		fmt.Fprintln(c.output, "Configurar Fastfetch para sessões SSH e copiar a foto para ~/.face se estiver ausente.")
 	}
-	if err := c.confirm("Digite CONFIRMO para aplicar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	if !filepath.IsAbs(c.home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}

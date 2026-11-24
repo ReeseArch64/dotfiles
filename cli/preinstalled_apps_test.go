@@ -34,7 +34,16 @@ func TestPreinstalledAppsMenu(t *testing.T) {
 			continue
 		}
 		next, _ := menu.selectItem(entry)
-		item := next.(model).items()[0]
+		page := next.(model)
+		if !page.items()[0].disabled {
+			t.Fatal("remoção disponível antes de verificar o Kitty")
+		}
+		page.dependency = dependencyResult{page.statusRequest, "Instale Kitty"}
+		if !page.items()[0].disabled {
+			t.Fatal("remoção disponível sem Kitty")
+		}
+		page.dependency.block = ""
+		item := page.items()[0]
 		command, err := actionCommand(item.action, item.title)
 		if item.disabled || err != nil || !slices.Equal(command.Args[1:], []string{"--remove-preinstalled"}) {
 			t.Fatalf("ação de remoção: %v, %v", command, err)
@@ -49,12 +58,12 @@ func TestRemovePreinstalledApps(t *testing.T) {
 		queryErr, removeErr   error
 		runPacman, clear      bool
 	}{
-		{"Kitty ausente", "alacritty\n", "CONFIRMO\n", nil, nil, false, false},
-		{"consulta falhou", "", "CONFIRMO\n", failure, nil, false, false},
-		{"cancelado", "kitty\nalacritty\nshelly\n", "CANCELAR\n", nil, nil, false, false},
-		{"remoção falhou", "kitty\nalacritty\nshelly\n", "CONFIRMO\n", nil, failure, true, false},
-		{"remove somente os instalados", "kitty\nalacritty\nshelly\nfirefox\n", "CONFIRMO\n", nil, nil, true, true},
-		{"limpa restos de desinstalação", "kitty\nfirefox\n", "CONFIRMO\n", nil, nil, false, true},
+		{"Kitty ausente", "alacritty\n", "", nil, nil, false, false},
+		{"consulta falhou", "", "", failure, nil, false, false},
+		{"cancelado", "kitty\nalacritty\nshelly\n", "n\n", nil, nil, false, false},
+		{"remoção falhou", "kitty\nalacritty\nshelly\n", "s\n", nil, failure, true, false},
+		{"remove somente os instalados", "kitty\nalacritty\nshelly\nfirefox\n", "s\n", nil, nil, true, true},
+		{"limpa restos de desinstalação", "kitty\nfirefox\n", "s\n", nil, nil, false, true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			home, cache, linkedData := t.TempDir(), t.TempDir(), t.TempDir()

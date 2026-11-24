@@ -13,6 +13,8 @@ O identificador pode aparecer como parte do hostname separada por hífen, como e
 
 A estrutura e os atalhos dos menus são os mesmos em todos os perfis. Opções indisponíveis aparecem em cinza e ficam desabilitadas. Quando o Homelab oferece uma ação compartilhada de SSH ou firewall, ela usa o procedimento do Ubuntu.
 
+A CLI mostra o progresso, os resultados e os requisitos dentro dos menus. Ações que removem dados, movem pastas ou podem interromper o acesso pedem confirmação em um diálogo com **Cancelar** pré-selecionado. Use as setas e Enter para escolher. `sudo`, gerenciadores de pacotes, passphrases e logins externos ainda podem abrir seus próprios prompts no terminal.
+
 ## Segurança
 
 Em Desktop e Laptop, **Segurança → SSH** oferece estas ações.
@@ -35,7 +37,7 @@ Ao preparar um backup, a CLI garante que o usuário atual tenha acesso a `/mnt/b
 
 As ações são disponibilizadas pelo hostname `homelab` e executadas no Ubuntu por um administrador com `sudo`.
 
-- **Segurança → SSH → Configurar SSH** instala OpenSSH pelo APT e reaproveita `ssh.socket` quando habilitado. Cole a chave pública Ed25519 e teste uma segunda conexão com a chave correspondente e `sudo -v`. Após a segunda confirmação, a ação mantém a chave testada, exige autenticação por chave e bloqueia login como root. Ela valida a configuração antes de recarregar o serviço e guarda os arquivos anteriores em `/mnt/backups/dotfiles/SSH` e `/mnt/backups/dotfiles/SSHD`.
+- **Segurança → SSH → Configurar SSH** instala OpenSSH pelo APT e reaproveita `ssh.socket` quando habilitado. Cole a chave pública Ed25519 e teste uma segunda conexão com a chave correspondente e `sudo -v`. Após confirmar o teste na CLI, a ação mantém a chave testada, exige autenticação por chave e bloqueia login como root. Ela valida a configuração antes de recarregar o serviço e guarda os arquivos anteriores em `/mnt/backups/dotfiles/SSH` e `/mnt/backups/dotfiles/SSHD`.
 - **Segurança → Firewall → Configurar Firewall** instala e ativa o UFW. Permite todas as portas e protocolos de entrada pela interface da LAN IPv4 privada detectada, preserva as regras existentes e libera o IP e a porta da sessão SSH atual. Aplica a política padrão de negar entrada e permitir saída e restaura a configuração anterior se uma etapa falhar.
 - **CasaOS → Instalar CasaOS** baixa o instalador oficial por HTTPS e, após validar o script, executa-o com `sudo`. A ação adiciona o administrador atual ao grupo `docker`. Abra uma nova sessão para que a associação ao grupo tenha efeito. [Instalação oficial do CasaOS](https://wiki.casaos.io/en/get-started)
 - **Sistema Operacional → Servidor → Liberar porta 53 (DNS)** desativa o `DNSStubListener` do `systemd-resolved`, mantém a resolução via servidores DNS upstream e recusa drop-ins conflitantes. Se `resolv.conf` apontar para o stub, troca o link para o arquivo upstream. Em falha, restaura os arquivos alterados. [Configuração do systemd-resolved](https://www.freedesktop.org/software/systemd/man/latest/resolved.conf.html)
@@ -64,9 +66,9 @@ No Desktop e no Laptop, **Sistema Operacional → Niri** aplica regras, atalhos,
 
 **Sistema Operacional → Fastfetch → Configurar Fastfetch** instala `fastfetch` e `chafa` quando necessário. Usa a foto em `~/.face` ou copia a imagem do repositório se ainda não houver uma. Aplica `~/.config/fastfetch/config.jsonc` para que o comando `fastfetch` encontre a configuração e renderize a foto com Chafa.
 
-As duas ações pedem confirmação antes de copiar a configuração e guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
+As duas ações guardam a versão anterior em `/mnt/backups/dotfiles/Fish` ou `/mnt/backups/dotfiles/Fastfetch` quando o conteúdo muda.
 
-**Sistema Operacional → Noctalia** aplica `settings.toml` e `state.toml` de `cachyos/noctalia/` em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
+Em **Sistema Operacional → Noctalia**, abra **Requisitos dos plugins** para ver o que está instalado ou pendente. **Aplicar configuração** fica bloqueada enquanto faltar algum plugin e copia `settings.toml` e `state.toml` de `cachyos/noctalia/` em `~/.local/state/noctalia`. Respeita as variáveis `NOCTALIA_STATE_HOME` e `XDG_STATE_HOME` e guarda os arquivos substituídos em `/mnt/backups/dotfiles/Noctalia`. Antes de aplicar, instale no Noctalia os plugins comunitários `androidconnect`, `github-activity`, `godot-provider`, `kuma-status`, `kumacat`, `pomodoro-heatmap`, `process-manager`, `proton-pass`, `shipyard`, `ufw` e `zed-provider`, além do plugin oficial `world_clock`. O papel de parede usa `~/.wallpapers/desktop-4k.jpg`, copiado pela ação **Papéis de parede**. [Configuração do Noctalia](https://docs.noctalia.dev/noctalia/configuration/)
 
 ## Programas
 
@@ -80,11 +82,11 @@ Em **Programas → Ferramentas de Terminal**, a instalação em lote também inc
 
 **Programas → Drivers** instala os headers correspondentes aos kernels instalados, `base-devel` e os utilitários de diagnóstico `vulkan-tools` e `mesa-utils`. A CLI identifica o pacote de cada kernel pelo `vmlinuz` presente em `/usr/lib/modules`.
 
-**Programas → Terminal → Instalar Kitty** instala o pacote `kitty` pelo Pacman após confirmação.
+**Programas → Terminal → Instalar Kitty** instala o pacote `kitty` pelo Pacman.
 
 No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados → Remover aplicativos** exige o Kitty instalado. Após confirmação, desinstala os pacotes encontrados entre `alacritty`, `meld` e `shelly` com `pacman -Rns`. A ação também apaga `~/.config/alacritty`, `~/.cache/alacritty`, `~/.config/meld`, `~/.local/share/meld` e `~/.cache/meld` quando existirem. [Manual do Pacman](https://man.archlinux.org/man/pacman.8.en#REMOVE_OPTIONS_(APPLY_TO_-R))
 
-**Programas → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay após confirmação no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
+**Programas → Instalar ArtCraft Launcher** instala `artcraft-launcher-bin` pelo yay no Desktop e no Laptop. A CLI prepara o yay se precisar. [Pacote no AUR](https://aur.archlinux.org/packages/artcraft-launcher-bin)
 
 **Programas → Instalar Zed** instala o pacote `zed` do repositório oficial pelo Pacman. [Pacote do Zed no Arch Linux](https://archlinux.org/packages/extra/x86_64/zed/)
 
@@ -98,17 +100,17 @@ No Desktop e Laptop com CachyOS, **Programas → Aplicativos pré-instalados →
 
 ## Programação
 
-**Programação → Instalar Rust** reaproveita o Rustup disponível no `PATH` ou em `~/.cargo/bin` e usa o Pacman quando o executável está ausente. Seleciona a toolchain estável como padrão e verifica `rustc` e `cargo`. A ação roda como usuário normal após confirmação.
+**Programação → Instalar Rust** reaproveita o Rustup disponível no `PATH` ou em `~/.cargo/bin` e usa o Pacman quando o executável está ausente. Seleciona a toolchain estável como padrão e verifica `rustc` e `cargo`. A ação roda como usuário normal.
 
 **Programação → Instalar Android CLI** reaproveita o comando `android` quando já está disponível ou executa o instalador oficial do Google em `~/.local/bin/android`. O pacote `android-tools` continua disponível no lote de ferramentas de terminal. [Android CLI no Android Developers](https://developer.android.com/tools/agents/android-cli/download)
 
-**Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta`, `git-lfs`, `neovim`, `openssh` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. Após confirmação, a ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.
+**Programação → Git → Configurar Git** instala `git`, `gnupg`, `lazygit`, `git-delta`, `git-lfs`, `neovim`, `openssh` e `git-ignore-bin`. O último pacote usa o yay, que a CLI prepara se estiver ausente. A ação aplica `~/.gitconfig`, `~/.gitattributes`, `~/.gitignore` e `~/.config/git/config` (ou `$XDG_CONFIG_HOME/git/config`). Os arquivos substituídos recebem backup em `/mnt/backups/dotfiles/Git`.
 
 O `~/.gitconfig` recebe a chave de assinatura em `user.signingkey` e habilita GPG para commits e tags. A CLI preserva a chave configurada se ela puder assinar, inclusive quando foi selecionada uma subchave ou a identidade Git mudou. Sem uma chave configurada utilizável, a CLI prioriza as chaves existentes com o e-mail da identidade Git e oferece as demais chaves utilizáveis se nenhuma corresponder. Se o chaveiro não tiver uma chave de assinatura utilizável, gera uma RSA de 4096 bits com senha e validade de dois anos e exibe a chave pública.
 
 **Programação → Mise → Configurar Mise e instalar ferramentas** reaproveita o executável do Mise quando disponível e instala as dependências de compilação ausentes. Copia `cachyos/mise/mise.toml` para `~/.config/mise/config.toml` (ou `$XDG_CONFIG_HOME/mise/config.toml`), confia nesse arquivo e executa `mise install` como o usuário atual. A lista inclui as CLIs do GitHub (`gh`), do GitLab (`glab`), do Heroku (`heroku`), do Render (`render`), do Sentry (`sentry`) e do Linear (`linear`). Uma configuração anterior recebe backup em `/mnt/backups/dotfiles/Mise` quando substituída.
 
-No Desktop e Laptop, o menu **Programação → Login das CLIs** inclui AWS, Google Cloud, Azure, Railway, GitHub, GitLab, Heroku, Render, Sentry, Linear, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon e npm. Cada ação abre o login da própria ferramenta e usa a versão ativa do Mise, a última versão instalada ou o executável disponível no `PATH`. O Linear usa a CLI `schpet/linear-cli` e pede uma chave pessoal para armazenar no chaveiro do sistema.
+No Desktop e Laptop, o menu **Programação → Login das CLIs** inclui AWS, Google Cloud, Azure, Railway, GitHub, GitLab, Heroku, Render, Sentry, Linear, Firebase, Cloudflare CLI, Cloudflare Wrangler, Vercel, Neon e npm. Cada submenu só habilita o login se encontrar o executável. A ação usa a versão ativa do Mise, a última versão instalada ou o executável disponível no `PATH`. O Linear usa a CLI `schpet/linear-cli` e pede uma chave pessoal para armazenar no chaveiro do sistema.
 
 O Mise também instala Claude Code, Codex, Pi, GitHub Copilot CLI, Gemini CLI e Antigravity CLI. O menu de login tem opções para Claude Code, Codex, Copilot, Gemini e Antigravity. No Gemini, use `/auth` para escolher o método de autenticação e `/quit` para voltar ao menu.
 
@@ -118,7 +120,7 @@ O Mise instala a EAS CLI (`eas`) para os serviços do Expo. Em **Login das CLIs 
 
 Nos perfis Desktop e Laptop, **Programação → Docker → Configurar Docker** instala `docker`, `docker-compose`, `docker-buildx`, `docker-machine`, `lazydocker`, `util-linux` e `xdg-utils` via Pacman. A ação valida e aplica `/etc/docker/daemon.json` com `data-root` em `/var/lib/docker` e `storage-driver` igual a `overlay2`. Quando substitui uma configuração, guarda uma cópia em `/mnt/backups/dotfiles/Docker/daemon.json.backup-*`. Habilita `docker.service` no boot e inicia o serviço se estiver parado. Um daemon já ativo usa a nova configuração no próximo reinício.
 
-A ação adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
+A ação fica bloqueada até o Firefox ser instalado. Ela adiciona o usuário ao grupo `docker`, define o Firefox como navegador padrão e inicia o login no Docker Hub quando ainda não há credenciais locais. Abra uma nova sessão para atualizar o grupo nos demais terminais.
 
 **Programação → Docker → Ambiente Sandbox** instala Docker e Distrobox quando necessário e cria o contêiner `sandbox` com a imagem oficial do Arch Linux. A ação reaproveita um Docker acessível e um Distrobox com esse nome. Define Docker na configuração do Distrobox, preserva as outras opções e guarda uma cópia da configuração anterior em `/mnt/backups/dotfiles/Distrobox`. Se `~/.distroboxrc` existir, a ação usa esse arquivo devido à sua precedência. Para entrar, execute `distrobox enter sandbox`. O Distrobox compartilha o diretório pessoal com o contêiner. [Configuração do Distrobox](https://distrobox.it/#configure)
 
@@ -130,7 +132,7 @@ No Desktop e Laptop, **Agentes de IA → Pi Agent → Configurar Pi Agent** prep
 
 ## Navegador Web
 
-**Navegador Web → Instalar Firefox** instala `firefox` e `xdg-utils` pelo Pacman e define o Firefox como navegador padrão após confirmação.
+**Navegador Web → Instalar Firefox** instala `firefox` e `xdg-utils` pelo Pacman e define o Firefox como navegador padrão.
 
 ## Instalação
 

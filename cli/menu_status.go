@@ -57,15 +57,16 @@ type dockerStatusResult struct {
 }
 
 type dockerStatus struct {
-	loaded, active, enabled, inGroup bool
-	missing                          []string
+	loaded, active, enabled, inGroup, firefox bool
+	missing                                   []string
 }
 
 func readDockerStatus() dockerStatus {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	commands := sshCommandsWithContext(ctx)
-	s := dockerStatus{loaded: true}
+	_, browserErr := exec.LookPath("firefox")
+	s := dockerStatus{loaded: true, firefox: browserErr == nil}
 	for _, name := range dockerTools {
 		if _, err := commands.capture("", "pacman", "-Q", name); err != nil {
 			s.missing = append(s.missing, name)

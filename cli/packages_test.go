@@ -68,7 +68,7 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.action, func(t *testing.T) {
-			installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+			installer, commands := newPackageInstallerTest(t, "")
 			if err := installer.run(tt.action, ""); err != nil {
 				t.Fatal(err)
 			}
@@ -80,10 +80,6 @@ func TestPackageActionsInstallApprovedPackages(t *testing.T) {
 			}
 		})
 	}
-	installer, commands := newPackageInstallerTest(t, "CANCELAR\n")
-	if err := installer.run("terminal-tools", ""); err == nil || len(*commands) != 0 {
-		t.Fatalf("cancelamento executou comandos: %v, %v", *commands, err)
-	}
 }
 
 func TestInstallPostingReusesUV(t *testing.T) {
@@ -93,7 +89,7 @@ func TestInstallPostingReusesUV(t *testing.T) {
 	const uv = "/opt/mise/installs/uv/0.13.9/bin/uv"
 	const prefix = "env MISE_AUTO_INSTALL=0 " + mise + " --cd /"
 	for _, tc := range []struct {
-		name, answer string
+		name         string
 		mise, active bool
 		path         bool
 		want         []string
@@ -102,14 +98,9 @@ func TestInstallPostingReusesUV(t *testing.T) {
 		{name: "mise instalado e inativo", mise: true, want: []string{prefix + " exec uv@0.13.9 -- " + uv + install}},
 		{name: "uv no PATH", path: true, want: []string{"/opt/uv/bin/uv" + install}},
 		{name: "instalar uv ausente", want: []string{pacman, "/usr/bin/uv" + install}},
-		{name: "cancelamento", answer: "CANCELAR", mise: true, active: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			answer := tc.answer
-			if answer == "" {
-				answer = "CONFIRMO"
-			}
-			installer, commands := newPackageInstallerTest(t, answer+"\n")
+			installer, commands := newPackageInstallerTest(t, "")
 			installer.which = func(name string) (string, error) {
 				switch {
 				case name == "mise" && tc.mise:
@@ -134,14 +125,14 @@ func TestInstallPostingReusesUV(t *testing.T) {
 				case prefix + " --quiet which uv --tool uv@0.13.9":
 					return uv + "\n", nil
 				default:
-					if tc.mise || tc.path || tc.answer != "" {
+					if tc.mise || tc.path {
 						t.Fatalf("consulta de pacote indevida: %v", args)
 					}
 					return capture(input, args...)
 				}
 			}
 			err := installer.run("install-posting", "")
-			if (err != nil) != (tc.answer == "CANCELAR") || !slices.Equal(*commands, tc.want) {
+			if err != nil || !slices.Equal(*commands, tc.want) {
 				t.Fatalf("comandos = %v, esperado %v, erro = %v", *commands, tc.want, err)
 			}
 		})
@@ -164,7 +155,7 @@ func TestInstallPostingRespectsCustomToolBinDir(t *testing.T) {
 }
 
 func TestInstallLunarVimReusesMiseAndPinnedNeovim(t *testing.T) {
-	installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+	installer, commands := newPackageInstallerTest(t, "")
 	mise := filepath.Join(installer.console.home, ".local", "bin", "mise")
 	installer.which = func(name string) (string, error) {
 		if name == mise {
@@ -207,14 +198,13 @@ func TestProtonPassChecksFirefoxAndStartsLogin(t *testing.T) {
 	install := "yay -S --needed -- proton-pass-cli-bin"
 	login := "pass-cli login"
 	tests := []struct {
-		name, mozilla, answer, fail, wantErr string
-		firefoxMissing, alreadyInstalled     bool
-		want                                 []string
+		name, mozilla, fail, wantErr     string
+		firefoxMissing, alreadyInstalled bool
+		want                             []string
 	}{
 		{name: "Firefox ausente", mozilla: "dir", firefoxMissing: true, wantErr: "instale o Firefox"},
 		{name: "Mozilla ausente", wantErr: "abra o Firefox"},
 		{name: "Mozilla é arquivo", mozilla: "file", wantErr: "precisa ser um diretório"},
-		{name: "cancelamento", mozilla: "dir", answer: "CANCELAR", wantErr: "cancelad"},
 		{name: "instalação seguida de login", mozilla: "dir", want: []string{install, login}},
 		{name: "pacote já instalado", mozilla: "dir", alreadyInstalled: true, want: []string{login}},
 		{name: "instalação falha", mozilla: "dir", fail: install, wantErr: "falha simulada", want: []string{install}},
@@ -222,11 +212,7 @@ func TestProtonPassChecksFirefoxAndStartsLogin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			answer := tt.answer
-			if answer == "" {
-				answer = "CONFIRMO"
-			}
-			installer, commands := newPackageInstallerTest(t, answer+"\n")
+			installer, commands := newPackageInstallerTest(t, "")
 			path := filepath.Join(installer.console.home, ".config", "mozilla")
 			switch tt.mozilla {
 			case "dir":
@@ -274,7 +260,7 @@ func TestProtonPassChecksFirefoxAndStartsLogin(t *testing.T) {
 
 func TestDriversFindHeadersForInstalledKernels(t *testing.T) {
 	for _, unavailable := range []bool{false, true} {
-		installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+		installer, commands := newPackageInstallerTest(t, "")
 		modules := t.TempDir()
 		kernels := map[string]string{
 			"6.18-cachyos": "linux-cachyos",
@@ -316,7 +302,7 @@ func TestDriversFindHeadersForInstalledKernels(t *testing.T) {
 func TestYayBootstrap(t *testing.T) {
 	for _, state := range []string{"clone novo", "clone existente", "clone alterado", "sem git"} {
 		t.Run(state, func(t *testing.T) {
-			installer, commands := newPackageInstallerTest(t, "CONFIRMO\n")
+			installer, commands := newPackageInstallerTest(t, "")
 			target := filepath.Join(installer.console.home, ".aur", "yay")
 			ready, gitReady := false, state != "sem git"
 			installer.which = func(name string) (string, error) {

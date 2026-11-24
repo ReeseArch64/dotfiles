@@ -23,7 +23,7 @@ func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 	if next, cmd := system.(model).handleKey("2"); cmd != nil || next.(model).screen != screenSystem {
 		t.Fatal("atalho acionou a migração SDK no Homelab")
 	}
-	if err := runSDKMigration(menu.profile); err == nil {
+	if err := runSDKMigration(menu.profile, sshConsole{}); err == nil {
 		t.Fatal("a execução direta permitiu a migração SDK no Homelab")
 	}
 	for _, tt := range []struct {
@@ -66,14 +66,14 @@ func TestHomelabMenuRoutesOnlyItsActions(t *testing.T) {
 	if ubuntuRelease("ID=debian\nID_LIKE=ubuntu\n") || !ubuntuRelease("NAME=Ubuntu\nID=\"ubuntu\"\n") {
 		t.Fatal("detecção do Ubuntu incorreta")
 	}
-	if err := runHomelabAction(identifyProfile("homeprod"), []string{"ssh"}); err == nil {
+	if err := runHomelabAction(identifyProfile("homeprod"), []string{"ssh"}, sshConsole{}); err == nil {
 		t.Fatal("executou ação do Homelab no HomeProd")
 	}
 }
 
 func TestHomelabSSHWaitsForAccessTest(t *testing.T) {
 	c, key, _ := newSSHConsoleTest(t)
-	c.input = bufio.NewReader(strings.NewReader("CONFIRMO\n" + key + "\nCANCELAR\n"))
+	c.input = bufio.NewReader(strings.NewReader(key + "\nn\n"))
 	var calls []string
 	capture := c.commands.capture
 	c.commands.capture = func(input string, args ...string) (string, error) {
@@ -178,7 +178,7 @@ func TestHomelabFirewallOrdersLANAndCurrentSessionBeforeDefaults(t *testing.T) {
 func TestCasaOSRunsInstallerOnlyAfterCompleteDownload(t *testing.T) {
 	for _, fails := range []bool{false, true} {
 		var calls []string
-		c := sshConsole{input: bufio.NewReader(strings.NewReader("CONFIRMO\n")), output: &bytes.Buffer{}, commands: sshCommands{
+		c := sshConsole{output: &bytes.Buffer{}, commands: sshCommands{
 			capture: func(_ string, args ...string) (string, error) {
 				if args[0] == "systemctl" {
 					return "", errors.New("serviço ausente")

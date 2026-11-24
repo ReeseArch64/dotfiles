@@ -1,16 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
-func runNoctaliaSetup(p profile) error {
+func setupNoctalia(p profile, output io.Writer, commands sshCommands) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("configure o Noctalia pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -21,6 +22,19 @@ func runNoctaliaSetup(p profile) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
+	directory := noctaliaDirectory(home)
+	source := dotfilesAsset(home, "cachyos", "noctalia")
+	backup, err := configureNoctalia(source, directory, home, managedBackup("Noctalia", commands.interactive))
+	if backup != "" {
+		fmt.Fprintln(output, "Backup:", backup)
+	}
+	if err == nil {
+		fmt.Fprintln(output, "Configuração aplicada em", directory)
+	}
+	return err
+}
+
+func noctaliaDirectory(home string) string {
 	state := filepath.Join(home, ".local", "state")
 	for _, key := range []string{"NOCTALIA_STATE_HOME", "XDG_STATE_HOME"} {
 		if path := os.Getenv(key); filepath.IsAbs(path) {
@@ -28,27 +42,54 @@ func runNoctaliaSetup(p profile) error {
 			break
 		}
 	}
-	directory := filepath.Join(state, "noctalia")
-	source := dotfilesAsset(home, "cachyos", "noctalia")
-	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	location := managedBackup("Noctalia", console.commands.interactive)
-	printActionHeader()
-	fmt.Fprintln(console.output, "Aplicar settings.toml e state.toml em", directory)
-	fmt.Fprintln(console.output, "Arquivos substituídos recebem backup em", location.path)
-	if err = console.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err == nil {
-		var backup string
-		backup, err = configureNoctalia(source, directory, home, location)
-		if backup != "" {
-			fmt.Fprintln(console.output, "Backup:", backup)
+	return filepath.Join(state, "noctalia")
+}
+
+var noctaliaPlugins = []string{
+	"community/androidconnect",
+	"community/github-activity",
+	"community/godot-provider",
+	"community/kuma-status",
+	"community/kumacat",
+	"community/pomodoro-heatmap",
+	"community/process-manager",
+	"community/proton-pass",
+	"community/shipyard",
+	"community/ufw",
+	"community/zed-provider",
+	"official/world_clock",
+}
+
+func missingNoctaliaPlugins(directory string) []string {
+	var missing []string
+	for _, path := range noctaliaPlugins {
+		info, err := os.Stat(filepath.Join(directory, "plugins", "materialized", path))
+		if err != nil || !info.IsDir() {
+			missing = append(missing, path)
 		}
 	}
-	if err == nil {
-		fmt.Fprintln(console.output, "Noctalia configurado.")
-	} else {
-		fmt.Fprintln(console.output, err)
+	return missing
+}
+
+func showNoctaliaRequirements(_ profile, c sshConsole) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
 	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	missing := missingNoctaliaPlugins(noctaliaDirectory(home))
+	if len(missing) == 0 {
+		fmt.Fprint(c.output, "Todos os plugins exigidos estão instalados.\n\n")
+	} else {
+		fmt.Fprint(c.output, "Instale os plugins pendentes no Noctalia antes de aplicar a configuração.\n\n")
+	}
+	for _, plugin := range noctaliaPlugins {
+		state := "Instalado"
+		if slices.Contains(missing, plugin) {
+			state = "Pendente"
+		}
+		fmt.Fprintf(c.output, "%s · %s\n", state, plugin)
+	}
+	return nil
 }
 
 func configureNoctalia(source, directory, home string, location backupLocation) (string, error) {
@@ -57,29 +98,8 @@ func configureNoctalia(source, directory, home string, location backupLocation) 
 		return "", err
 	}
 	defer unlock()
-	plugins := filepath.Join(directory, "plugins", "materialized")
-	var missing []string
-	for _, path := range []string{
-		"community/androidconnect",
-		"community/github-activity",
-		"community/godot-provider",
-		"community/kuma-status",
-		"community/kumacat",
-		"community/pomodoro-heatmap",
-		"community/process-manager",
-		"community/proton-pass",
-		"community/shipyard",
-		"community/ufw",
-		"community/zed-provider",
-		"official/world_clock",
-	} {
-		info, err := os.Stat(filepath.Join(plugins, path))
-		if err != nil || !info.IsDir() {
-			missing = append(missing, filepath.Base(path))
-		}
-	}
-	if len(missing) != 0 {
-		return "", errors.New("baixe os plugins ausentes no Noctalia: " + strings.Join(missing, ", "))
+	if missing := missingNoctaliaPlugins(directory); len(missing) != 0 {
+		return "", errors.New("Instale os plugins abaixo no Noctalia e execute esta ação novamente:\n\n• " + strings.Join(missing, "\n• "))
 	}
 	quotedHome, err := json.Marshal(home)
 	if err != nil {

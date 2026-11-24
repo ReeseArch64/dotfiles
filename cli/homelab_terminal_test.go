@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"errors"
@@ -50,7 +49,7 @@ func TestHomelabTerminalAppliesServerConfiguration(t *testing.T) {
 				shell = homelabFishShell
 			}
 			var output bytes.Buffer
-			c := sshConsole{home: home, input: bufio.NewReader(strings.NewReader("CONFIRMO\n")), output: &output, commands: sshCommands{
+			c := sshConsole{home: home, output: &output, commands: sshCommands{
 				capture: func(_ string, args ...string) (string, error) {
 					switch args[0] {
 					case "dpkg-query":
@@ -144,7 +143,7 @@ func TestHomelabToolsPreservesExistingCommands(t *testing.T) {
 	var packages []string
 	var links [][]string
 	fdInstalled := false
-	c := sshConsole{input: bufio.NewReader(strings.NewReader("CONFIRMO\n")), output: &bytes.Buffer{}, commands: sshCommands{
+	c := sshConsole{output: &bytes.Buffer{}, commands: sshCommands{
 		capture: func(_ string, args ...string) (string, error) {
 			if args[0] == "dpkg-query" {
 				packages = append(packages, args[len(args)-1])

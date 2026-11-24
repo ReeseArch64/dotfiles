@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -14,7 +13,7 @@ func (p profile) canRemovePreinstalledApps(osID string) bool {
 	return p.sshKeyName() != "" && osID == "cachyos"
 }
 
-func runPreinstalledCleanup(p profile) error {
+func runPreinstalledCleanup(p profile, console sshConsole) error {
 	if !p.canRemovePreinstalledApps(systemOSID()) || os.Geteuid() == 0 {
 		return errors.New("execute a remoção no Desktop ou Laptop com CachyOS como usuário normal")
 	}
@@ -25,16 +24,8 @@ func runPreinstalledCleanup(p profile) error {
 	if !filepath.IsAbs(home) {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
-	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	printActionHeader()
-	err = removePreinstalledApps(&console)
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	} else {
-		fmt.Fprintln(console.output, "Remoção concluída.")
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	console.home = home
+	return removePreinstalledApps(&console)
 }
 
 func removePreinstalledApps(c *sshConsole) error {
@@ -49,7 +40,7 @@ func removePreinstalledApps(c *sshConsole) error {
 	}
 	installed := strings.Fields(output)
 	if !slices.Contains(installed, "kitty") {
-		return errors.New("instale o Kitty antes de remover o Alacritty em Sistema Operacional → Terminal")
+		return errors.New("instale o Kitty em Programas → Terminal antes de remover o Alacritty")
 	}
 	var packages []string
 	for _, name := range []string{"alacritty", "meld", "shelly"} {
@@ -67,7 +58,7 @@ func removePreinstalledApps(c *sshConsole) error {
 	for _, path := range paths {
 		fmt.Fprintln(c.output, "  "+filepath.Join(c.home, path))
 	}
-	if err := c.confirm("Digite CONFIRMO para remover: ", "CONFIRMO"); err != nil {
+	if err := c.confirm("Desinstalar os aplicativos e apagar os dados listados?"); err != nil {
 		return err
 	}
 	if len(packages) > 0 {

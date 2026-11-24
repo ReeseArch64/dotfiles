@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -24,7 +25,7 @@ func TestStorageMigrationArchivesOnlyOldHomeContent(t *testing.T) {
 		return nil
 	}
 	for range 2 {
-		if err := migrateDirectories(context.Background(), home, root, location, storageDirectoryMappings, true, run); err != nil {
+		if err := migrateDirectories(context.Background(), home, root, location, storageDirectoryMappings, true, run, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 		for _, name := range []string{"Documents", "Downloads", "Pictures", "Videos", "Music"} {
@@ -70,7 +71,7 @@ func TestStorageMigrationSkipsBackupAndLeavesExistingTargetsIntact(t *testing.T)
 		if err := migrateDirectories(context.Background(), home, root, location, storageDirectoryMappings, true, func(args ...string) error {
 			t.Fatalf("comando inesperado: %v", args)
 			return nil
-		}); err != nil {
+		}, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 	}

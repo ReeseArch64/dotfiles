@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"os"
@@ -37,6 +36,10 @@ func TestDockerMenu(t *testing.T) {
 			t.Fatal("atalho não abriu o menu Docker")
 		}
 		docker.docker = dockerStatus{loaded: true, missing: []string{"docker-machine"}}
+		if items := docker.items(); !items[0].disabled || items[1].disabled {
+			t.Fatal("Firefox deve bloquear somente a configuração do Docker")
+		}
+		docker.docker.firefox = true
 		view := docker.View()
 		if !strings.Contains(view, "docker-machine ausente") || lipgloss.Height(view) != docker.height {
 			t.Fatalf("status Docker inválido: %s", view)
@@ -64,7 +67,7 @@ func TestConfigureDockerInstallsMachineAndManagesLogin(t *testing.T) {
 			}
 			var calls []string
 			c := sshConsole{
-				home: t.TempDir(), input: bufio.NewReader(strings.NewReader("CONFIRMO\n")), output: io.Discard,
+				home: t.TempDir(), output: io.Discard,
 				commands: sshCommands{
 					capture: func(_ string, argv ...string) (string, error) {
 						return "", errors.New("pacote ausente")
@@ -76,7 +79,7 @@ func TestConfigureDockerInstallsMachineAndManagesLogin(t *testing.T) {
 				},
 			}
 			lookup := func(name string) (string, error) {
-				if existing || name != "firefox" {
+				if name != "firefox" {
 					t.Fatalf("busca inesperada: %s", name)
 				}
 				return "/usr/bin/firefox", nil

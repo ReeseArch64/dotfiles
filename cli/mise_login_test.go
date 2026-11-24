@@ -39,6 +39,10 @@ func TestMiseLoginMenus(t *testing.T) {
 		for index, item := range list.items() {
 			next, _ := list.selectItem(item)
 			page := next.(model)
+			if !page.items()[0].disabled {
+				t.Fatal("login disponível antes de verificar o executável")
+			}
+			page.dependency = dependencyResult{request: page.statusRequest}
 			actions := page.items()
 			if len(actions) != 1 || actions[0].title != "Fazer login" || actions[0].disabled || screenTitle(page.screen) != item.title {
 				t.Fatalf("submenu de %s: %v", item.title, actions)

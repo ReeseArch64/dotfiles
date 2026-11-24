@@ -26,9 +26,6 @@ func (installer packageInstaller) installAndroidCLI() error {
 		}
 	}
 	fmt.Fprintln(c.output, "Instalar o Android CLI do Google em", local)
-	if err := c.confirm("Digite CONFIRMO para instalar: ", "CONFIRMO"); err != nil {
-		return err
-	}
 	if err := c.ensurePackages("curl"); err != nil {
 		return err
 	}

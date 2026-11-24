@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -20,7 +19,7 @@ func ubuntuRelease(data string) bool {
 	return osReleaseID(data) == "ubuntu"
 }
 
-func runHomelabAction(device profile, args []string) error {
+func runHomelabAction(device profile, args []string, console sshConsole) error {
 	if device.prefix != "homelab" {
 		return errors.New("ação disponível apenas no perfil Homelab")
 	}
@@ -44,8 +43,7 @@ func runHomelabAction(device profile, args []string) error {
 	if err != nil {
 		return err
 	}
-	console := sshConsole{home: account.HomeDir, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	printActionHeader()
+	console.home = account.HomeDir
 	switch args[0] {
 	case "ssh":
 		err = configureHomelabSSH(&console, account.Username)
@@ -64,10 +62,6 @@ func runHomelabAction(device profile, args []string) error {
 	default:
 		return errors.New("ação Homelab inválida")
 	}
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 
@@ -121,8 +115,10 @@ func configureHomelabSystem(c *sshConsole, category, action, description string)
 	location := managedBackup(category, c.commands.interactive)
 	fmt.Fprintln(c.output, description)
 	fmt.Fprintln(c.output, "Arquivos substituídos recebem backup em", location.path)
-	if err := c.confirm("Digite CONFIRMO para continuar: ", "CONFIRMO"); err != nil {
-		return err
+	if action == "apply-dns" {
+		if err := c.confirm("Alterar a resolução DNS do servidor?"); err != nil {
+			return err
+		}
 	}
 	if err := location.prepare(); err != nil {
 		return err
@@ -161,9 +157,6 @@ func installCasaOS(c *sshConsole, username string) error {
 		fmt.Fprintln(c.output, "CasaOS já está ativo. A ação prepara o acesso ao grupo docker para", username)
 	} else {
 		fmt.Fprintln(c.output, "Instalar CasaOS com o script oficial de", casaOSInstallerURL, "e adicionar", username, "ao grupo docker.")
-	}
-	if err := c.confirm("Digite CONFIRMO para continuar: ", "CONFIRMO"); err != nil {
-		return err
 	}
 	if !active {
 		if err := c.ensureUbuntuPackages("curl", "ca-certificates"); err != nil {

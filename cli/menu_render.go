@@ -36,6 +36,12 @@ func screenTitle(page screen) string {
 func (m model) View() string {
 	width, height := max(m.width, 1), max(m.height, 1)
 	elapsed := m.now.Sub(m.start)
+	if m.prompt != nil {
+		return m.viewPrompt()
+	}
+	if m.screen == screenJob {
+		return m.viewJob(elapsed)
+	}
 	boxW := min(max(width-4, 30), 66)
 	inner := boxW - 4
 
@@ -43,12 +49,7 @@ func (m model) View() string {
 	for _, s := range m.stack {
 		crumbs = append(crumbs, screenTitle(s))
 	}
-	switch m.screen {
-	case screenJob:
-		crumbs = append(crumbs, m.job.title)
-	default:
-		crumbs = append(crumbs, screenTitle(m.screen))
-	}
+	crumbs = append(crumbs, screenTitle(m.screen))
 	dim := lipgloss.NewStyle().Foreground(colDim)
 	breadcrumb := strings.Join(crumbs, " › ")
 	if len(crumbs) > 1 && lipgloss.Width(breadcrumb) > inner {
@@ -65,8 +66,6 @@ func (m model) View() string {
 	layout := func(compactBanner, compactMenu, selectedDescriptionOnly bool) string {
 		var body string
 		switch m.screen {
-		case screenJob:
-			body = m.job.view(inner, elapsed)
 		case screenSSH, screenFirewall, screenDocker:
 			divider := lipgloss.NewStyle().Foreground(colDimmer).Render(strings.Repeat("─", inner))
 			card := m.status.card(m.screen, inner, compactMenu)
@@ -154,12 +153,6 @@ func (m model) viewHelp(compact bool) string {
 	key := lipgloss.NewStyle().Foreground(colTitle).Bold(true)
 	txt := lipgloss.NewStyle().Foreground(colDim)
 	var pairs [][2]string
-	if m.screen == screenJob {
-		if !m.job.done {
-			return txt.Render("executando… ") + key.Render("ctrl+c") + txt.Render(" aborta")
-		}
-		return key.Render("enter") + " " + txt.Render("voltar")
-	}
 	pairs = append(pairs, [2]string{"↑↓", "navegar"}, [2]string{"enter", "selecionar"}, [2]string{"1-9", "atalho"})
 	if len(m.stack) > 0 {
 		pairs = append(pairs, [2]string{"esc", "voltar"})

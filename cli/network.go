@@ -1,17 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
 )
 
-func runNetworkAction(device profile, args []string) error {
+func runNetworkAction(device profile, args []string, console sshConsole) error {
 	if device.sshKeyName() == "" {
 		return errors.New("SSH e firewall disponíveis apenas nos perfis Desktop e Laptop")
 	}
@@ -30,11 +28,7 @@ func runNetworkAction(device profile, args []string) error {
 	if err != nil {
 		return err
 	}
-	console := sshConsole{
-		home: account.HomeDir, keyName: device.sshKeyName(),
-		input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands(),
-	}
-	printActionHeader()
+	console.home, console.keyName = account.HomeDir, device.sshKeyName()
 	switch args[0] {
 	case "configure":
 		err = console.configure()
@@ -50,10 +44,6 @@ func runNetworkAction(device profile, args []string) error {
 	default:
 		return errors.New("ação inválida")
 	}
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 
@@ -120,7 +110,7 @@ func (c *sshConsole) enableSSHAgent() error {
 
 func (c *sshConsole) configure() error {
 	fmt.Fprintln(c.output, "Esta ação configura uma identidade no cliente e habilita o sshd somente por chave para seu usuário. Os arquivos anteriores recebem backup.")
-	if err := c.confirm("Digite CONFIRMO para configurar: ", "CONFIRMO"); err != nil {
+	if err := c.confirm("Restringir o acesso SSH à autenticação por chave?"); err != nil {
 		return err
 	}
 	clientBackup := managedBackup("SSH", c.commands.interactive)
@@ -255,7 +245,7 @@ func (c *sshConsole) firewall() error {
 		return err
 	}
 	fmt.Fprintf(c.output, "O UFW permitirá SSH de entrada apenas pela LAN %s (%s) e manterá outras regras.\n", lan.subnet, lan.device)
-	if err := c.confirm("Digite CONFIRMO para aplicar o firewall: ", "CONFIRMO"); err != nil {
+	if err := c.confirm("Ativar o firewall e restringir o acesso SSH à LAN?"); err != nil {
 		return err
 	}
 	// Validate SSH before installing or modifying the firewall.
@@ -269,12 +259,6 @@ func (c *sshConsole) firewall() error {
 		return err
 	}
 	return c.privileged("apply-firewall")
-}
-
-func printActionHeader() {
-	if title := os.Getenv("DOTFILES_ACTION_TITLE"); title != "" {
-		fmt.Printf("\x1b[2J\x1b[H\n  \x1b[1;35m━━ %s ━━\x1b[0m\n\n", title)
-	}
 }
 
 func (p profile) menuAction(action string) string {
@@ -295,11 +279,7 @@ func (p profile) menuAction(action string) string {
 	return action
 }
 
-func actionCommand(action, title string) (*exec.Cmd, error) {
-	executable, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
+func actionArgs(action string) []string {
 	args := []string{"--network", action}
 	switch action {
 	case "homelab-ssh", "homelab-firewall", "homelab-casaos", "homelab-dns", "homelab-swap", "homelab-fish", "homelab-fastfetch", "homelab-tools":
@@ -310,6 +290,8 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 		args = []string{"--wallpapers"}
 	case "setup-noctalia":
 		args = []string{"--setup-noctalia"}
+	case "noctalia-requirements":
+		args = []string{"--noctalia-requirements"}
 	case "sdk-links":
 		args = []string{"--sdk-links"}
 	case "storage-links", "setup-workspaces", "setup-niri":
@@ -333,7 +315,5 @@ func actionCommand(action, title string) (*exec.Cmd, error) {
 			args = []string{"--mise-login", name}
 		}
 	}
-	command := exec.Command(executable, args...)
-	command.Env = append(command.Environ(), "DOTFILES_ACTION_TITLE="+title)
-	return command, nil
+	return args
 }

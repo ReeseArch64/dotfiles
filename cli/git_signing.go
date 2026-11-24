@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"slices"
@@ -38,7 +39,17 @@ func gitSigningKey(console sshConsole, name, email, hostname, previous string) (
 	switch len(keys) {
 	case 0:
 		fmt.Fprintf(console.output, "Nenhuma chave GPG de assinatura encontrada. Será criada uma RSA de 4096 bits para %s, válida por dois anos.\n", email)
-		fingerprint, err := generateGitSigningKey(console, name, email, hostname)
+		var fingerprint string
+		generate := func() error {
+			var err error
+			fingerprint, err = generateGitSigningKey(os.Stdout, name, email, hostname)
+			return err
+		}
+		if console.withTerminal != nil {
+			err = console.withTerminal(generate)
+		} else {
+			err = generate()
+		}
 		if err != nil {
 			return "", err
 		}
@@ -131,14 +142,14 @@ func validGPGRecord(validity string) bool {
 	}
 }
 
-func generateGitSigningKey(console sshConsole, name, email, hostname string) (string, error) {
+func generateGitSigningKey(output io.Writer, name, email, hostname string) (string, error) {
 	fd := os.Stdin.Fd()
 	if !term.IsTerminal(fd) {
 		return "", errors.New("a geração da chave GPG precisa de um terminal interativo")
 	}
-	fmt.Fprint(console.output, "Senha da nova chave GPG: ")
+	fmt.Fprint(output, "Senha da nova chave GPG: ")
 	password, err := term.ReadPassword(fd)
-	fmt.Fprintln(console.output)
+	fmt.Fprintln(output)
 	defer clear(password)
 	if err != nil {
 		return "", err
@@ -146,9 +157,9 @@ func generateGitSigningKey(console sshConsole, name, email, hostname string) (st
 	if len(bytes.TrimSpace(password)) == 0 {
 		return "", errors.New("a senha da chave GPG não pode ficar vazia")
 	}
-	fmt.Fprint(console.output, "Confirme a senha: ")
+	fmt.Fprint(output, "Confirme a senha: ")
 	confirmation, err := term.ReadPassword(fd)
-	fmt.Fprintln(console.output)
+	fmt.Fprintln(output)
 	defer clear(confirmation)
 	if err != nil {
 		return "", err

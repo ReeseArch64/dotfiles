@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
 
-func runWallpapersAction(p profile) error {
+func setupWallpapers(p profile, output io.Writer, commands sshCommands) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("copie os papéis de parede pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -20,18 +20,13 @@ func runWallpapersAction(p profile) error {
 		return errors.New("a pasta pessoal precisa ter um caminho absoluto")
 	}
 	source := dotfilesAsset(home, "cachyos", "wallpapers")
-	console := sshConsole{input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
-	printActionHeader()
-	backup, err := installWallpapers(p, source, home, managedBackup("Wallpapers", console.commands.interactive))
+	backup, err := installWallpapers(p, source, home, managedBackup("Wallpapers", commands.interactive))
 	if backup != "" {
-		fmt.Fprintln(console.output, "Backup:", backup)
+		fmt.Fprintln(output, "Backup:", backup)
 	}
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	} else {
-		fmt.Fprintln(console.output, "Papéis de parede disponíveis em", filepath.Join(home, ".wallpapers"))
+	if err == nil {
+		fmt.Fprintln(output, "Papéis de parede disponíveis em", filepath.Join(home, ".wallpapers"))
 	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
 	return err
 }
 

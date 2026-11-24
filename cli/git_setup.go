@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,7 +11,7 @@ import (
 
 var gitPackages = []string{"git", "gnupg", "lazygit", "git-delta", "git-lfs", "neovim", "openssh"}
 
-func runGitSetup(p profile) error {
+func runGitSetup(p profile, console sshConsole) error {
 	if p.sshKeyName() == "" || os.Geteuid() == 0 {
 		return errors.New("configure o Git pelo menu Desktop ou Laptop como usuário normal")
 	}
@@ -40,20 +38,11 @@ func runGitSetup(p profile) error {
 		}
 	}
 
-	printActionHeader()
-	console := sshConsole{home: home, input: bufio.NewReader(os.Stdin), output: os.Stdout, commands: systemSSHCommands()}
+	console.home = home
 	fmt.Fprintln(console.output, "Instalar os pacotes do Git e aplicar os quatro arquivos globais de configuração.")
 	fmt.Fprintln(console.output, "Pacotes:", strings.Join(append(slices.Clone(gitPackages), "git-ignore-bin"), ", "))
 	fmt.Fprintln(console.output, "Os arquivos substituídos recebem backup em", filepath.Join(backupRoot, "Git"))
-	err = console.confirm("Digite CONFIRMO para configurar o Git: ", "CONFIRMO")
-	if err == nil {
-		err = configureGit(console, config, assets, hostname)
-	}
-	if err != nil {
-		fmt.Fprintln(console.output, err)
-	}
-	_, _ = console.prompt("\nEnter para voltar ao menu...")
-	return err
+	return configureGit(console, config, assets, hostname)
 }
 
 func configureGit(console sshConsole, config, assets, hostname string) error {
@@ -69,7 +58,7 @@ func configureGit(console sshConsole, config, assets, hostname string) error {
 	if err := console.ensurePackages(gitPackages...); err != nil {
 		return err
 	}
-	installer := packageInstaller{console: &console, which: exec.LookPath, build: buildYay}
+	installer := newPackageInstaller(&console)
 	if !installer.installed("git-ignore-bin") {
 		if err := installer.ensureYay(); err != nil {
 			return err

@@ -12,18 +12,17 @@ func TestInstallRustUsesStableToolchain(t *testing.T) {
 	pacman := "sudo pacman -S --needed -- rustup"
 	setStable := "/usr/bin/rustup default stable"
 	for _, tt := range []struct {
-		name, answer, defaultToolchain string
-		missing, local                 bool
-		want                           []string
+		name, defaultToolchain string
+		missing, local         bool
+		want                   []string
 	}{
-		{name: "instalação inicial", answer: "CONFIRMO", missing: true, want: []string{pacman, setStable}},
-		{name: "estável já configurada", answer: "CONFIRMO", defaultToolchain: "stable-x86_64-unknown-linux-gnu (default)"},
-		{name: "rustup existente com nightly", answer: "CONFIRMO", defaultToolchain: "nightly-x86_64-unknown-linux-gnu (default)", want: []string{setStable}},
-		{name: "rustup do cargo fora do PATH", answer: "CONFIRMO", local: true, defaultToolchain: "stable-x86_64-unknown-linux-gnu (default)"},
-		{name: "cancelar", answer: "CANCELAR", missing: true},
+		{name: "instalação inicial", missing: true, want: []string{pacman, setStable}},
+		{name: "estável já configurada", defaultToolchain: "stable-x86_64-unknown-linux-gnu (default)"},
+		{name: "rustup existente com nightly", defaultToolchain: "nightly-x86_64-unknown-linux-gnu (default)", want: []string{setStable}},
+		{name: "rustup do cargo fora do PATH", local: true, defaultToolchain: "stable-x86_64-unknown-linux-gnu (default)"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			installer, commands := newPackageInstallerTest(t, tt.answer+"\n")
+			installer, commands := newPackageInstallerTest(t, "")
 			local := filepath.Join(installer.console.home, ".cargo", "bin", "rustup")
 			rustup := "/usr/bin/rustup"
 			if tt.local {
@@ -56,11 +55,10 @@ func TestInstallRustUsesStableToolchain(t *testing.T) {
 				}
 			}
 			err := installer.run("install-rust", "")
-			if (err != nil) != (tt.answer == "CANCELAR") || !slices.Equal(*commands, tt.want) {
+			if err != nil || !slices.Equal(*commands, tt.want) {
 				t.Fatalf("comandos = %v, erro = %v", *commands, err)
 			}
-			if tt.answer == "CONFIRMO" && !slices.Equal(checks, []string{"rustc", "cargo"}) ||
-				tt.answer == "CANCELAR" && len(checks) != 0 {
+			if !slices.Equal(checks, []string{"rustc", "cargo"}) {
 				t.Fatalf("verificações = %v", checks)
 			}
 		})
